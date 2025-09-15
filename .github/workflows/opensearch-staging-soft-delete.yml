@@ -1,0 +1,28 @@
+name: OpenSearch Staging Soft Delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      index_name:
+        description: 'Index name to soft delete'
+        required: true
+        type: string
+
+jobs:
+  soft-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+      
+      - name: Run soft delete
+        run: |
+          rake opensearch:softdelete[${{ github.event.inputs.index_name }}]
+        env:
+          OPENSEARCH_URL: ${{ secrets.OPENSEARCH_STAGING_URL }}
+          SCHEMAS_PATH: schemas

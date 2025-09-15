@@ -1,0 +1,9 @@
+if (ctx._source.containsKey('sku') == false) {
+  ctx._source.sku = ctx._source.id;
+}
+
+if (ctx._source.containsKey('inventory_count') == false) {
+  ctx._source.inventory_count = 0;
+}
+
+ctx._source.updated_at = new Date().toInstant().toString();

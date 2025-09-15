@@ -1,0 +1,22 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "email": {
+      "type": "keyword"
+    },
+    "username": {
+      "type": "keyword"
+    },
+    "first_name": {
+      "type": "text"
+    },
+    "last_name": {
+      "type": "text"
+    },
+    "created_at": {
+      "type": "date"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+name: OpenSearch Production Migrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      index_name:
+        description: 'Index name to migrate to'
+        required: true
+        type: string
+      dryrun:
+        description: 'Dry run mode'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+      
+      - name: Run migration
+        run: |
+          rake opensearch:migrate[to_index=${{ github.event.inputs.index_name }},dryrun=${{ github.event.inputs.dryrun }},revision_applied_by=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}]
+        env:
+          OPENSEARCH_URL: ${{ secrets.OPENSEARCH_PRODUCTION_URL }}
+          SCHEMAS_PATH: schemas

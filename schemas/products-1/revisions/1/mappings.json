@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "name": {
+      "type": "text",
+      "analyzer": "product_analyzer"
+    },
+    "description": {
+      "type": "text",
+      "analyzer": "product_analyzer"
+    },
+    "price": {
+      "type": "double"
+    },
+    "category": {
+      "type": "keyword"
+    },
+    "tags": {
+      "type": "keyword"
+    },
+    "created_at": {
+      "type": "date"
+    },
+    "updated_at": {
+      "type": "date"
+    }
+  }
+}

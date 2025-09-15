@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+
+puts "Setting up Schema Tools..."
+
+FileUtils.mkdir_p('schemas')
+FileUtils.mkdir_p('lib/tasks')
+FileUtils.mkdir_p('test')
+
+puts "Installing dependencies..."
+system('bundle install')
+
+puts "Setting up example schemas..."
+system('cp -r examples/* schemas/') if Dir.exist?('examples')
+
+puts "Setup complete!"
+puts ""
+puts "To get started:"
+puts "1. Start OpenSearch: docker-compose up -d"
+puts "2. Create your first schema in schemas/"
+puts "3. Run: rake opensearch:migrate[to_index=your_index_name]"
+puts "4. Run tests: rake spec"

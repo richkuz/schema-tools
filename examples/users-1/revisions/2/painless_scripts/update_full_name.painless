@@ -1,0 +1,2 @@
+ctx._source.full_name = ctx._source.first_name + " " + ctx._source.last_name;
+ctx._source.updated_at = new Date().toInstant().toString();

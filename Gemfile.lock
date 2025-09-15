@@ -1,0 +1,56 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    addressable (2.8.7)
+      public_suffix (>= 2.0.2, < 7.0)
+    bigdecimal (3.2.3)
+    crack (1.0.0)
+      bigdecimal
+      rexml
+    date (3.4.1)
+    diff-lcs (1.6.2)
+    hashdiff (1.2.1)
+    json (2.13.2)
+    logger (1.7.0)
+    net-http (0.6.0)
+      uri
+    public_suffix (6.0.2)
+    rake (13.3.0)
+    rexml (3.4.4)
+    rspec (3.13.1)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.5)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.5)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.5)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.5)
+    time (0.4.1)
+      date
+    uri (0.13.2)
+    webmock (3.25.1)
+      addressable (>= 2.8.0)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
+
+PLATFORMS
+  arm64-darwin-24
+  ruby
+
+DEPENDENCIES
+  json (~> 2.6)
+  logger (~> 1.5)
+  net-http (~> 0.3)
+  rake (~> 13.0)
+  rspec (~> 3.12)
+  time (~> 0.2)
+  uri (~> 0.12)
+  webmock (~> 3.19)
+
+BUNDLED WITH
+   2.6.4

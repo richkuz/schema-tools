@@ -1,0 +1,23 @@
+{
+  "index": {
+    "number_of_shards": 2,
+    "number_of_replicas": 1,
+    "refresh_interval": "5s",
+    "analysis": {
+      "analyzer": {
+        "product_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop", "synonym"]
+        },
+        "synonym": {
+          "type": "synonym",
+          "synonyms": [
+            "tv,television",
+            "phone,mobile,cellphone"
+          ]
+        }
+      }
+    }
+  }
+}

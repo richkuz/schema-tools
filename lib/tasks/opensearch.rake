@@ -1,5 +1,6 @@
 require 'schema_tools/client'
 require 'schema_tools/schema_manager'
+require 'schema_tools/schema_definer'
 require 'schema_tools/config'
 require 'json'
 require 'time'
@@ -226,6 +227,46 @@ namespace :opensearch do
       puts "Index #{index_name} hard deleted"
     else
       puts "Index #{index_name} does not exist"
+    end
+  end
+
+  desc "Define schema files for a new or existing index"
+  task :define do |t, args|
+    begin
+      schema_definer = SchemaTools::SchemaDefiner.new(client, schema_manager)
+      
+      puts "Please choose:"
+      puts "1. Define a schema for an index that exists in OpenSearch or Elasticsearch"
+      puts "2. Define an example schema for an index that doesn't exist"
+      puts "3. Define an example schema for a breaking change to an existing schema"
+      puts "4. Define an example schema for a non-breaking change to an existing schema"
+      
+      choice = STDIN.gets.chomp
+      
+      case choice
+      when '1'
+        puts "Type the name of an existing index in OpenSearch to define. A version number suffix is not required."
+        index_name = STDIN.gets.chomp
+        puts "Checking #{SchemaTools::Config::OPENSEARCH_URL} for the latest version of \"#{index_name}\""
+        schema_definer.define_schema_for_existing_index(index_name)
+      when '2'
+        puts "Type the name of a new index to define. A version number suffix is not required."
+        index_name = STDIN.gets.chomp
+        schema_definer.define_example_schema_for_new_index(index_name)
+      when '3'
+        puts "Type the name of an existing schema to change. A version number suffix is not required."
+        index_name = STDIN.gets.chomp
+        schema_definer.define_breaking_change_schema(index_name)
+      when '4'
+        puts "Type the name of an existing schema to change. A version number suffix is not required."
+        index_name = STDIN.gets.chomp
+        schema_definer.define_non_breaking_change_schema(index_name)
+      else
+        puts "Invalid choice. Please run the task again and select 1, 2, 3, or 4."
+      end
+    rescue => e
+      puts "Failed to connect to OpenSearch at #{SchemaTools::Config::OPENSEARCH_URL}"
+      puts "Error: #{e.message}"
     end
   end
 end

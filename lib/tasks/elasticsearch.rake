@@ -48,4 +48,10 @@ namespace :elasticsearch do
     ENV['OPENSEARCH_URL'] = SchemaTools::Config::ELASTICSEARCH_URL
     Rake::Task['opensearch:delete'].invoke(args[:index_name])
   end
+
+  desc "Define schema files for a new or existing index"
+  task :define do |t, args|
+    ENV['OPENSEARCH_URL'] = SchemaTools::Config::ELASTICSEARCH_URL
+    Rake::Task['opensearch:define'].invoke
+  end
 end

@@ -1,0 +1,136 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+
+puts "🔧 Schema Tools Integration Helper"
+puts "=================================="
+puts ""
+
+if ARGV.empty?
+  puts "Usage: ./bin/integrate <project_path> [options]"
+  puts ""
+  puts "Options:"
+  puts "  --submodule    Add as git submodule (recommended)"
+  puts "  --copy         Copy files into project"
+  puts "  --gem          Setup as gem dependency"
+  puts ""
+  puts "Examples:"
+  puts "  ./bin/integrate ../myapp --submodule"
+  puts "  ./bin/integrate ../myapp --copy"
+  puts "  ./bin/integrate ../myapp --gem"
+  exit 1
+end
+
+project_path = ARGV[0]
+option = ARGV[1] || '--submodule'
+
+unless Dir.exist?(project_path)
+  puts "❌ Project path does not exist: #{project_path}"
+  exit 1
+end
+
+puts "📁 Project path: #{project_path}"
+puts "⚙️  Integration method: #{option}"
+puts ""
+
+case option
+when '--submodule'
+  puts "🔗 Setting up as git submodule..."
+  
+  # Check if it's a git repository
+  unless Dir.exist?(File.join(project_path, '.git'))
+    puts "❌ Target project is not a git repository"
+    exit 1
+  end
+  
+  # Add submodule
+  system("cd #{project_path} && git submodule add #{`git remote get-url origin`.strip} vendor/schema-tools")
+  system("cd #{project_path} && git submodule update --init --recursive")
+  
+  # Create wrapper Rakefile
+  wrapper_rakefile = File.join(project_path, 'Rakefile')
+  if File.exist?(wrapper_rakefile)
+    puts "⚠️  Rakefile already exists. Creating schema-tools.rake instead."
+    wrapper_rakefile = File.join(project_path, 'lib', 'tasks', 'schema-tools.rake')
+    FileUtils.mkdir_p(File.dirname(wrapper_rakefile))
+  end
+  
+  File.write(wrapper_rakefile, <<~RUBY)
+    # Schema Tools Integration
+    require_relative 'vendor/schema-tools/Rakefile'
+    
+    # Your custom tasks here
+    namespace :myapp do
+      desc "Deploy with schema migration"
+      task :deploy, [:index_name] do |t, args|
+        puts "🚀 Deploying #{args[:index_name]}..."
+        Rake::Task['opensearch:migrate'].invoke(args[:index_name])
+        puts "✅ Deployment complete!"
+      end
+    end
+  RUBY
+  
+  puts "✅ Submodule integration complete!"
+  puts "📝 Created: #{wrapper_rakefile}"
+  
+when '--copy'
+  puts "📋 Copying files to project..."
+  
+  # Copy lib directory
+  target_lib = File.join(project_path, 'lib', 'schema_tools')
+  FileUtils.mkdir_p(target_lib)
+  FileUtils.cp_r('lib/schema_tools/.', target_lib)
+  
+  # Copy tasks
+  target_tasks = File.join(project_path, 'lib', 'tasks')
+  FileUtils.mkdir_p(target_tasks)
+  FileUtils.cp('lib/tasks/opensearch.rake', target_tasks)
+  FileUtils.cp('lib/tasks/elasticsearch.rake', target_tasks)
+  
+  puts "✅ Copy integration complete!"
+  puts "📁 Copied to: #{target_lib}"
+  
+when '--gem'
+  puts "💎 Setting up as gem dependency..."
+  
+  gemfile_path = File.join(project_path, 'Gemfile')
+  unless File.exist?(gemfile_path)
+    puts "❌ Gemfile not found in project"
+    exit 1
+  end
+  
+  # Add gem to Gemfile
+  gem_entry = "gem 'schema-tools', path: '#{File.expand_path('.')}'"
+  
+  if File.read(gemfile_path).include?('schema-tools')
+    puts "⚠️  schema-tools already in Gemfile"
+  else
+    File.open(gemfile_path, 'a') do |f|
+      f.puts ""
+      f.puts "# Schema Tools"
+      f.puts gem_entry
+    end
+    puts "✅ Added to Gemfile: #{gem_entry}"
+  end
+  
+  puts "📝 Run 'bundle install' in your project to install the gem"
+  
+else
+  puts "❌ Unknown option: #{option}"
+  exit 1
+end
+
+puts ""
+puts "🎉 Integration complete!"
+puts ""
+puts "Next steps:"
+puts "1. Set environment variables:"
+puts "   export OPENSEARCH_URL=https://your-cluster.com"
+puts "   export SCHEMAS_PATH=db/schemas"
+puts ""
+puts "2. Create your schemas in the schemas directory"
+puts ""
+puts "3. Run migrations:"
+puts "   rake 'opensearch:migrate[your-index]'"
+puts ""
+puts "📖 See INTEGRATION_GUIDE.md for more details"

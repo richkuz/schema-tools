@@ -1,0 +1,19 @@
+# Example Gemfile showing how to include schema-tools
+
+source 'https://rubygems.org'
+
+# Your project dependencies
+gem 'rake', '~> 13.0'
+
+# Option 1: Include schema-tools as a gem (if published)
+# gem 'schema-tools', '~> 1.0'
+
+# Option 2: Include schema-tools from local path (development)
+# gem 'schema-tools', path: '../'
+
+# Option 3: Include schema-tools from git submodule
+# (No gem needed - just require the Rakefile)
+
+group :development, :test do
+  gem 'rspec', '~> 3.12'
+end

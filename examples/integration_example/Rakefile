@@ -1,0 +1,98 @@
+# Example Rakefile showing how to integrate schema-tools into another project
+
+# Option 1: If using as a gem
+# require 'schema-tools/rake_tasks'
+
+# Option 2: If using as a submodule
+require_relative '../Rakefile'
+
+# Your project's custom tasks
+namespace :myapp do
+  desc "Deploy to staging with schema migration"
+  task :deploy_staging, [:index_name] do |t, args|
+    index_name = args[:index_name]
+    raise "index_name parameter is required" unless index_name
+    
+    puts "🚀 Deploying to staging..."
+    
+    # Run schema migration
+    puts "📊 Running schema migration..."
+    Rake::Task['opensearch:migrate'].invoke(index_name, 'false', "myapp-staging-#{ENV['BUILD_NUMBER'] || Time.now.to_i}")
+    
+    # Your deployment logic here
+    puts "🔧 Updating application configuration..."
+    puts "✅ Staging deployment complete!"
+  end
+  
+  desc "Deploy to production with zero downtime"
+  task :deploy_production, [:index_name] do |t, args|
+    index_name = args[:index_name]
+    raise "index_name parameter is required" unless index_name
+    
+    puts "🚀 Starting zero downtime production deployment..."
+    
+    # 1. Dry run first
+    puts "🔍 Running dry-run migration..."
+    Rake::Task['opensearch:migrate'].invoke(index_name, 'true')
+    
+    # 2. Actual migration
+    puts "📊 Running production migration..."
+    Rake::Task['opensearch:migrate'].invoke(index_name, 'false', "myapp-production-#{Time.now.to_i}")
+    
+    # 3. Update application
+    puts "🔧 Updating application to use #{index_name}..."
+    
+    # 4. Catchup
+    puts "🔄 Running catchup..."
+    Rake::Task['opensearch:catchup'].invoke(index_name)
+    
+    puts "✅ Zero downtime deployment complete!"
+  end
+  
+  desc "Rollback to previous index version"
+  task :rollback, [:current_index] do |t, args|
+    current_index = args[:current_index]
+    raise "current_index parameter is required" unless current_index
+    
+    # Extract version number and rollback
+    if current_index.match(/(.+)-(\d+)$/)
+      base_name, version = $1, $2.to_i
+      previous_index = "#{base_name}-#{version - 1}"
+      
+      puts "🔄 Rolling back from #{current_index} to #{previous_index}"
+      
+      # Update application configuration
+      puts "🔧 Updating application configuration..."
+      puts "✅ Rollback complete!"
+    else
+      puts "❌ Invalid index name format. Expected: name-version"
+    end
+  end
+  
+  desc "Show current schema status"
+  task :status, [:index_name] do |t, args|
+    index_name = args[:index_name]
+    raise "index_name parameter is required" unless index_name
+    
+    puts "📊 Schema status for #{index_name}:"
+    
+    # Generate diff to show current state
+    Rake::Task['opensearch:diff'].invoke(index_name)
+  end
+end
+
+# Custom deployment tasks
+namespace :deploy do
+  desc "Full deployment pipeline"
+  task :all, [:index_name] do |t, args|
+    index_name = args[:index_name]
+    
+    puts "🚀 Starting full deployment pipeline..."
+    
+    # Run all deployment steps
+    Rake::Task['myapp:deploy_staging'].invoke(index_name)
+    Rake::Task['myapp:deploy_production'].invoke(index_name)
+    
+    puts "✅ Full deployment pipeline complete!"
+  end
+end

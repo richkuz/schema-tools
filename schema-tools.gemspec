@@ -1,0 +1,27 @@
+Gem::Specification.new do |spec|
+  spec.name          = "schema-tools"
+  spec.version       = "1.0.0"
+  spec.authors       = ["Schema Tools Team"]
+  spec.email         = ["team@example.com"]
+  
+  spec.summary       = "Schema management tools for OpenSearch and Elasticsearch"
+  spec.description   = "An opinionated collection of Ruby Rake tasks for managing Elasticsearch or OpenSearch index schemas and migrations with zero downtime."
+  spec.homepage      = "https://github.com/your-org/schema-tools"
+  spec.license       = "MIT"
+  
+  spec.files         = Dir.glob("{lib,bin}/**/*") + %w[README.md LICENSE GETTING_STARTED.md INTEGRATION_GUIDE.md]
+  spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
+  spec.require_paths = ["lib"]
+  
+  spec.add_dependency "rake", "~> 13.0"
+  spec.add_dependency "json", "~> 2.6"
+  spec.add_dependency "net-http", "~> 0.3"
+  spec.add_dependency "uri", "~> 0.12"
+  spec.add_dependency "time", "~> 0.2"
+  spec.add_dependency "logger", "~> 1.5"
+  
+  spec.add_development_dependency "rspec", "~> 3.12"
+  spec.add_development_dependency "webmock", "~> 3.19"
+  
+  spec.required_ruby_version = ">= 3.0"
+end

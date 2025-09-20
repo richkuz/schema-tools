@@ -1,20 +1,66 @@
-# Schema Tools for OpenSearch and Elasticsearch
+# Schemurai - Schema tools for OpenSearch and Elasticsearch
 
-An opinionated collection of Ruby Rake tasks and naming conventions for managing Elasticsearch or OpenSearch index schemas and migrations.
-
-Features:
+A disciplined collection of Ruby Rake tasks and naming conventions for managing Elasticsearch or OpenSearch index schemas and migrations.
 - Specify index settings, mappings, and analyzers in versioned `.json` files.
 - Migrate and reindex to a new index with zero downtime without modifying schemas by hand on live instances.
 - Audit the trail of index schema changes through index metadata and GitHub Actions.
 
-## Manage schemas
+<p align="center">
+  <img src="schemurai.png" alt="Schemurai Logo" width="250"/>
+</p>
 
-Follow this directory structure to manage schemas.
+## Quick start
+
+```sh
+gem install schemurai
+```
+
+To migrate your OpenSearch/Elasticsearch indexes to the latest versions defined in the `schemas/` folder:
+
+```sh
+rake schema:migrate
+```
+
+To define schema files for a new or existing index, run this command and follow the prompts:
+
+```sh
+rake schema:define
+```
+
+Index names follow the pattern `indexname-$number`, where `$number` increments by 1 for every breaking schema change. The first version of an index does not require a number in the name.
+
+Schema tools do not operate on index aliases.
+
+### Connect to OpenSearch or Elasticsearch
+
+Connect to OpenSearch or Elasticsearch using:
+
+```sh
+OPENSEARCH_URL=http://localhost:9200
+ELASTICSEARCH_URL=http://localhost:9200
+```
+
+Authenticate with:
+
+```sh
+OPENSEARCH_USERNAME
+OPENSEARCH_PASSWORD
+ELASTICSEARCH_USERNAME
+ELASTICSEARCH_PASSWORD
+```
+
+## Documentation
+
+### Directory structure reference
+
+Schemurai uses this directory structure to manage schema settings and mappings.
 
 ```
-schemas/myindex-1
-schemas/myindex-2
-schemas/myindex-3
+schemas/products
+schemas/products-2
+schemas/users
+schemas/users-2
+schemas/users-3
   index.json - Specify index_name and from_index_name
   reindex.painless - This script runs once when reindexing
   revisions/1 - Define the index schema
@@ -31,59 +77,57 @@ schemas/myindex-3
     diff_output.txt - Auto-generated diff since revisions/1
 ```
 
-The schema folder name should match the name of the index.
-
-### Add a schema change
-
-Always copy and edit a new JSON files to change the schema. Never change an existing JSON file directly.
-
-If your schema change requires reindexing, such as changing a field type or analyzers:
-
-- Add a new versioned index name folder, e.g. `schemas/myindex-2`
-- Set `index_name` to e.g. `myindex-2` and `from_index_name` to `myindex-1` in `index.json`
-- Modify the `mappings.json`, `settings.json`, and add painless scripts as needed
+The schema folder name must match the name of the index.
 
 
-If your schema change does _not_ require a reindex, such as changing the refresh interval, number of replicas, or boosts:
+The `schema:migrate` task will alert and exit if you attempt to add a new revision that requires reindexing.
 
-- Add a new revisions folder to an existing index, e.g. `schemas/myindex-1/revisions/2`
-- Modify the `mappings.json`, `settings.json`, and add painless scripts as needed
+### Migrate a specific index to the latest version
 
-The `opensearch:migrate` task will alert and exit if you attempt to add a new revision that requires reindexing.
+Run `rake schema:migrate[index=index_name]` to migrate to the latest schema revision of `index_name`.
 
-### Migrate to a new schema revision
-
-Run `rake opensearch:migrate[to_index=index_name]` to:
-- Migrate to the latest schema revision of `index_name`
+The `schema:migrate` task will:
 - Reindex data as needed
 - Upload any painless scripts
 - Generate a `diff_output.txt` with changes
-- Update index settings  `_meta.schema_tools_revision` with applied revision details
+- Update index settings  `_meta.schemurai_revision` with applied revision details
+
+
+### Handle breaking versus non-breaking schema changes
+
+Schema changes such as changing a field type or analyzers are considered "breaking" changes that require a reindex.
+
+Schema changes such as changing the refresh interval, number of replicas, boosts, or uploaded painless scripts are not considered "breaking" changes. These changes do not require a reindex.
+
+The `schema:define` task will define a new index for breaking changes, and add a revision to an existing index for non-breaking changes.
+
+The `schema:migrate` task will fail to migrate to a schema definition that contains a breaking change as a revision on an existing index.
+
 
 ### View which schema revision is applied to an index
 
-The `opensearch:migrate` task writes metadata into index settings to denote the revision. Fetch this metadata via `GET /myindex-1/`:
+The `schema:migrate` task writes metadata into index settings to denote the revision. Fetch this metadata via `GET /products-2/`:
 
 ```
 "settings": {
     "index": {
       "_meta": {
-        "schema_tools_revision": {
-	      "revision": "myindex-2/revisions/1",
-	      "revision_applied_at": TIMESTAMP,
-	      "revision_applied_by": "...",
-	      "reindex_started_at": TIMESTAMP,
-	      "reindex_completed_at": TIMESTAMP,
-	      "catchup_started_at": TIMESTAMP,
-	      "catchup_completed_at": TIMESTAMP,
+        "schemurai_revision": {
+          "revision": "products-2/revisions/3",
+          "revision_applied_at": TIMESTAMP,
+          "revision_applied_by": "...",
+          "reindex_started_at": TIMESTAMP,
+          "reindex_completed_at": TIMESTAMP,
+          "catchup_started_at": TIMESTAMP,
+          "catchup_completed_at": TIMESTAMP,
         }
 ```
 
 ### Transform data during migration
 
-You can change the data itself when migrating to a new schema, for example when renaming a field.
+Change the data when migrating to a new schema via the `reindex.painless` script. For example, when renaming a field, the `reindex.painless` script can specify how to modify data when migrating. See more examples in the `reindex.painless` script.
 
-See the examples in `reindex.painless` script. This script runs once when reindexing into a new index.
+`reindex.painless` runs one time when reindexing into a new index.
 
 ### Apply a schema change to Staging and Production 
 
@@ -106,9 +150,9 @@ GitHub Actions:
 
 ### Delete an index
 
-Run `rake opensearch:softdelete` to rename an index to `deleted-$index_name-$timestamp`.
+Run `rake schema:softdelete` to rename an index to `deleted-$index_name-$timestamp`.
 
-Run `rake opensearch:delete` to hard-delete an index. For safety, this task only hard-deletes indexes with names prefixed with `deleted-`.
+Run `rake schema:delete` to hard-delete an index. For safety, this task only hard-deletes indexes with names prefixed with `deleted-`.
 
 GitHub Actions:
 - OpenSearch Staging Soft Delete
@@ -124,46 +168,251 @@ Why doesn't this use index aliases?
 - When migrating to a new index, applications often need to deploy new code to support reading/writing to the new index. Explicit index names enable applications to pin to a specific version of an index and switch to new versions when they are ready.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 # Implementation Notes
 
 Instructions for AI:
 
-The `opensearch:*` tasks work the same for Elasticsearch. Create aliases for all `opensearch:*` tasks using `elasticsearch:*` as the prefix.
-
-Provide a `docker-compose.yml` that runs OpenSearch locally. Provide several example schemas. Provide an integration test automation suite.
-
-Underneath, `rake opensearch:migrate[to_index=index_name]` does the following:
-- If `index_name` exists and is at the latest revision, this task aborts with a message: `Already at revision ${revision}. To re-create this index and re-migrate, run rake opensearch:softdelete[${index_name}] and then re-run opensearch:migrate[to_index=${index_name}]`.
-- If `index_name` exists and does not contain revision details in `_meta.schema_tools_revision`, this task aborts with a message: `Unable to determine the current schema revision of ${index_name}. To re-create this index and re-migrate, run rake opensearch:softdelete[${index_name}] and then re-run opensearch:migrate[to_index=${index_name}]`
-- Runs `rake opensearch:diff` to generate a `diff_output.txt` with a readable diff between the schema files at the latest revision and the previous revision. This task does not touch OpenSearch. The only purpose is to ease PR reviews.
-- Runs `rake opensearch:create` to create `index_name` in OpenSearch using the associated schema definition, if the index doesn't exist.
-- Runs `rake opensearch:painless` to `PUT` any painless scripts defined for `index_name` for this revision.
-- If this is a new revision of an existing index:
-	- Directly updates the existing index settings.
-- If this is the first revision of the index:
-	- Runs `rake opensearch:reindex` to reindex `from_index_name` to `index_name`.
-	- Applies any `reindex.painless` script.
-	- Polls the reindex task ID until reindexing complete.
-	- Runs `rake opensearch:catchup` to reindex any documents that came in after the reindex task started.
-- Updates the index settings for `_meta.schema_tools_revision` with revision details along the way.
-	- `revision_applied_by` can be an optional parameter passed to the task. GitHub Actions should set this to the action run URL.
-
-The `opensearch:diff` task should diff the JSON files intelligently, by ignoring whitespace, sorting keys, and outputting the minimal diff. Also diff any changes to painless scripts in the painless_scripts folder. If a painless script doesn't exist anymore, note this as a diff as well.
-
-The `opensearch:migrate` task should take an optional `dryrun=true` parameter to print out exactly what it will do without actually making any changes to the system.
-
-The GitHub Migrate actions should take as parameter an index name to migrate to. And take a dryrun parameter, default to true. Use ENV variables for the OPENSEARCH_URL. Don't worry about OpenSearch auth for now. It's OK to use:
-```
-opensearch:
-  image: opensearchproject/opensearch:2.19.0
-  container_name: opensearch-node
-  environment:
-    - discovery.type=single-node
-    - "DISABLE_INSTALL_DEMO_CONFIG=true"
-    - "DISABLE_SECURITY_PLUGIN=true"
-    - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
-```
+The rake tasks work the same for Elasticsearch and OpenSearch.
 
 All functions should be written in a self-documenting way.
 Do not add comments.
 All functions should be less than 150 lines each.
+
+
+
+
+# Test scenarios for AI to consider
+
+### When running rake schema:define
+
+```sh
+$ rake schema:define
+```
+
+Output:
+```
+Please choose:
+1. Define a schema for an index that exists in OpenSearch or Elasticsearch
+2. Define an example schema for an index that doesn't exist
+3. Define an example schema for a breaking change to an existing schema
+4. Define an example schema for a non-breaking change to an existing schema
+```
+
+
+
+
+When a user chooses Option 1: Define a schema for an index that exists in OpenSearch or Elasticsearch, output:
+
+```
+Type the name of an existing index in [OpenSearch|Elasticsearch] to define. A version number suffix is not required.
+<products>
+
+Checking [$OPENSEARCH_URL|$ELASTICSEARCH_URL] for the latest version of "products"
+```
+
+When it cannot connect to OpenSearch or Elasticsearch, output and abort:
+```
+Failed to connect to [OpenSearch|Elasticsearch] at [$OPENSEARCH_URL|$ELASTICSEARCH_URL]
+```
+
+When the specified index is not found with any version number suffix, output and abort:
+```
+Index "products" not found at [$OPENSEARCH_URL|$ELASTICSEARCH_URL]
+```
+
+When the specified index is found, output:
+```
+Index "products" found at $OPENSEARCH_URL, latest index name is "products-3"
+Extracting live settings, mappings, and painless scripts from index "products-3"
+
+Checking schemas/products* for the latest schema definition of "products"
+```
+
+When no schema definition is found, output and quit:
+```
+No schema definition exists for "products-3"
+
+Generated example schema definition files:
+schemas/products-3
+  index.json
+  reindex.painless
+  revisions/1
+    settings.json
+    mappings.json
+    painless_scripts/
+      example_script.painless
+    diff_output.txt
+
+Create this index by running:
+$ rake schema:migrate
+```
+
+When a schema definition is found, output:
+```
+Latest schema definition of "products" is defined in schemas/products-3/revisions/2.
+```
+
+When the index settings, mappings, and painless scripts match the latest schema, output and quit:
+```
+Latest schema definition already matches the index.
+```
+
+When the index settings and mappings constitute a breaking change from the latest schema, output and quit:
+
+```
+Index settings and mappings consitute a breaking change from the latest schema definition.
+
+Generated schema definition files:
+schemas/products-4
+  index.json
+  reindex.painless
+  revisions/1
+    settings.json
+    mappings.json
+    painless_scripts/
+      example_script.painless
+    diff_output.txt
+
+Migrate to this schema definition by running:
+$ rake schema:migrate
+```
+
+When the index settings and mappings constitute a non-breaking change from the latest schema, output and quit:
+
+```
+Index settings and mappings consitute a non-breaking change from the latest schema definition.
+
+Generated schema definition files:
+schemas/products-3
+  revisions/3
+    settings.json
+    mappings.json
+    painless_scripts/
+      example_script.painless
+    diff_output.txt
+
+Migrate to this schema definition by running:
+$ rake schema:migrate
+```
+
+
+
+
+When a user chooses Option 2: Define an example schema for an index that doesn't exist, output:
+
+```
+Type the name of a new index to define. A version number suffix is not required.
+<products>
+
+Checking schemas/products* for any schema definition of "products"
+```
+
+When no schema definition is found, output and quit:
+```
+No schema definition exists for "products"
+
+Generated example schema definition files:
+schemas/products
+  index.json
+  reindex.painless
+  revisions/1
+    settings.json
+    mappings.json
+    painless_scripts/
+      example_script.painless
+    diff_output.txt
+
+Create this index by running:
+$ rake schema:migrate
+```
+
+When a schema definition is found, output and quit:
+```
+Latest schema definition of "products" is defined in schemas/products-3/revisions/2
+
+Create this index by running:
+$ rake schema:migrate
+```
+
+
+
+
+
+When a user chooses Option 3: Define an example schema for a breaking change to an existing schema
+
+```
+Type the name of an existing schema to change. A version number suffix is not required.
+<products>
+
+Checking schemas/products* for the latest schema definition of "products"
+```
+
+When no schema definition is found, output and quit:
+```
+No schema definition exists for "products".
+```
+
+When a schema definition is found, output and quit:
+```
+Latest schema definition of "products" is defined in schemas/products-3/revisions/2
+
+Generated example schema definition files to support a breaking change:
+schemas/products-4
+  index.json
+  reindex.painless
+  revisions/1
+    settings.json
+    mappings.json
+    painless_scripts/
+      example_script.painless
+    diff_output.txt
+
+Migrate to this schema definition by running:
+$ rake schema:migrate
+```
+
+
+
+
+When a user chooses Option 4: Define an example schema for a non-breaking change to an existing schema
+
+```
+Type the name of an existing schema to change. A version number suffix is not required.
+<products>
+
+Checking schemas/products* for the latest schema definition of "products"
+```
+
+When no schema definition is found, output and quit:
+```
+No schema definition exists for "products".
+```
+
+When a schema definition is found, output and quit:
+```
+Latest schema definition of "products" is defined in schemas/products-3/revisions/2
+
+Generated example schema definition files to support a non-breaking change:
+schemas/products-3
+  revisions/3
+    settings.json
+    mappings.json
+    painless_scripts/
+      example_script.painless
+    diff_output.txt
+
+Migrate to this schema definition by running:
+$ rake schema:migrate
+```

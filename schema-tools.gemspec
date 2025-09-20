@@ -1,13 +1,13 @@
 Gem::Specification.new do |spec|
   spec.name          = "schema-tools"
   spec.version       = "1.0.0"
-  spec.authors       = ["Schema Tools Team"]
-  spec.email         = ["team@example.com"]
+  spec.authors       = ["Rich Kuzsma"]
+  spec.email         = ["rkuzsma@gmail.com"]
   
   spec.summary       = "Schema management tools for OpenSearch and Elasticsearch"
   spec.description   = "An opinionated collection of Ruby Rake tasks for managing Elasticsearch or OpenSearch index schemas and migrations with zero downtime."
-  spec.homepage      = "https://github.com/your-org/schema-tools"
-  spec.license       = "MIT"
+  spec.homepage      = "https://github.com/richkuz/schema-tools"
+  spec.license       = "Apache-2.0"
   
   spec.files         = Dir.glob("{lib,bin}/**/*") + %w[README.md LICENSE GETTING_STARTED.md INTEGRATION_GUIDE.md]
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }

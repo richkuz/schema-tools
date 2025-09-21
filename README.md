@@ -172,6 +172,14 @@ Add into the `painless_scripts` folder all painless scripts that should be `PUT`
 
 Each revision must specify all the painless scripts required, even if they haven't changed.
 
+### Generate a diff_output.txt for a given index
+
+The `diff_output.txt` is helpful to see schema change diffs across revisions when opening PRs.
+
+Run `rake 'schema:diff[products-3]'` to generate a new `diff_output.txt` file for it.
+
+Running `rake schema:migrate` also generates a `diff_output.txt` for each index it migrates.
+
 ### Apply a schema change to Staging and Production 
 
 Run GitHub Actions for your branch to prepare a given environment. The actions use the  `migrate` task underneath.

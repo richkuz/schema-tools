@@ -135,8 +135,8 @@ RSpec.describe SchemaTools::SchemaManager do
       
       result = manager.send(:generate_scripts_diff, old_scripts, new_scripts)
       
-      expect(result).to include('Modified script: script2')
-      expect(result).to include('Added script: script3')
+      expect(result).to include('🔄 MODIFIED SCRIPT: script2')
+      expect(result).to include('➕ ADDED SCRIPT: script3')
       expect(result).not_to include('README')
       expect(result).not_to include('config')
     end

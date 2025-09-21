@@ -2,6 +2,7 @@ require 'json'
 require 'fileutils'
 require 'logger'
 require 'schema_tools/breaking_change_detector'
+require_relative 'utils'
 
 module SchemaTools
   class SchemaDefiner
@@ -136,7 +137,7 @@ module SchemaTools
     private
 
     def extract_base_name(index_name)
-      index_name.gsub(/-\d+$/, '')
+      SchemaTools::Utils.extract_base_name(index_name)
     end
 
     def find_latest_index_version(base_name)
@@ -153,8 +154,7 @@ module SchemaTools
     end
 
     def extract_version_number(index_name)
-      match = index_name.match(/-(\d+)$/)
-      match ? match[1].to_i : 1
+      SchemaTools::Utils.extract_version_number(index_name)
     end
 
     def extract_live_index_data(index_name)

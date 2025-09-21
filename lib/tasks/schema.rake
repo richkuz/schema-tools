@@ -2,6 +2,7 @@ require 'schema_tools/client'
 require 'schema_tools/schema_manager'
 require 'schema_tools/schema_definer'
 require 'schema_tools/config'
+require 'schema_tools/utils'
 require 'json'
 require 'time'
 
@@ -163,6 +164,33 @@ namespace :schema do
     raise "No revisions found for #{index_name}" unless latest_revision
     
     previous_revision = schema_manager.get_previous_revision_path(index_name, latest_revision)
+    
+    # If no previous revision within the same schema, try to find the latest revision of the previous schema version
+    if previous_revision.nil?
+      previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
+      
+      if previous_schema_name
+        previous_schema_latest = schema_manager.get_latest_revision_path(previous_schema_name)
+        
+        if previous_schema_latest
+          puts "No previous revision found within #{index_name}. Comparing against latest revision of #{previous_schema_name}."
+          previous_revision = previous_schema_latest
+        else
+          puts "No previous revision found for #{index_name} and no previous schema version (#{previous_schema_name}) exists."
+          puts "Diff generation requires at least two revisions to compare."
+          exit 0
+        end
+      else
+        puts "No previous revision found for #{index_name}. This appears to be the first revision."
+        puts "Generating diff against empty baseline..."
+        
+        # Generate diff against empty baseline for first revision
+        empty_revision = nil
+        diff_output = schema_manager.generate_diff_output(index_name, latest_revision, empty_revision)
+        puts diff_output
+        exit 0
+      end
+    end
     
     diff_output = schema_manager.generate_diff_output(index_name, latest_revision, previous_revision)
     puts diff_output

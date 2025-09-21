@@ -82,7 +82,7 @@ def init_client
     puts "No connection URL configured."
     puts "Please set either OPENSEARCH_URL or ELASTICSEARCH_URL environment variable."
     puts "Example:"
-    puts "  export OPENSEARCH_URL=https://your-cluster.com"
+    puts "  export OPENSEARCH_URL=http://localhost:9200"
     puts "  export ELASTICSEARCH_URL=https://your-cluster.com"
     puts "Then re-run the command."
     exit 1
@@ -94,11 +94,12 @@ def init_client
     puts "Failed to connect to OpenSearch/Elasticsearch at #{SchemaTools::Config::CONNECTION_URL}"
     puts "Please ensure that OPENSEARCH_URL or ELASTICSEARCH_URL environment variable is set correctly."
     puts "Example:"
-    puts "  export OPENSEARCH_URL=https://your-cluster.com"
+    puts "  export OPENSEARCH_URL=http://localhost:9200"
     puts "  export ELASTICSEARCH_URL=https://your-cluster.com"
     puts "Then re-run the command."
     exit 1
   end
+  client
 end
 
 namespace :schema do

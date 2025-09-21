@@ -76,8 +76,33 @@ def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager,
   puts "Migration completed successfully"
 end
 
+def init_client
+  # Check if connection URL is configured
+  if SchemaTools::Config::CONNECTION_URL.nil?
+    puts "No connection URL configured."
+    puts "Please set either OPENSEARCH_URL or ELASTICSEARCH_URL environment variable."
+    puts "Example:"
+    puts "  export OPENSEARCH_URL=https://your-cluster.com"
+    puts "  export ELASTICSEARCH_URL=https://your-cluster.com"
+    puts "Then re-run the command."
+    exit 1
+  end
+  
+  # Initialize client and test connection
+  client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL)
+  unless client.test_connection
+    puts "Failed to connect to OpenSearch/Elasticsearch at #{SchemaTools::Config::CONNECTION_URL}"
+    puts "Please ensure that OPENSEARCH_URL or ELASTICSEARCH_URL environment variable is set correctly."
+    puts "Example:"
+    puts "  export OPENSEARCH_URL=https://your-cluster.com"
+    puts "  export ELASTICSEARCH_URL=https://your-cluster.com"
+    puts "Then re-run the command."
+    exit 1
+  end
+end
+
 namespace :schema do
-  client = SchemaTools::Client.new(SchemaTools::Config::OPENSEARCH_URL)
+  client = init_client
   schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
 
   desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
@@ -297,31 +322,75 @@ namespace :schema do
       puts "3. Define an example schema for a breaking change to an existing defined schema"
       puts "4. Define an example schema for a non-breaking change to an existing defined schema"
       
-      choice = STDIN.gets.chomp
+      choice = STDIN.gets&.chomp
+      if choice.nil?
+        puts "No input provided. Exiting."
+        exit 1
+      end
       
       case choice
       when '1'
-        puts "Type the name of an existing index in OpenSearch to define. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
-        puts "Checking #{SchemaTools::Config::OPENSEARCH_URL} for the latest version of \"#{index_name}\""
-        schema_definer.define_schema_for_existing_index(index_name)
+        # List available indices (connection already validated during client initialization)
+        puts "Connecting to #{SchemaTools::Config::CONNECTION_URL}..."
+        indices = client.list_indices
+        
+        if indices.empty?
+          puts "No indices found in the cluster."
+          puts "Please create an index first or choose option 2 to define a schema for a new index."
+          exit 0
+        end
+        
+        puts "Available indices:"
+        indices.each_with_index do |index_name, index|
+          puts "#{index + 1}. #{index_name}"
+        end
+        
+        puts "\nPlease select an index by number (1-#{indices.length}):"
+        selection_input = STDIN.gets&.chomp
+        if selection_input.nil?
+          puts "No input provided. Exiting."
+          exit 1
+        end
+        selection = selection_input.to_i
+        
+        if selection < 1 || selection > indices.length
+          puts "Invalid selection. Please run the task again and select a valid number."
+          exit 1
+        end
+        
+        selected_index = indices[selection - 1]
+        puts "Selected index: #{selected_index}"
+        puts "Checking #{SchemaTools::Config::CONNECTION_URL} for the latest version of \"#{selected_index}\""
+        schema_definer.define_schema_for_existing_index(selected_index)
       when '2'
         puts "Type the name of a new index to define. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
+        index_name = STDIN.gets&.chomp
+        if index_name.nil?
+          puts "No input provided. Exiting."
+          exit 1
+        end
         schema_definer.define_example_schema_for_new_index(index_name)
       when '3'
         puts "Type the name of an existing schema to change. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
+        index_name = STDIN.gets&.chomp
+        if index_name.nil?
+          puts "No input provided. Exiting."
+          exit 1
+        end
         schema_definer.define_breaking_change_schema(index_name)
       when '4'
         puts "Type the name of an existing schema to change. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
+        index_name = STDIN.gets&.chomp
+        if index_name.nil?
+          puts "No input provided. Exiting."
+          exit 1
+        end
         schema_definer.define_non_breaking_change_schema(index_name)
       else
         puts "Invalid choice. Please run the task again and select 1, 2, 3, or 4."
       end
     rescue => e
-      puts "Failed to connect to OpenSearch at #{SchemaTools::Config::OPENSEARCH_URL}"
+      puts "Failed to connect to OpenSearch at #{SchemaTools::Config::CONNECTION_URL}"
       puts "Error: #{e.message}"
     end
   end

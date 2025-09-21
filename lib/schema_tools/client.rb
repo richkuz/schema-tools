@@ -130,10 +130,30 @@ module SchemaTools
       end
       
       scripts
+    rescue => e
+      # If scripts endpoint is not available or returns an error, return empty hash
+      @logger.warn("Could not retrieve stored scripts: #{e.message}") if @logger
+      {}
     end
 
     def delete_index(index_name)
       delete("/#{index_name}")
+    end
+
+    def list_indices
+      response = get("/_cat/indices?format=json")
+      return [] unless response && response.is_a?(Array)
+      
+      response.map { |index| index['index'] }
+              .reject { |name| name.start_with?('.') } # Exclude system indices
+              .sort
+    end
+
+    def test_connection
+      get("/_cluster/health")
+      true
+    rescue => e
+      false
     end
   end
 end

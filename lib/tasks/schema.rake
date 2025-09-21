@@ -31,18 +31,26 @@ def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager,
     end
   end
   
+  # Check for reindex requirements before creating the index
+  if index_config['from_index_name'] && !client.index_exists?(to_index)
+    from_index = index_config['from_index_name']
+    
+    if client.index_exists?(from_index)
+      puts "Reindexing from #{from_index} to #{to_index}"
+      unless dryrun
+        Rake::Task['schema:reindex'].invoke(to_index)
+        Rake::Task['schema:catchup'].invoke(to_index)
+      end
+    else
+      puts "Source index #{from_index} does not exist. Skipping reindex for #{to_index}."
+      puts "Note: #{to_index} will be created as a new index without data migration."
+    end
+  end
+  
   unless dryrun
     Rake::Task['schema:diff'].invoke(to_index)
     Rake::Task['schema:create'].invoke(to_index)
     Rake::Task['schema:painless'].invoke(to_index)
-  end
-  
-  if index_config['from_index_name'] && !client.index_exists?(to_index)
-    puts "Reindexing from #{index_config['from_index_name']} to #{to_index}"
-    unless dryrun
-      Rake::Task['schema:reindex'].invoke(to_index)
-      Rake::Task['schema:catchup'].invoke(to_index)
-    end
   end
   
   unless dryrun
@@ -179,6 +187,10 @@ namespace :schema do
     from_index = index_config['from_index_name']
     raise "from_index_name not specified in index configuration" unless from_index
     
+    unless client.index_exists?(from_index)
+      raise "Source index #{from_index} does not exist. Cannot reindex to #{index_name}."
+    end
+    
     reindex_script = schema_manager.get_reindex_script(index_name)
     
     puts "Starting reindex from #{from_index} to #{index_name}"
@@ -210,6 +222,10 @@ namespace :schema do
     
     from_index = index_config['from_index_name']
     raise "from_index_name not specified in index configuration" unless from_index
+    
+    unless client.index_exists?(from_index)
+      raise "Source index #{from_index} does not exist. Cannot perform catchup reindex to #{index_name}."
+    end
     
     reindex_script = schema_manager.get_reindex_script(index_name)
     

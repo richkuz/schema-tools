@@ -6,14 +6,14 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
 
   describe '#breaking_change?' do
     context 'when no changes detected' do
-      let(:live_data) do
+      let(:proposed_data) do
         {
           settings: { 'index' => { 'number_of_shards' => 1 } },
           mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } }
         }
       end
 
-      let(:schema_data) do
+      let(:current_data) do
         {
           settings: { 'index' => { 'number_of_shards' => 1 } },
           mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } }
@@ -21,50 +21,50 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
       end
 
       it 'returns false' do
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
     end
 
     context 'immutable index settings changes' do
       it 'detects number_of_shards change' do
-        live_data = { settings: { 'index' => { 'number_of_shards' => 1 } }, mappings: {} }
-        schema_data = { settings: { 'index' => { 'number_of_shards' => 2 } }, mappings: {} }
+        proposed_data = { settings: { 'index' => { 'number_of_shards' => 1 } }, mappings: {} }
+        current_data = { settings: { 'index' => { 'number_of_shards' => 2 } }, mappings: {} }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects index.codec change' do
-        live_data = { settings: { 'index' => { 'index.codec' => 'default' } }, mappings: {} }
-        schema_data = { settings: { 'index' => { 'index.codec' => 'best_compression' } }, mappings: {} }
+        proposed_data = { settings: { 'index' => { 'index.codec' => 'default' } }, mappings: {} }
+        current_data = { settings: { 'index' => { 'index.codec' => 'best_compression' } }, mappings: {} }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects routing_partition_size change' do
-        live_data = { settings: { 'index' => { 'routing_partition_size' => 1 } }, mappings: {} }
-        schema_data = { settings: { 'index' => { 'routing_partition_size' => 3 } }, mappings: {} }
+        proposed_data = { settings: { 'index' => { 'routing_partition_size' => 1 } }, mappings: {} }
+        current_data = { settings: { 'index' => { 'routing_partition_size' => 3 } }, mappings: {} }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects index.sort.field change' do
-        live_data = { settings: { 'index' => { 'index.sort.field' => 'timestamp' } }, mappings: {} }
-        schema_data = { settings: { 'index' => { 'index.sort.field' => 'created_at' } }, mappings: {} }
+        proposed_data = { settings: { 'index' => { 'index.sort.field' => 'timestamp' } }, mappings: {} }
+        current_data = { settings: { 'index' => { 'index.sort.field' => 'created_at' } }, mappings: {} }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects index.sort.order change' do
-        live_data = { settings: { 'index' => { 'index.sort.order' => 'asc' } }, mappings: {} }
-        schema_data = { settings: { 'index' => { 'index.sort.order' => 'desc' } }, mappings: {} }
+        proposed_data = { settings: { 'index' => { 'index.sort.order' => 'asc' } }, mappings: {} }
+        current_data = { settings: { 'index' => { 'index.sort.order' => 'desc' } }, mappings: {} }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
     end
 
     context 'analysis settings changes' do
       it 'detects analyzer changes' do
-        live_data = {
+        proposed_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -81,7 +81,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        schema_data = {
+        current_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -98,11 +98,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects tokenizer changes' do
-        live_data = {
+        proposed_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -117,7 +117,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        schema_data = {
+        current_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -132,11 +132,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects filter changes' do
-        live_data = {
+        proposed_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -151,7 +151,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        schema_data = {
+        current_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -166,11 +166,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects char_filter changes' do
-        live_data = {
+        proposed_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -185,7 +185,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        schema_data = {
+        current_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -201,11 +201,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'allows adding new analyzers' do
-        live_data = {
+        proposed_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -220,7 +220,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        schema_data = {
+        current_data = {
           settings: {
             'index' => {
               'analysis' => {
@@ -238,13 +238,13 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {}
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
     end
 
     context 'field type changes' do
       it 'detects field type changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -253,7 +253,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -262,11 +262,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects text to keyword change' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -275,7 +275,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -284,11 +284,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'allows adding new fields' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -297,7 +297,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -307,13 +307,13 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
     end
 
     context 'field analyzer changes' do
       it 'detects analyzer changes on text fields' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -322,7 +322,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -331,13 +331,13 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
     end
 
     context 'immutable field properties changes' do
       it 'detects index property changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -346,7 +346,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -355,11 +355,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects store property changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -368,7 +368,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -377,11 +377,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects doc_values property changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -390,7 +390,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -399,11 +399,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects fielddata property changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -412,7 +412,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -421,11 +421,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects norms property changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -434,7 +434,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -443,13 +443,13 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
     end
 
     context 'multi-field definitions changes' do
       it 'detects subfield type changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -463,7 +463,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -477,11 +477,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'detects subfield property changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -495,7 +495,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -509,11 +509,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be true
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
       it 'allows adding new subfields' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -527,7 +527,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -542,36 +542,36 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
     end
 
     context 'mutable settings that should not be breaking' do
       it 'allows number_of_replicas changes' do
-        live_data = { settings: { 'index' => { 'number_of_replicas' => 0 } }, mappings: {} }
-        schema_data = { settings: { 'index' => { 'number_of_replicas' => 1 } }, mappings: {} }
+        proposed_data = { settings: { 'index' => { 'number_of_replicas' => 0 } }, mappings: {} }
+        current_data = { settings: { 'index' => { 'number_of_replicas' => 1 } }, mappings: {} }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
       it 'allows refresh_interval changes' do
-        live_data = { settings: { 'index' => { 'refresh_interval' => '1s' } }, mappings: {} }
-        schema_data = { settings: { 'index' => { 'refresh_interval' => '30s' } }, mappings: {} }
+        proposed_data = { settings: { 'index' => { 'refresh_interval' => '1s' } }, mappings: {} }
+        current_data = { settings: { 'index' => { 'refresh_interval' => '30s' } }, mappings: {} }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
       it 'allows dynamic mapping changes' do
-        live_data = { settings: {}, mappings: { 'dynamic' => true } }
-        schema_data = { settings: {}, mappings: { 'dynamic' => false } }
+        proposed_data = { settings: {}, mappings: { 'dynamic' => true } }
+        current_data = { settings: {}, mappings: { 'dynamic' => false } }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
     end
 
     context 'mutable field properties that should not be breaking' do
       it 'allows boost changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -580,7 +580,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -589,11 +589,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
       it 'allows search_analyzer changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -602,7 +602,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -611,11 +611,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
       it 'allows search_quote_analyzer changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -624,7 +624,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -633,11 +633,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
       it 'allows adding mutable properties' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -646,7 +646,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -655,11 +655,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
       it 'allows ignore_above changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -668,7 +668,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -677,11 +677,11 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
       it 'allows ignore_malformed changes' do
-        live_data = {
+        proposed_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -690,7 +690,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        schema_data = {
+        current_data = {
           settings: {},
           mappings: {
             'properties' => {
@@ -699,7 +699,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           }
         }
 
-        expect(detector.breaking_change?(live_data, schema_data)).to be false
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
     end
   end

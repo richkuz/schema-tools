@@ -95,17 +95,13 @@ The `schema:migrate` task will:
 
 ### Handle breaking versus non-breaking schema changes
 
-Schema changes such as changing a field type or analyzers are considered "breaking" changes that require a reindex.
+Breaking changes are changes that would require a reindex or have a high risk of breaking an application.
 
-Schema changes such as changing the refresh interval, number of replicas, boosts, or uploaded painless scripts are not considered "breaking" changes. These changes do not require a reindex.
+`schema:define` will always propose that breaking changes be defined in a new index. Non-breaking changes will be defined as revisions on an existing index.
 
-The `schema:define` task will define a new index for breaking changes, and add a revision to an existing index for non-breaking changes.
+When `schema:migrate` updates an existing index, it will try the operation and rely on OpenSearch/Elasticsearch to accept or reject the change. It enforces no judgment of breaking/non-breaking changes on its own.
 
-The `schema:migrate` task will fail to migrate to a schema definition that contains a breaking change as a revision on an existing index.
-
-#### What constitutes a breaking versus non-breaking change?
-
- Breaking Changes (Require Reindex):
+Breaking changes (require reindex):
 - Immutable index settings (number_of_shards, index.codec, etc.)
 - Analysis settings changes (analyzers, tokenizers, filters, char_filters)
 - Dynamic mapping changes (dynamic: true ↔ dynamic: strict)
@@ -115,15 +111,25 @@ The `schema:migrate` task will fail to migrate to a schema definition that conta
   - index, store, doc_values, fielddata, norms
   - enabled, format, copy_to, term_vector, index_options
   - null_value, ignore_z_value, precision
-- Field removal
 - Multi-field subfield removal or changes
 
-Non-Breaking Changes (Dynamic Updates):
+Breaking changes (does not require a reindex, but still treated as breaking)
+- Removing fields
+- Narrowing fields
+  - ignore_above
+  - Date format
+  - term_vector 
+  - Copy from multiple fields to single field
+  - Disabling object fields
+
+Non-breaking changes (dynamic updates):
 - Mutable index settings (number_of_replicas, refresh_interval)
 - Adding new fields
 - Adding new subfields
 - Adding dynamic mapping settings
-- Mutable field properties (boost, search_analyzer, search_quote_analyzer, ignore_above, ignore_malformed)
+- Mutable field properties (boost, search_analyzer, search_quote_analyzer, ignore_malformed)
+- Changes/additions/removals of Painless scripts
+
 
 
 ### View which schema revision is applied to an index

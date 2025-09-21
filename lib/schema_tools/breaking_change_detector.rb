@@ -152,7 +152,7 @@ module SchemaTools
         immutable_properties = [
           'index', 'store', 'doc_values', 'fielddata', 'norms',
           'enabled', 'format', 'copy_to', 'term_vector', 'index_options',
-          'null_value', 'ignore_z_value', 'precision'
+          'null_value', 'ignore_z_value', 'precision', 'ignore_above'
         ]
 
         immutable_properties.any? do |property|
@@ -179,7 +179,7 @@ module SchemaTools
         current_field = current_props[field] || {}
 
         mutable_properties = [
-          'boost', 'search_analyzer', 'search_quote_analyzer', 'ignore_above', 'ignore_malformed'
+          'boost', 'search_analyzer', 'search_quote_analyzer', 'ignore_malformed'
         ]
 
         mutable_properties.any? do |property|

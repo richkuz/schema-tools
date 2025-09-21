@@ -599,6 +599,28 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
 
         expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
+
+      it 'detects ignore_above property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'description' => { 'type' => 'keyword', 'ignore_above' => 128 }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'description' => { 'type' => 'keyword', 'ignore_above' => 256 }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
     end
 
     context 'multi-field definitions changes' do
@@ -890,27 +912,6 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
         expect(detector.breaking_change?(proposed_data, current_data)).to be false
       end
 
-      it 'allows ignore_above changes' do
-        proposed_data = {
-          settings: {},
-          mappings: {
-            'properties' => {
-              'description' => { 'type' => 'keyword', 'ignore_above' => 256 }
-            }
-          }
-        }
-
-        current_data = {
-          settings: {},
-          mappings: {
-            'properties' => {
-              'description' => { 'type' => 'keyword', 'ignore_above' => 512 }
-            }
-          }
-        }
-
-        expect(detector.breaking_change?(proposed_data, current_data)).to be false
-      end
 
       it 'allows ignore_malformed changes' do
         proposed_data = {

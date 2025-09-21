@@ -2,12 +2,14 @@ require 'json'
 require 'fileutils'
 require 'time'
 require 'logger'
+require_relative 'json_diff'
 
 module SchemaTools
   class SchemaManager
     def initialize(schemas_path, logger: Logger.new(STDOUT))
       @schemas_path = schemas_path
       @logger = logger
+      @json_diff = JsonDiff.new(logger: logger)
     end
 
     def get_index_config(index_name)
@@ -71,10 +73,10 @@ module SchemaTools
       diff_content = []
       
       diff_content << "=== Settings Diff ==="
-      diff_content << generate_json_diff(previous_files[:settings], current_files[:settings])
+      diff_content << @json_diff.generate_diff(previous_files[:settings], current_files[:settings])
       
       diff_content << "\n=== Mappings Diff ==="
-      diff_content << generate_json_diff(previous_files[:mappings], current_files[:mappings])
+      diff_content << @json_diff.generate_diff(previous_files[:mappings], current_files[:mappings])
       
       diff_content << "\n=== Painless Scripts Diff ==="
       diff_content << generate_scripts_diff(previous_files[:painless_scripts], current_files[:painless_scripts])
@@ -153,40 +155,58 @@ module SchemaTools
       scripts
     end
 
-    def generate_json_diff(old_json, new_json)
-      old_normalized = normalize_json(old_json)
-      new_normalized = normalize_json(new_json)
-      
-      if old_normalized == new_normalized
-        "No changes"
-      else
-        "Changes detected between revisions"
-      end
-    end
 
     def generate_scripts_diff(old_scripts, new_scripts)
-      all_script_names = (old_scripts.keys + new_scripts.keys).uniq
+      all_script_names = (old_scripts.keys + new_scripts.keys).uniq.sort
       changes = []
+      
+      if all_script_names.empty?
+        return "No painless scripts found"
+      end
       
       all_script_names.each do |script_name|
         old_content = old_scripts[script_name]
         new_content = new_scripts[script_name]
         
         if old_content.nil? && new_content
-          changes << "Added script: #{script_name}"
+          changes << "➕ ADDED SCRIPT: #{script_name}"
+          changes << "  Content:"
+          new_content.split("\n").each_with_index do |line, index|
+            changes << "    #{index + 1}: #{line}"
+          end
         elsif old_content && new_content.nil?
-          changes << "Removed script: #{script_name}"
+          changes << "➖ REMOVED SCRIPT: #{script_name}"
+          changes << "  Previous content:"
+          old_content.split("\n").each_with_index do |line, index|
+            changes << "    #{index + 1}: #{line}"
+          end
         elsif old_content != new_content
-          changes << "Modified script: #{script_name}"
+          changes << "🔄 MODIFIED SCRIPT: #{script_name}"
+          
+          # Show line-by-line differences for modified scripts
+          old_lines = old_content.split("\n")
+          new_lines = new_content.split("\n")
+          
+          changes << "  Changes:"
+          max_lines = [old_lines.length, new_lines.length].max
+          
+          (0...max_lines).each do |line_num|
+            old_line = old_lines[line_num]
+            new_line = new_lines[line_num]
+            
+            if old_line.nil?
+              changes << "    + #{line_num + 1}: #{new_line}"
+            elsif new_line.nil?
+              changes << "    - #{line_num + 1}: #{old_line}"
+            elsif old_line != new_line
+              changes << "    ~ #{line_num + 1}: #{old_line} → #{new_line}"
+            end
+          end
         end
       end
       
       changes.empty? ? "No script changes" : changes.join("\n")
     end
 
-    def normalize_json(json_obj)
-      return {} unless json_obj
-      JSON.parse(JSON.generate(json_obj))
-    end
   end
 end

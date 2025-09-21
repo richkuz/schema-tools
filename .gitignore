@@ -38,6 +38,3 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
-
-# Schema Tools specific
-schemas/*/revisions/*/diff_output.txt

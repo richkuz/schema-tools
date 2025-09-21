@@ -25,8 +25,8 @@ This approach keeps schema tools as a separate repository while allowing you to 
      task :deploy_staging, [:index_name] do |t, args|
        puts "Deploying to staging..."
        
-       # Run schema migration
-       Rake::Task['opensearch:migrate'].invoke(args[:index_name], 'false', "myapp-deploy-#{ENV['BUILD_NUMBER']}")
+      # Run schema migration
+      Rake::Task['schema:migrate'].invoke(args[:index_name], 'false', "myapp-deploy-#{ENV['BUILD_NUMBER']}")
        
        # Your deployment logic here
        puts "Deployment complete!"
@@ -42,11 +42,11 @@ This approach keeps schema tools as a separate repository while allowing you to 
    ```
 
 4. **Use in your project:**
-   ```bash
-   rake 'myapp:deploy_staging[products-v2]'
-   rake 'opensearch:migrate[users-v1]'
-   rake 'opensearch:diff[products-v1]'
-   ```
+  ```bash
+  rake 'myapp:deploy_staging[products-v2]'
+  rake 'schema:migrate[users-v1]'
+  rake 'schema:diff[products-v1]'
+  ```
 
 ### Benefits
 - ✅ Version control for schema tools
@@ -94,7 +94,7 @@ namespace :myapp do
   desc "Full deployment pipeline"
   task :deploy, [:index_name] do |t, args|
     # Your custom deployment logic
-    Rake::Task['opensearch:migrate'].invoke(args[:index_name])
+    Rake::Task['schema:migrate'].invoke(args[:index_name])
   end
 end
 ```
@@ -124,8 +124,8 @@ For projects that need heavy customization of the schema tools.
          # Custom pre-migration validation
          puts "Running custom validation..."
          
-         # Use schema tools
-         Rake::Task['opensearch:migrate'].invoke(args[:to_index])
+        # Use schema tools
+        Rake::Task['schema:migrate'].invoke(args[:to_index])
          
          # Custom post-migration steps
          puts "Running post-migration tasks..."
@@ -161,7 +161,7 @@ docker build -t schema-tools .
 docker run --rm \
   -v $(pwd)/schemas:/app/schemas \
   -e OPENSEARCH_URL=https://your-cluster.com \
-  schema-tools 'opensearch:migrate[products-v2]'
+  schema-tools 'schema:migrate[products-v2]'
 ```
 
 ## Recommended Project Structure
@@ -203,16 +203,16 @@ namespace :deploy do
     puts "Starting zero downtime deployment..."
     
     # 1. Run migration in dry-run first
-    Rake::Task['opensearch:migrate'].invoke(index_name, 'true')
+    Rake::Task['schema:migrate'].invoke(index_name, 'true')
     
     # 2. Run actual migration
-    Rake::Task['opensearch:migrate'].invoke(index_name, 'false', "deploy-#{Time.now.to_i}")
+    Rake::Task['schema:migrate'].invoke(index_name, 'false', "deploy-#{Time.now.to_i}")
     
     # 3. Update application configuration
     puts "Updating application to use #{index_name}..."
     
     # 4. Run catchup
-    Rake::Task['opensearch:catchup'].invoke(index_name)
+    Rake::Task['schema:catchup'].invoke(index_name)
     
     puts "Zero downtime deployment complete!"
   end
@@ -262,7 +262,7 @@ jobs:
           bundler-cache: true
       
       - name: Run schema migration
-        run: rake 'opensearch:migrate[products-v2]'
+        run: rake 'schema:migrate[products-v2]'
         env:
           OPENSEARCH_URL: ${{ secrets.OPENSEARCH_URL }}
       

@@ -183,7 +183,7 @@ GitHub Actions:
 To migrate with zero downtime:
 - Run the migration action to reindex data to the new index
 - Update your applications to use the new index
-- Run `rake opensearch:catchup` to migrate any new data that came in since the migration last ran
+- Run `rake schema:catchup` to migrate any new data that came in since the migration last ran
 
 GitHub Actions:
 - OpenSearch Staging Catchup

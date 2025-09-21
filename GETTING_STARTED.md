@@ -29,7 +29,7 @@ This guide will help you get up and running with Schema Tools for OpenSearch and
 
 4. **Run your first migration:**
    ```bash
-   rake opensearch:migrate[to_index=products-1]
+   rake schema:migrate[to_index=products-1]
    ```
 
 5. **Run tests:**
@@ -58,18 +58,18 @@ schema-tools/
 
 ## Available Tasks
 
-### OpenSearch Tasks
-- `rake opensearch:migrate[to_index=index_name,dryrun=true]` - Migrate to schema revision
-- `rake opensearch:diff[index_name]` - Generate diff between revisions
-- `rake opensearch:create[index_name]` - Create index with schema
-- `rake opensearch:painless[index_name]` - Upload painless scripts
-- `rake opensearch:reindex[index_name]` - Reindex from source index
-- `rake opensearch:catchup[index_name]` - Catchup reindex for new documents
-- `rake opensearch:softdelete[index_name]` - Soft delete index
-- `rake opensearch:delete[index_name]` - Hard delete index (deleted- prefix only)
+### Schema Tasks
+- `rake schema:migrate[to_index=index_name,dryrun=true]` - Migrate to schema revision
+- `rake schema:diff[index_name]` - Generate diff between revisions
+- `rake schema:create[index_name]` - Create index with schema
+- `rake schema:painless[index_name]` - Upload painless scripts
+- `rake schema:reindex[index_name]` - Reindex from source index
+- `rake schema:catchup[index_name]` - Catchup reindex for new documents
+- `rake schema:softdelete[index_name]` - Soft delete index
+- `rake schema:delete[index_name]` - Hard delete index (deleted- prefix only)
 
-### Elasticsearch Tasks
-All `opensearch:*` tasks have `elasticsearch:*` aliases that work identically.
+### Legacy Tasks
+All `schema:*` tasks have `opensearch:*` and `elasticsearch:*` aliases that work identically.
 
 ## Creating Your First Schema
 
@@ -110,7 +110,7 @@ All `opensearch:*` tasks have `elasticsearch:*` aliases that work identically.
 
 5. **Run the migration:**
    ```bash
-   rake opensearch:migrate[to_index=my-index-1]
+   rake schema:migrate[to_index=my-index-1]
    ```
 
 ## Schema Evolution
@@ -123,7 +123,7 @@ When you need to change field types or analyzers:
 2. Set `from_index_name` to the previous version in `index.json`
 3. Update your schema files
 4. Add a `reindex.painless` script if needed for data transformation
-5. Run migration: `rake opensearch:migrate[to_index=my-index-2]`
+5. Run migration: `rake schema:migrate[to_index=my-index-2]`
 
 ### Adding a New Revision (No Reindexing Required)
 
@@ -131,7 +131,7 @@ For non-breaking changes like replica count or refresh interval:
 
 1. Create a new revision: `schemas/my-index-1/revisions/2/`
 2. Update your schema files
-3. Run migration: `rake opensearch:migrate[to_index=my-index-1]`
+3. Run migration: `rake schema:migrate[to_index=my-index-1]`
 
 ## Environment Variables
 
@@ -166,7 +166,7 @@ The test suite includes:
 
 ### Common Issues
 
-1. **"Index already exists"** - Use `rake opensearch:softdelete[index_name]` first
+1. **"Index already exists"** - Use `rake schema:softdelete[index_name]` first
 2. **"Unable to determine current revision"** - Index was created outside schema tools
 3. **Connection refused** - Ensure OpenSearch is running: `docker-compose up -d`
 
@@ -174,7 +174,7 @@ The test suite includes:
 
 Run migrations in dry-run mode to see what would happen:
 ```bash
-rake opensearch:migrate[to_index=my-index,dryrun=true]
+rake schema:migrate[to_index=my-index,dryrun=true]
 ```
 
 ## Next Steps

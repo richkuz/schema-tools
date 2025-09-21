@@ -1,272 +1,48 @@
-require 'schema_tools/client'
-require 'schema_tools/schema_manager'
-require 'schema_tools/schema_definer'
 require 'schema_tools/config'
-require 'json'
-require 'time'
 
 namespace :opensearch do
-  client = SchemaTools::Client.new(SchemaTools::Config::OPENSEARCH_URL)
-  schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
-
   desc "Migrate to a specific index schema revision"
   task :migrate, [:to_index, :dryrun, :revision_applied_by] do |t, args|
-    to_index = args[:to_index]
-    dryrun = args[:dryrun] == 'true'
-    revision_applied_by = args[:revision_applied_by] || "rake task"
-    
-    raise "to_index parameter is required" unless to_index
-    
-    puts "Migrating to index: #{to_index}"
-    puts "Dry run: #{dryrun}"
-    
-    index_config = schema_manager.get_index_config(to_index)
-    raise "Index configuration not found for #{to_index}" unless index_config
-    
-    latest_revision = schema_manager.get_latest_revision_path(to_index)
-    raise "No revisions found for #{to_index}" unless latest_revision
-    
-    revision_name = "#{to_index}/revisions/#{File.basename(latest_revision)}"
-    
-    if client.index_exists?(to_index)
-      current_revision = client.get_schema_revision(to_index)
-      
-      if current_revision == revision_name
-        puts "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake opensearch:softdelete[#{to_index}] and then re-run opensearch:migrate[to_index=#{to_index}]"
-        exit
-      end
-      
-      if current_revision.nil?
-        puts "Unable to determine the current schema revision of #{to_index}. To re-create this index and re-migrate, run rake opensearch:softdelete[#{to_index}] and then re-run opensearch:migrate[to_index=#{to_index}]"
-        exit
-      end
-    end
-    
-    unless dryrun
-      Rake::Task['opensearch:diff'].invoke(to_index)
-      Rake::Task['opensearch:create'].invoke(to_index)
-      Rake::Task['opensearch:painless'].invoke(to_index)
-    end
-    
-    if index_config['from_index_name'] && !client.index_exists?(to_index)
-      puts "Reindexing from #{index_config['from_index_name']} to #{to_index}"
-      unless dryrun
-        Rake::Task['opensearch:reindex'].invoke(to_index)
-        Rake::Task['opensearch:catchup'].invoke(to_index)
-      end
-    end
-    
-    unless dryrun
-      metadata = {
-        revision: revision_name,
-        revision_applied_at: Time.now.iso8601,
-        revision_applied_by: revision_applied_by
-      }
-      
-      schema_manager.update_revision_metadata(to_index, latest_revision, metadata)
-      
-      settings_update = {
-        index: {
-          _meta: {
-            schema_tools_revision: metadata
-          }
-        }
-      }
-      
-      client.update_index_settings(to_index, settings_update)
-    end
-    
-    puts "Migration completed successfully"
+    Rake::Task['schema:migrate'].invoke(args[:to_index], args[:dryrun], args[:revision_applied_by])
   end
 
   desc "Generate diff between schema revisions"
   task :diff, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
-    
-    latest_revision = schema_manager.get_latest_revision_path(index_name)
-    raise "No revisions found for #{index_name}" unless latest_revision
-    
-    previous_revision = schema_manager.get_previous_revision_path(index_name, latest_revision)
-    
-    diff_output = schema_manager.generate_diff_output(index_name, latest_revision, previous_revision)
-    puts diff_output
+    Rake::Task['schema:diff'].invoke(args[:index_name])
   end
 
   desc "Create index with schema definition"
   task :create, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
-    
-    latest_revision = schema_manager.get_latest_revision_path(index_name)
-    raise "No revisions found for #{index_name}" unless latest_revision
-    
-    revision_files = schema_manager.get_revision_files(latest_revision)
-    
-    if client.index_exists?(index_name)
-      puts "Index #{index_name} already exists, updating settings only"
-      client.update_index_settings(index_name, revision_files[:settings])
-    else
-      puts "Creating index #{index_name}"
-      client.create_index(index_name, revision_files[:settings], revision_files[:mappings])
-    end
+    Rake::Task['schema:create'].invoke(args[:index_name])
   end
 
   desc "Upload painless scripts to index"
   task :painless, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
-    
-    latest_revision = schema_manager.get_latest_revision_path(index_name)
-    raise "No revisions found for #{index_name}" unless latest_revision
-    
-    revision_files = schema_manager.get_revision_files(latest_revision)
-    
-    revision_files[:painless_scripts].each do |script_name, script_content|
-      puts "Uploading script: #{script_name}"
-      client.put_script(script_name, script_content)
-    end
+    Rake::Task['schema:painless'].invoke(args[:index_name])
   end
 
   desc "Reindex from source to destination index"
   task :reindex, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
-    
-    index_config = schema_manager.get_index_config(index_name)
-    raise "Index configuration not found for #{index_name}" unless index_config
-    
-    from_index = index_config['from_index_name']
-    raise "from_index_name not specified in index configuration" unless from_index
-    
-    reindex_script = schema_manager.get_reindex_script(index_name)
-    
-    puts "Starting reindex from #{from_index} to #{index_name}"
-    response = client.reindex(from_index, index_name, reindex_script)
-    
-    task_id = response['task']
-    puts "Reindex task started: #{task_id}"
-    
-    loop do
-      sleep 5
-      task_status = client.get_task_status(task_id)
-      
-      if task_status['completed']
-        puts "Reindex completed successfully"
-        break
-      end
-      
-      puts "Reindex in progress..."
-    end
+    Rake::Task['schema:reindex'].invoke(args[:index_name])
   end
 
   desc "Catchup reindex for new documents"
   task :catchup, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
-    
-    index_config = schema_manager.get_index_config(index_name)
-    raise "Index configuration not found for #{index_name}" unless index_config
-    
-    from_index = index_config['from_index_name']
-    raise "from_index_name not specified in index configuration" unless from_index
-    
-    reindex_script = schema_manager.get_reindex_script(index_name)
-    
-    puts "Starting catchup reindex from #{from_index} to #{index_name}"
-    response = client.reindex(from_index, index_name, reindex_script)
-    
-    task_id = response['task']
-    puts "Catchup task started: #{task_id}"
-    
-    loop do
-      sleep 5
-      task_status = client.get_task_status(task_id)
-      
-      if task_status['completed']
-        puts "Catchup completed successfully"
-        break
-      end
-      
-      puts "Catchup in progress..."
-    end
+    Rake::Task['schema:catchup'].invoke(args[:index_name])
   end
 
   desc "Soft delete an index by renaming it"
   task :softdelete, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
-    
-    timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
-    deleted_name = "deleted-#{index_name}-#{timestamp}"
-    
-    puts "Soft deleting index #{index_name} -> #{deleted_name}"
-    
-    if client.index_exists?(index_name)
-      client.put("/#{index_name}/_alias/#{deleted_name}", {})
-      client.delete("/#{index_name}")
-      puts "Index #{index_name} soft deleted as #{deleted_name}"
-    else
-      puts "Index #{index_name} does not exist"
-    end
+    Rake::Task['schema:softdelete'].invoke(args[:index_name])
   end
 
   desc "Hard delete an index (only works on deleted- prefixed indexes)"
   task :delete, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
-    
-    unless index_name.start_with?('deleted-')
-      raise "Hard delete only allowed on indexes prefixed with 'deleted-'"
-    end
-    
-    puts "Hard deleting index #{index_name}"
-    
-    if client.index_exists?(index_name)
-      client.delete_index(index_name)
-      puts "Index #{index_name} hard deleted"
-    else
-      puts "Index #{index_name} does not exist"
-    end
+    Rake::Task['schema:delete'].invoke(args[:index_name])
   end
 
   desc "Define schema files for a new or existing index"
   task :define do |t, args|
-    begin
-      schema_definer = SchemaTools::SchemaDefiner.new(client, schema_manager)
-      
-      puts "Please choose:"
-      puts "1. Define a schema for an index that exists in OpenSearch or Elasticsearch"
-      puts "2. Define an example schema for an index that doesn't exist"
-      puts "3. Define an example schema for a breaking change to an existing schema"
-      puts "4. Define an example schema for a non-breaking change to an existing schema"
-      
-      choice = STDIN.gets.chomp
-      
-      case choice
-      when '1'
-        puts "Type the name of an existing index in OpenSearch to define. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
-        puts "Checking #{SchemaTools::Config::OPENSEARCH_URL} for the latest version of \"#{index_name}\""
-        schema_definer.define_schema_for_existing_index(index_name)
-      when '2'
-        puts "Type the name of a new index to define. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
-        schema_definer.define_example_schema_for_new_index(index_name)
-      when '3'
-        puts "Type the name of an existing schema to change. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
-        schema_definer.define_breaking_change_schema(index_name)
-      when '4'
-        puts "Type the name of an existing schema to change. A version number suffix is not required."
-        index_name = STDIN.gets.chomp
-        schema_definer.define_non_breaking_change_schema(index_name)
-      else
-        puts "Invalid choice. Please run the task again and select 1, 2, 3, or 4."
-      end
-    rescue => e
-      puts "Failed to connect to OpenSearch at #{SchemaTools::Config::OPENSEARCH_URL}"
-      puts "Error: #{e.message}"
-    end
+    Rake::Task['schema:define'].invoke
   end
 end

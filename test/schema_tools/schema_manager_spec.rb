@@ -96,4 +96,49 @@ RSpec.describe SchemaTools::SchemaManager do
       expect(File.exist?(File.join(current_dir, 'diff_output.txt'))).to be true
     end
   end
+
+  describe '#load_painless_scripts' do
+    it 'only loads .painless files and ignores other files' do
+      scripts_dir = File.join(temp_dir, 'scripts')
+      FileUtils.mkdir_p(scripts_dir)
+      
+      # Create various file types
+      File.write(File.join(scripts_dir, 'script1.painless'), 'ctx._source.test = "value1"')
+      File.write(File.join(scripts_dir, 'script2.painless'), 'ctx._source.test = "value2"')
+      File.write(File.join(scripts_dir, 'README.txt'), 'Instructions for scripts')
+      File.write(File.join(scripts_dir, 'config.json'), '{"setting": "value"}')
+      File.write(File.join(scripts_dir, 'script3.txt'), 'This is not a painless script')
+      
+      result = manager.send(:load_painless_scripts, scripts_dir)
+      
+      expect(result).to eq({
+        'script1' => 'ctx._source.test = "value1"',
+        'script2' => 'ctx._source.test = "value2"'
+      })
+      expect(result.keys).not_to include('README')
+      expect(result.keys).not_to include('config')
+      expect(result.keys).not_to include('script3')
+    end
+  end
+
+  describe '#generate_scripts_diff' do
+    it 'only diffs .painless files' do
+      old_scripts = {
+        'script1' => 'ctx._source.test = "value1"',
+        'script2' => 'ctx._source.test = "value2"'
+      }
+      new_scripts = {
+        'script1' => 'ctx._source.test = "value1"',
+        'script2' => 'ctx._source.test = "value2_modified"',
+        'script3' => 'ctx._source.test = "value3"'
+      }
+      
+      result = manager.send(:generate_scripts_diff, old_scripts, new_scripts)
+      
+      expect(result).to include('Modified script: script2')
+      expect(result).to include('Added script: script3')
+      expect(result).not_to include('README')
+      expect(result).not_to include('config')
+    end
+  end
 end

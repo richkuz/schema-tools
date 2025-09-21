@@ -64,7 +64,7 @@ when '--submodule'
       desc "Deploy with schema migration"
       task :deploy, [:index_name] do |t, args|
         puts "🚀 Deploying #{args[:index_name]}..."
-        Rake::Task['opensearch:migrate'].invoke(args[:index_name])
+        Rake::Task['schema:migrate'].invoke(args[:index_name])
         puts "✅ Deployment complete!"
       end
     end
@@ -131,6 +131,6 @@ puts ""
 puts "2. Create your schemas in the schemas directory"
 puts ""
 puts "3. Run migrations:"
-puts "   rake 'opensearch:migrate[your-index]'"
+puts "   rake 'schema:migrate[your-index]'"
 puts ""
 puts "📖 See INTEGRATION_GUIDE.md for more details"

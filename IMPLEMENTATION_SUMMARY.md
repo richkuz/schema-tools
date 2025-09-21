@@ -16,18 +16,18 @@ This implementation provides a complete Ruby Rake-based schema management system
    - `SchemaTools::SchemaManager` - File system management for schema definitions
    - `SchemaTools::Config` - Centralized configuration management
 
-3. **Rake Tasks (OpenSearch)**
-   - `opensearch:migrate[to_index,dryrun,revision_applied_by]` - Complete migration workflow
-   - `opensearch:diff[index_name]` - Generate diffs between schema revisions
-   - `opensearch:create[index_name]` - Create index with schema definition
-   - `opensearch:painless[index_name]` - Upload painless scripts
-   - `opensearch:reindex[index_name]` - Reindex from source to destination
-   - `opensearch:catchup[index_name]` - Catchup reindex for new documents
-   - `opensearch:softdelete[index_name]` - Soft delete index (rename with timestamp)
-   - `opensearch:delete[index_name]` - Hard delete index (deleted- prefix only)
+3. **Rake Tasks (Schema)**
+   - `schema:migrate[to_index,dryrun,revision_applied_by]` - Complete migration workflow
+   - `schema:diff[index_name]` - Generate diffs between schema revisions
+   - `schema:create[index_name]` - Create index with schema definition
+   - `schema:painless[index_name]` - Upload painless scripts
+   - `schema:reindex[index_name]` - Reindex from source to destination
+   - `schema:catchup[index_name]` - Catchup reindex for new documents
+   - `schema:softdelete[index_name]` - Soft delete index (rename with timestamp)
+   - `schema:delete[index_name]` - Hard delete index (deleted- prefix only)
 
-4. **Elasticsearch Aliases**
-   - All `opensearch:*` tasks have identical `elasticsearch:*` aliases
+4. **Legacy Aliases**
+   - All `schema:*` tasks have identical `opensearch:*` and `elasticsearch:*` aliases
    - Uses separate configuration for Elasticsearch URL
 
 5. **Docker Compose Setup**
@@ -70,7 +70,7 @@ This implementation provides a complete Ruby Rake-based schema management system
 
 ### Migration Workflow
 
-The `opensearch:migrate` task implements the complete workflow as specified:
+The `schema:migrate` task implements the complete workflow as specified:
 
 1. **Validation**: Checks if index exists and current revision status
 2. **Diff Generation**: Creates readable diff between schema revisions
@@ -110,13 +110,13 @@ Run tests with: `rake spec`
 docker-compose up -d
 
 # Generate diff for schema review
-rake 'opensearch:diff[products-1]'
+rake 'schema:diff[products-1]'
 
 # Dry run migration
-rake 'opensearch:migrate[products-1,true]'
+rake 'schema:migrate[products-1,true]'
 
 # Execute migration
-rake 'opensearch:migrate[products-1]'
+rake 'schema:migrate[products-1]'
 
 # Run tests
 rake spec

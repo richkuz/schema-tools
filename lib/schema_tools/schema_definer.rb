@@ -326,6 +326,7 @@ module SchemaTools
       "  another_script.painless\n" +
       "\n" +
       "Scripts will be uploaded to the index when you run:\n" +
+      "  rake schema:painless[index_name]\n" +
       "  rake opensearch:painless[index_name]\n" +
       "  rake elasticsearch:painless[index_name]"
     end

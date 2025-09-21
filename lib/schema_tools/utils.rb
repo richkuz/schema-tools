@@ -1,3 +1,5 @@
+require_relative 'schema_manager'
+
 module SchemaTools
   module Utils
     # Extract the base name from an index name by removing the version suffix
@@ -34,6 +36,54 @@ module SchemaTools
       else
         nil
       end
+    end
+
+    # Find the latest schema definition for a given base name
+    # Example: "products" -> "schemas/products-3" (if products-3 is the latest)
+    def self.find_latest_schema_definition(base_name, schemas_path)
+      schema_dirs = Dir.glob(File.join(schemas_path, "#{base_name}*"))
+                      .select { |d| File.directory?(d) }
+                      .sort_by { |d| extract_version_number(File.basename(d)) }
+      
+      schema_dirs.last
+    end
+
+    # Find all latest schema versions across all schema families
+    # Returns array of { index_name, latest_revision, revision_number, version_number }
+    def self.discover_latest_schema_versions_only(schemas_path)
+      return [] unless Dir.exist?(schemas_path)
+      
+      # Get all schema directories
+      schema_dirs = Dir.glob(File.join(schemas_path, '*'))
+                       .select { |d| File.directory?(d) }
+      
+      # Group schemas by base name and find the latest version of each
+      schema_groups = {}
+      
+      schema_dirs.each do |schema_dir|
+        schema_name = File.basename(schema_dir)
+        base_name = extract_base_name(schema_name)
+        version_number = extract_version_number(schema_name)
+        
+        # Check if this schema has an index.json and revisions
+        schema_manager = SchemaTools::SchemaManager.new(schemas_path)
+        index_config = schema_manager.get_index_config(schema_name)
+        latest_revision = schema_manager.get_latest_revision_path(schema_name)
+        
+        if index_config && latest_revision
+          if schema_groups[base_name].nil? || version_number > schema_groups[base_name][:version_number]
+            schema_groups[base_name] = {
+              index_name: schema_name,
+              latest_revision: latest_revision,
+              revision_number: File.basename(latest_revision),
+              version_number: version_number
+            }
+          end
+        end
+      end
+      
+      # Return only the latest version of each schema family
+      schema_groups.values
     end
   end
 end

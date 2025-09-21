@@ -103,6 +103,7 @@ def validate_client!
   client
 end
 
+
 namespace :schema do
   client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL)
   schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
@@ -119,7 +120,7 @@ namespace :schema do
       puts "No specific index provided. Discovering all schemas and migrating to latest revisions..."
       puts "Dry run: #{dryrun}"
       
-      schemas = schema_manager.discover_all_schemas_with_latest_revisions
+      schemas = SchemaTools::Utils.discover_latest_schema_versions_only(SchemaTools::Config::SCHEMAS_PATH)
       
       if schemas.empty?
         puts "No schemas found in #{SchemaTools::Config::SCHEMAS_PATH}"
@@ -160,20 +161,15 @@ namespace :schema do
     index_name_or_revision = args[:index_name_or_revision]
     raise "index_name_or_revision parameter is required" unless index_name_or_revision
     
-    # Check if the parameter is a specific revision path (contains '/revisions/')
     if index_name_or_revision.include?('/revisions/')
-      # Parse the revision path to extract index name and revision
       revision_path = File.join(SchemaTools::Config::SCHEMAS_PATH, index_name_or_revision)
       raise "Revision path does not exist: #{revision_path}" unless Dir.exist?(revision_path)
       
-      # Extract index name from the path
       index_name = index_name_or_revision.split('/revisions/').first
       
-      # Find the previous revision
       previous_revision = schema_manager.get_previous_revision_path(index_name, revision_path)
       
       if previous_revision.nil?
-        # Try to find the latest revision of the previous schema version
         previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
         
         if previous_schema_name
@@ -191,7 +187,6 @@ namespace :schema do
           puts "No previous revision found for #{index_name}. This appears to be the first revision."
           puts "Generating diff against empty baseline..."
           
-          # Generate diff against empty baseline for first revision
           empty_revision = nil
           diff_output = schema_manager.generate_diff_output(index_name, revision_path, empty_revision)
           puts diff_output
@@ -202,7 +197,7 @@ namespace :schema do
       diff_output = schema_manager.generate_diff_output(index_name, revision_path, previous_revision)
       puts diff_output
     else
-      # Original behavior: use index name to find latest revision
+      # Use index name to find latest revision
       index_name = index_name_or_revision
       
       latest_revision = schema_manager.get_latest_revision_path(index_name)

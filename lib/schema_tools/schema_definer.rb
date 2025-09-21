@@ -172,11 +172,7 @@ module SchemaTools
 
     def find_latest_schema_definition(base_name)
       schemas_path = @schema_manager.instance_variable_get(:@schemas_path)
-      schema_dirs = Dir.glob(File.join(schemas_path, "#{base_name}*"))
-                      .select { |d| File.directory?(d) }
-                      .sort_by { |d| extract_version_number(File.basename(d)) }
-      
-      schema_dirs.last
+      SchemaTools::Utils.find_latest_schema_definition(base_name, schemas_path)
     end
 
     def schemas_match?(live_data, schema_data)

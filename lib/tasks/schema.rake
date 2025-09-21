@@ -76,7 +76,7 @@ def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager,
   puts "Migration completed successfully"
 end
 
-def init_client
+def validate_client!
   # Check if connection URL is configured
   if SchemaTools::Config::CONNECTION_URL.nil?
     puts "No connection URL configured."
@@ -103,11 +103,12 @@ def init_client
 end
 
 namespace :schema do
-  client = init_client
+  client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL)
   schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
 
   desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
   task :migrate, [:to_index, :dryrun, :revision_applied_by] do |t, args|
+    validate_client!
     to_index = args[:to_index]
     dryrun = args[:dryrun] == 'true'
     revision_applied_by = args[:revision_applied_by] || "rake task"
@@ -169,6 +170,7 @@ namespace :schema do
 
   desc "Create index with schema definition"
   task :create, [:index_name] do |t, args|
+    validate_client!
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -188,6 +190,7 @@ namespace :schema do
 
   desc "Upload painless scripts to index"
   task :painless, [:index_name] do |t, args|
+    validate_client!
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -204,6 +207,7 @@ namespace :schema do
 
   desc "Reindex from source to destination index"
   task :reindex, [:index_name] do |t, args|
+    validate_client!
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -240,6 +244,7 @@ namespace :schema do
 
   desc "Catchup reindex for new documents"
   task :catchup, [:index_name] do |t, args|
+    validate_client!
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -276,6 +281,7 @@ namespace :schema do
 
   desc "Soft delete an index by renaming it"
   task :softdelete, [:index_name] do |t, args|
+    validate_client!
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -295,6 +301,7 @@ namespace :schema do
 
   desc "Hard delete an index (only works on deleted- prefixed indexes)"
   task :delete, [:index_name] do |t, args|
+    validate_client!
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -315,6 +322,7 @@ namespace :schema do
   desc "Define schema files for a new or existing index"
   task :define do |t, args|
     begin
+      validate_client!
       schema_definer = SchemaTools::SchemaDefiner.new(client, schema_manager)
       
       puts "Please choose:"

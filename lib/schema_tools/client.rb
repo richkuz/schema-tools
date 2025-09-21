@@ -145,7 +145,7 @@ module SchemaTools
       return [] unless response && response.is_a?(Array)
       
       response.map { |index| index['index'] }
-              .reject { |name| name.start_with?('.') } # Exclude system indices
+              .reject { |name| name.start_with?('.') || name.start_with?('top_queries-') } # Exclude system indices
               .sort
     end
 

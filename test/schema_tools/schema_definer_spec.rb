@@ -129,41 +129,6 @@ RSpec.describe SchemaTools::SchemaDefiner do
     end
   end
 
-  describe '#breaking_change?' do
-    let(:live_data) do
-      {
-        settings: { 'index' => { 'analysis' => { 'analyzer' => { 'test' => {} } } } },
-        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } }
-      }
-    end
-
-    let(:schema_data) do
-      {
-        settings: { 'index' => { 'analysis' => { 'analyzer' => { 'test' => {} } } } },
-        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } }
-      }
-    end
-
-    it 'returns false when no breaking changes detected' do
-      expect(definer.send(:breaking_change?, live_data, schema_data)).to be false
-    end
-
-    it 'returns true when field type changes' do
-      schema_data[:mappings] = { 'properties' => { 'id' => { 'type' => 'text' } } }
-      expect(definer.send(:breaking_change?, live_data, schema_data)).to be true
-    end
-
-    it 'returns true when analyzer changes' do
-      live_data[:mappings] = { 'properties' => { 'name' => { 'type' => 'text', 'analyzer' => 'standard' } } }
-      schema_data[:mappings] = { 'properties' => { 'name' => { 'type' => 'text', 'analyzer' => 'keyword' } } }
-      expect(definer.send(:breaking_change?, live_data, schema_data)).to be true
-    end
-
-    it 'returns true when analysis settings change' do
-      schema_data[:settings] = { 'index' => { 'analysis' => { 'analyzer' => { 'different' => {} } } } }
-      expect(definer.send(:breaking_change?, live_data, schema_data)).to be true
-    end
-  end
 
   describe '#generate_next_index_name' do
     before do

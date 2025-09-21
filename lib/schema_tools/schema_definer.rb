@@ -1,6 +1,7 @@
 require 'json'
 require 'fileutils'
 require 'logger'
+require 'schema_tools/breaking_change_detector'
 
 module SchemaTools
   class SchemaDefiner
@@ -8,6 +9,7 @@ module SchemaTools
       @client = client
       @schema_manager = schema_manager
       @logger = logger
+      @breaking_change_detector = BreakingChangeDetector.new(logger: logger)
     end
 
     def define_schema_for_existing_index(index_name)
@@ -50,7 +52,7 @@ module SchemaTools
         return
       end
       
-      if breaking_change?(live_data, schema_data)
+      if @breaking_change_detector.breaking_change?(live_data, schema_data)
         puts "Index settings and mappings constitute a breaking change from the latest schema definition."
         new_index_name = generate_next_index_name(schema_base_name)
         generate_example_schema_files(new_index_name, live_data)
@@ -181,55 +183,6 @@ module SchemaTools
       normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings])
     end
 
-    def breaking_change?(live_data, schema_data)
-      live_mappings = normalize_mappings(live_data[:mappings])
-      schema_mappings = normalize_mappings(schema_data[:mappings])
-      
-      return true if field_type_changed?(live_mappings, schema_mappings)
-      return true if analyzer_changed?(live_mappings, schema_mappings)
-      return true if index_settings_changed?(live_data[:settings], schema_data[:settings])
-      
-      false
-    end
-
-    def field_type_changed?(live_mappings, schema_mappings)
-      return false unless live_mappings['properties'] && schema_mappings['properties']
-      
-      live_props = live_mappings['properties']
-      schema_props = schema_mappings['properties']
-      
-      all_fields = (live_props.keys + schema_props.keys).uniq
-      
-      all_fields.any? do |field|
-        live_type = live_props.dig(field, 'type')
-        schema_type = schema_props.dig(field, 'type')
-        
-        live_type && schema_type && live_type != schema_type
-      end
-    end
-
-    def analyzer_changed?(live_mappings, schema_mappings)
-      return false unless live_mappings['properties'] && schema_mappings['properties']
-      
-      live_props = live_mappings['properties']
-      schema_props = schema_mappings['properties']
-      
-      all_fields = (live_props.keys + schema_props.keys).uniq
-      
-      all_fields.any? do |field|
-        live_analyzer = live_props.dig(field, 'analyzer')
-        schema_analyzer = schema_props.dig(field, 'analyzer')
-        
-        live_analyzer && schema_analyzer && live_analyzer != schema_analyzer
-      end
-    end
-
-    def index_settings_changed?(live_settings, schema_settings)
-      live_analysis = live_settings.dig('index', 'analysis')
-      schema_analysis = schema_settings.dig('index', 'analysis')
-      
-      live_analysis != schema_analysis
-    end
 
     def generate_next_index_name(base_name)
       latest_schema_path = find_latest_schema_definition(base_name)

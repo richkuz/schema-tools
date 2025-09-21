@@ -96,4 +96,38 @@ RSpec.describe SchemaTools::Client do
       expect(client.get_schema_revision('test-index')).to be_nil
     end
   end
+
+  describe '#get_stored_scripts' do
+    it 'returns stored scripts when present' do
+      response_body = {
+        'script1' => {
+          'script' => {
+            'source' => 'ctx._source.test = "value"'
+          }
+        },
+        'script2' => {
+          'script' => {
+            'source' => 'ctx._source.another = "test"'
+          }
+        }
+      }.to_json
+      
+      stub_request(:get, 'http://localhost:9200/_scripts')
+        .to_return(status: 200, body: response_body)
+      
+      result = client.get_stored_scripts
+      expect(result).to eq({
+        'script1' => 'ctx._source.test = "value"',
+        'script2' => 'ctx._source.another = "test"'
+      })
+    end
+    
+    it 'returns empty hash when no scripts present' do
+      stub_request(:get, 'http://localhost:9200/_scripts')
+        .to_return(status: 404)
+      
+      result = client.get_stored_scripts
+      expect(result).to eq({})
+    end
+  end
 end

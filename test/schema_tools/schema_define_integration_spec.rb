@@ -54,6 +54,9 @@ RSpec.describe 'Schema Define Integration' do
               }
             }
           }.to_json)
+        
+        stub_request(:get, 'http://localhost:9200/_scripts')
+          .to_return(status: 200, body: {}.to_json)
       end
 
       it 'generates schema files for existing index' do
@@ -125,6 +128,9 @@ RSpec.describe 'Schema Define Integration' do
               'mappings' => mappings
             }
           }.to_json)
+        
+        stub_request(:get, 'http://localhost:9200/_scripts')
+          .to_return(status: 200, body: {}.to_json)
       end
 
       it 'reports schemas match' do
@@ -178,6 +184,9 @@ RSpec.describe 'Schema Define Integration' do
               }
             }
           }.to_json)
+        
+        stub_request(:get, 'http://localhost:9200/_scripts')
+          .to_return(status: 200, body: {}.to_json)
       end
 
       it 'generates new index for breaking change' do

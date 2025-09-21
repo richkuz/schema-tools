@@ -52,6 +52,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
           'mappings' => mappings
         }
       })
+      allow(client).to receive(:get_stored_scripts).and_return({})
     end
 
     it 'detects breaking changes in field types' do

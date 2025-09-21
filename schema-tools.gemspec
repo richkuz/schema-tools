@@ -5,7 +5,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["rkuzsma@gmail.com"]
   
   spec.summary       = "Schema management tools for OpenSearch and Elasticsearch"
-  spec.description   = "A disciplined collection of Ruby Rake tasks for managing Elasticsearch or OpenSearch index schema changes with zero downtime."
+  spec.description   = "Manage Elasticsearch or OpenSearch index schemas and migrations using discplined version controls."
   spec.homepage      = "https://github.com/richkuz/schemurai"
   spec.license       = "Apache-2.0"
   

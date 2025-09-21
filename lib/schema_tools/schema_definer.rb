@@ -161,11 +161,12 @@ module SchemaTools
       settings = @client.get_index_settings(index_name)
       mappings_response = @client.get("/#{index_name}/_mapping")
       mappings = mappings_response ? mappings_response[index_name]['mappings'] : {}
+      painless_scripts = @client.get_stored_scripts
       
       {
         settings: settings || {},
         mappings: mappings,
-        painless_scripts: {}
+        painless_scripts: painless_scripts
       }
     end
 
@@ -222,7 +223,9 @@ module SchemaTools
       
       File.write(File.join(index_path, 'revisions', '1', 'settings.json'), JSON.pretty_generate(data[:settings]))
       File.write(File.join(index_path, 'revisions', '1', 'mappings.json'), JSON.pretty_generate(data[:mappings]))
-      File.write(File.join(index_path, 'revisions', '1', 'painless_scripts', 'example_script.painless'), generate_example_script)
+      
+      write_painless_scripts(File.join(index_path, 'revisions', '1', 'painless_scripts'), data[:painless_scripts])
+      
       File.write(File.join(index_path, 'revisions', '1', 'diff_output.txt'), 'Initial schema definition')
       
       puts "\nGenerated example schema definition files:"
@@ -233,7 +236,9 @@ module SchemaTools
       puts "    settings.json"
       puts "    mappings.json"
       puts "    painless_scripts/"
-      puts "      example_script.painless"
+      data[:painless_scripts].each do |script_name, _|
+        puts "      #{script_name}.painless"
+      end
       puts "    diff_output.txt"
     end
 
@@ -244,7 +249,9 @@ module SchemaTools
       
       File.write(File.join(revision_path, 'settings.json'), JSON.pretty_generate(data[:settings]))
       File.write(File.join(revision_path, 'mappings.json'), JSON.pretty_generate(data[:mappings]))
-      File.write(File.join(revision_path, 'painless_scripts', 'example_script.painless'), generate_example_script)
+      
+      write_painless_scripts(File.join(revision_path, 'painless_scripts'), data[:painless_scripts])
+      
       File.write(File.join(revision_path, 'diff_output.txt'), 'Schema revision')
       
       puts "\nGenerated example schema definition files:"
@@ -253,7 +260,9 @@ module SchemaTools
       puts "    settings.json"
       puts "    mappings.json"
       puts "    painless_scripts/"
-      puts "      example_script.painless"
+      data[:painless_scripts].each do |script_name, _|
+        puts "      #{script_name}.painless"
+      end
       puts "    diff_output.txt"
     end
 
@@ -308,6 +317,19 @@ module SchemaTools
       "# ctx._source.example_field = 'example_value';"
     end
 
+    def generate_painless_scripts_instructions
+      "Add into this folder all painless scripts you want uploaded into the index.\n" +
+      "Painless script files must end with the extension .painless\n" +
+      "\n" +
+      "Example:\n" +
+      "  my_script.painless\n" +
+      "  another_script.painless\n" +
+      "\n" +
+      "Scripts will be uploaded to the index when you run:\n" +
+      "  rake opensearch:painless[index_name]\n" +
+      "  rake elasticsearch:painless[index_name]"
+    end
+
     def normalize_settings(settings)
       return {} unless settings
       
@@ -321,6 +343,20 @@ module SchemaTools
     def normalize_mappings(mappings)
       return {} unless mappings
       JSON.parse(JSON.generate(mappings))
+    end
+
+    def write_painless_scripts(scripts_dir, painless_scripts)
+      FileUtils.mkdir_p(scripts_dir)
+      
+      if painless_scripts.empty?
+        # Write instruction file if no scripts found
+        File.write(File.join(scripts_dir, 'README.txt'), generate_painless_scripts_instructions)
+      else
+        # Write actual scripts from live index
+        painless_scripts.each do |script_name, script_content|
+          File.write(File.join(scripts_dir, "#{script_name}.painless"), script_content)
+        end
+      end
     end
   end
 end

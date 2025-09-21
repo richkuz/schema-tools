@@ -65,6 +65,10 @@ RSpec.describe SchemaTools::SchemaDefiner do
           }
         }
       })
+      allow(client).to receive(:get_stored_scripts).and_return({
+        'script1' => 'ctx._source.test = "value"',
+        'script2' => 'ctx._source.another = "test"'
+      })
     end
 
     it 'extracts settings, mappings, and painless scripts from live index' do
@@ -76,7 +80,10 @@ RSpec.describe SchemaTools::SchemaDefiner do
           'id' => { 'type' => 'keyword' }
         }
       })
-      expect(result[:painless_scripts]).to eq({})
+      expect(result[:painless_scripts]).to eq({
+        'script1' => 'ctx._source.test = "value"',
+        'script2' => 'ctx._source.another = "test"'
+      })
     end
   end
 
@@ -181,7 +188,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       expect(File.exist?(File.join(index_path, 'reindex.painless'))).to be true
       expect(File.exist?(File.join(index_path, 'revisions', '1', 'settings.json'))).to be true
       expect(File.exist?(File.join(index_path, 'revisions', '1', 'mappings.json'))).to be true
-      expect(File.exist?(File.join(index_path, 'revisions', '1', 'painless_scripts', 'example_script.painless'))).to be true
+      expect(File.exist?(File.join(index_path, 'revisions', '1', 'painless_scripts', 'README.txt'))).to be true
       expect(File.exist?(File.join(index_path, 'revisions', '1', 'diff_output.txt'))).to be true
     end
 
@@ -214,7 +221,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       revision_path = File.join(schemas_path, 'existing-index', 'revisions', '2')
       expect(File.exist?(File.join(revision_path, 'settings.json'))).to be true
       expect(File.exist?(File.join(revision_path, 'mappings.json'))).to be true
-      expect(File.exist?(File.join(revision_path, 'painless_scripts', 'example_script.painless'))).to be true
+      expect(File.exist?(File.join(revision_path, 'painless_scripts', 'README.txt'))).to be true
       expect(File.exist?(File.join(revision_path, 'diff_output.txt'))).to be true
     end
   end
@@ -237,6 +244,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
           }
         }
       })
+      allow(client).to receive(:get_stored_scripts).and_return({})
     end
 
     it 'handles case when no schema definition exists' do
@@ -292,6 +300,32 @@ RSpec.describe SchemaTools::SchemaDefiner do
       
       expect { definer.define_non_breaking_change_schema('existing') }
         .to output(/Generated example schema definition files/).to_stdout
+    end
+  end
+
+  describe '#write_painless_scripts' do
+    let(:scripts_dir) { File.join(temp_dir, 'scripts') }
+
+    it 'writes painless scripts when scripts are provided' do
+      painless_scripts = {
+        'script1' => 'ctx._source.test = "value"',
+        'script2' => 'ctx._source.another = "test"'
+      }
+      
+      definer.send(:write_painless_scripts, scripts_dir, painless_scripts)
+      
+      expect(File.exist?(File.join(scripts_dir, 'script1.painless'))).to be true
+      expect(File.exist?(File.join(scripts_dir, 'script2.painless'))).to be true
+      expect(File.read(File.join(scripts_dir, 'script1.painless'))).to eq('ctx._source.test = "value"')
+      expect(File.read(File.join(scripts_dir, 'script2.painless'))).to eq('ctx._source.another = "test"')
+    end
+
+    it 'writes instruction file when no scripts provided' do
+      definer.send(:write_painless_scripts, scripts_dir, {})
+      
+      expect(File.exist?(File.join(scripts_dir, 'README.txt'))).to be true
+      expect(File.read(File.join(scripts_dir, 'README.txt'))).to include('Add into this folder all painless scripts')
+      expect(File.read(File.join(scripts_dir, 'README.txt'))).to include('Painless script files must end with the extension .painless')
     end
   end
 end

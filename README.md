@@ -1,6 +1,6 @@
 # Schemurai - Schema tools for OpenSearch and Elasticsearch
 
-A disciplined collection of Ruby Rake tasks and naming conventions for managing Elasticsearch or OpenSearch index schemas and migrations.
+Ruby Rake tasks to manage Elasticsearch or OpenSearch index schemas and migrations using discplined version controls.
 - Specify index settings, mappings, and analyzers in versioned `.json` files.
 - Migrate and reindex to a new index with zero downtime without modifying schemas by hand on live instances.
 - Audit the trail of index schema changes through index metadata and GitHub Actions.
@@ -25,6 +25,14 @@ To define schema files for a new or existing index, run this command and follow 
 
 ```sh
 rake schema:define
+```
+
+```
+Please choose:
+1. Define a schema for an index that exists in OpenSearch or Elasticsearch
+2. Define an example schema for an index that doesn't exist
+3. Define an example schema for a breaking change to an existing schema
+4. Define an example schema for a non-breaking change to an existing schema
 ```
 
 Index names follow the pattern `indexname-$number`, where `$number` increments by 1 for every breaking schema change. The first version of an index does not require a number in the name.
@@ -53,7 +61,7 @@ ELASTICSEARCH_PASSWORD
 
 ### Directory structure reference
 
-Schemurai uses this directory structure to manage schema settings and mappings.
+Example directory structure:
 
 ```
 schemas/products
@@ -79,8 +87,7 @@ schemas/users-3
 
 The schema folder name must match the name of the index.
 
-
-The `schema:migrate` task will alert and exit if you attempt to add a new revision that requires reindexing.
+The `schema:migrate` task will alert and exit if you attempt to add a new revision to an existing index that would require reindexing.
 
 ### Migrate a specific index to the latest version
 
@@ -116,9 +123,9 @@ Breaking changes (require reindex):
 Breaking changes (does not require a reindex, but still treated as breaking)
 - Removing fields
 - Narrowing fields
-  - ignore_above
-  - Date format
-  - term_vector 
+  - ignore_above (breaking when decreasing, non-breaking when increasing)
+  - Date format (breaking when removing formats, non-breaking when adding formats)
+  - term_vector
   - Copy from multiple fields to single field
   - Disabling object fields
 
@@ -157,6 +164,12 @@ Change the data when migrating to a new schema via the `reindex.painless` script
 
 `reindex.painless` runs one time when reindexing into a new index.
 
+### Store any painless scripts in the index
+
+Add into the `painless_scripts` folder all painless scripts that should be `PUT` into the index.
+
+Each revision must specify all the painless scripts required, even if they haven't changed.
+
 ### Apply a schema change to Staging and Production 
 
 Run GitHub Actions for your branch to prepare a given environment. The actions use the  `migrate` task underneath.
@@ -194,16 +207,6 @@ GitHub Actions:
 Why doesn't this use index aliases?
 - Using an alias circumvents pinning applications to a specific index schema version.
 - When migrating to a new index, applications often need to deploy new code to support reading/writing to the new index. Explicit index names enable applications to pin to a specific version of an index and switch to new versions when they are ready.
-
-
-
-
-
-
-
-
-
-
 
 
 

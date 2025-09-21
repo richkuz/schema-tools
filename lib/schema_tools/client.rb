@@ -120,6 +120,18 @@ module SchemaTools
       put("/_scripts/#{script_name}", body)
     end
 
+    def get_stored_scripts
+      response = get("/_scripts")
+      return {} unless response
+      
+      scripts = {}
+      response.each do |script_id, script_data|
+        scripts[script_id] = script_data.dig('script', 'source')
+      end
+      
+      scripts
+    end
+
     def delete_index(index_name)
       delete("/#{index_name}")
     end

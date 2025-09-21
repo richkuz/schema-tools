@@ -5,79 +5,119 @@ require 'schema_tools/config'
 require 'json'
 require 'time'
 
+def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager, client)
+  puts "Migrating to index: #{to_index}"
+  puts "Dry run: #{dryrun}"
+  
+  index_config = schema_manager.get_index_config(to_index)
+  raise "Index configuration not found for #{to_index}" unless index_config
+  
+  latest_revision = schema_manager.get_latest_revision_path(to_index)
+  raise "No revisions found for #{to_index}" unless latest_revision
+  
+  revision_name = "#{to_index}/revisions/#{File.basename(latest_revision)}"
+  
+  if client.index_exists?(to_index)
+    current_revision = client.get_schema_revision(to_index)
+    
+    if current_revision == revision_name
+      puts "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake schema:softdelete[#{to_index}] and then re-run schema:migrate[to_index=#{to_index}]"
+      return
+    end
+    
+    if current_revision.nil?
+      puts "Unable to determine the current schema revision of #{to_index}. To re-create this index and re-migrate, run rake schema:softdelete[#{to_index}] and then re-run schema:migrate[to_index=#{to_index}]"
+      return
+    end
+  end
+  
+  unless dryrun
+    Rake::Task['schema:diff'].invoke(to_index)
+    Rake::Task['schema:create'].invoke(to_index)
+    Rake::Task['schema:painless'].invoke(to_index)
+  end
+  
+  if index_config['from_index_name'] && !client.index_exists?(to_index)
+    puts "Reindexing from #{index_config['from_index_name']} to #{to_index}"
+    unless dryrun
+      Rake::Task['schema:reindex'].invoke(to_index)
+      Rake::Task['schema:catchup'].invoke(to_index)
+    end
+  end
+  
+  unless dryrun
+    metadata = {
+      revision: revision_name,
+      revision_applied_at: Time.now.iso8601,
+      revision_applied_by: revision_applied_by
+    }
+    
+    schema_manager.update_revision_metadata(to_index, latest_revision, metadata)
+    
+    settings_update = {
+      index: {
+        _meta: {
+          schema_tools_revision: metadata
+        }
+      }
+    }
+    
+    client.update_index_settings(to_index, settings_update)
+  end
+  
+  puts "Migration completed successfully"
+end
+
 namespace :schema do
   client = SchemaTools::Client.new(SchemaTools::Config::OPENSEARCH_URL)
   schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
 
-  desc "Migrate to a specific index schema revision"
+  desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
   task :migrate, [:to_index, :dryrun, :revision_applied_by] do |t, args|
     to_index = args[:to_index]
     dryrun = args[:dryrun] == 'true'
     revision_applied_by = args[:revision_applied_by] || "rake task"
     
-    raise "to_index parameter is required" unless to_index
-    
-    puts "Migrating to index: #{to_index}"
-    puts "Dry run: #{dryrun}"
-    
-    index_config = schema_manager.get_index_config(to_index)
-    raise "Index configuration not found for #{to_index}" unless index_config
-    
-    latest_revision = schema_manager.get_latest_revision_path(to_index)
-    raise "No revisions found for #{to_index}" unless latest_revision
-    
-    revision_name = "#{to_index}/revisions/#{File.basename(latest_revision)}"
-    
-    if client.index_exists?(to_index)
-      current_revision = client.get_schema_revision(to_index)
+    # If no to_index is provided, discover and migrate all schemas
+    if to_index.nil?
+      puts "No specific index provided. Discovering all schemas and migrating to latest revisions..."
+      puts "Dry run: #{dryrun}"
       
-      if current_revision == revision_name
-        puts "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake schema:softdelete[#{to_index}] and then re-run schema:migrate[to_index=#{to_index}]"
+      schemas = schema_manager.discover_all_schemas_with_latest_revisions
+      
+      if schemas.empty?
+        puts "No schemas found in #{SchemaTools::Config::SCHEMAS_PATH}"
         exit
       end
       
-      if current_revision.nil?
-        puts "Unable to determine the current schema revision of #{to_index}. To re-create this index and re-migrate, run rake schema:softdelete[#{to_index}] and then re-run schema:migrate[to_index=#{to_index}]"
-        exit
+      puts "Found #{schemas.length} schema(s) to migrate:"
+      schemas.each do |schema|
+        puts "  - #{schema[:index_name]} (latest revision: #{schema[:revision_number]})"
       end
-    end
-    
-    unless dryrun
-      Rake::Task['schema:diff'].invoke(to_index)
-      Rake::Task['schema:create'].invoke(to_index)
-      Rake::Task['schema:painless'].invoke(to_index)
-    end
-    
-    if index_config['from_index_name'] && !client.index_exists?(to_index)
-      puts "Reindexing from #{index_config['from_index_name']} to #{to_index}"
-      unless dryrun
-        Rake::Task['schema:reindex'].invoke(to_index)
-        Rake::Task['schema:catchup'].invoke(to_index)
+      puts
+      
+      schemas.each do |schema|
+        puts "=" * 60
+        puts "Migrating #{schema[:index_name]} to revision #{schema[:revision_number]}"
+        puts "=" * 60
+        
+        begin
+          migrate_single_schema(schema[:index_name], dryrun, revision_applied_by, schema_manager, client)
+          puts "✓ Migration completed successfully for #{schema[:index_name]}"
+        rescue => e
+          puts "✗ Migration failed for #{schema[:index_name]}: #{e.message}"
+          puts "Continuing with next schema..."
+        end
+        puts
       end
+      
+      puts "All migrations completed!"
+    else
+      # Original single schema migration logic
+      migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager, client)
     end
-    
-    unless dryrun
-      metadata = {
-        revision: revision_name,
-        revision_applied_at: Time.now.iso8601,
-        revision_applied_by: revision_applied_by
-      }
-      
-      schema_manager.update_revision_metadata(to_index, latest_revision, metadata)
-      
-      settings_update = {
-        index: {
-          _meta: {
-            schema_tools_revision: metadata
-          }
-        }
-      }
-      
-      client.update_index_settings(to_index, settings_update)
-    end
-    
-    puts "Migration completed successfully"
   end
+
 
   desc "Generate diff between schema revisions"
   task :diff, [:index_name] do |t, args|

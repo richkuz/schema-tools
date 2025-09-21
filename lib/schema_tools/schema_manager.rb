@@ -104,6 +104,33 @@ module SchemaTools
       File.write(settings_path, JSON.pretty_generate(current_settings))
     end
 
+    def discover_all_schemas_with_latest_revisions
+      return [] unless Dir.exist?(@schemas_path)
+      
+      schemas = []
+      
+      # Get all directories in the schemas path
+      Dir.glob(File.join(@schemas_path, '*'))
+         .select { |d| File.directory?(d) }
+         .each do |schema_dir|
+        schema_name = File.basename(schema_dir)
+        
+        # Check if this schema has an index.json and revisions
+        index_config = get_index_config(schema_name)
+        latest_revision = get_latest_revision_path(schema_name)
+        
+        if index_config && latest_revision
+          schemas << {
+            index_name: schema_name,
+            latest_revision: latest_revision,
+            revision_number: File.basename(latest_revision)
+          }
+        end
+      end
+      
+      schemas
+    end
+
     private
 
     def load_json_file(file_path)

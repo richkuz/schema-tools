@@ -105,35 +105,25 @@ The `schema:migrate` task will fail to migrate to a schema definition that conta
 
 #### What constitutes a breaking versus non-breaking change?
 
-Immutable index settings:
-- `number_of_shards` - Cannot be changed after index creation
-- `index.codec` - Compression codec is immutable
-- `routing_partition_size` - Routing partition size is immutable
-- `index.sort.*` settings - Default sort order is immutable
+ Breaking Changes (Require Reindex):
+- Immutable index settings (number_of_shards, index.codec, etc.)
+- Analysis settings changes (analyzers, tokenizers, filters, char_filters)
+- Dynamic mapping changes (dynamic: true ↔ dynamic: strict)
+- Field type changes
+- Field analyzer changes (index-time analyzer)
+- Immutable field properties:
+  - index, store, doc_values, fielddata, norms
+  - enabled, format, copy_to, term_vector, index_options
+  - null_value, ignore_z_value, precision
+- Field removal
+- Multi-field subfield removal or changes
 
-Analysis settings:
-- Analyzers: Any modification to existing analyzers requires reindex
-- Tokenizers: Any modification to existing tokenizers requires reindex
-- Filters: Any modification to existing filters requires reindex
-- Char Filters: Any modification to existing char filters requires reindex
-- New additions: Adding new analyzers/tokenizers/filters is allowed (non-breaking)
-
-Field mapping changes:
-- Field type changes: Any type change requires reindex
-- Field analyzer changes: Any analyzer change on text fields requires reindex
-- Immutable field properties: Changes to index, store, doc_values, fielddata, norms require reindex
-- Multi-field definitions: Changes to subfield types or properties require reindex
-- New fields: Adding new fields is allowed (non-breaking)
-
-Mutable settings (non-breaking):
-- `number_of_replicas` - Can be changed dynamically
-- `refresh_interval` - Can be changed dynamically
-- `boost` - Field boost values can be changed dynamically
-- `search_analyzer` - Search-time analyzer can be changed without reindex
-- `search_quote_analyzer` - Search quote analyzer can be changed without reindex
-- `ignore_above` - Length limit for keyword fields can be changed
-- `ignore_malformed` - Malformed value handling can be changed
-- Dynamic mapping settings - Can be changed dynamically
+Non-Breaking Changes (Dynamic Updates):
+- Mutable index settings (number_of_replicas, refresh_interval)
+- Adding new fields
+- Adding new subfields
+- Adding dynamic mapping settings
+- Mutable field properties (boost, search_analyzer, search_quote_analyzer, ignore_above, ignore_malformed)
 
 
 ### View which schema revision is applied to an index

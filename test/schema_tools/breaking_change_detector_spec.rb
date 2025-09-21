@@ -292,7 +292,8 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           settings: {},
           mappings: {
             'properties' => {
-              'existing_field' => { 'type' => 'keyword' }
+              'existing_field' => { 'type' => 'keyword' },
+              'new_field' => { 'type' => 'text' }
             }
           }
         }
@@ -301,8 +302,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           settings: {},
           mappings: {
             'properties' => {
-              'existing_field' => { 'type' => 'keyword' },
-              'new_field' => { 'type' => 'text' }
+              'existing_field' => { 'type' => 'keyword' }
             }
           }
         }
@@ -445,6 +445,160 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
 
         expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
+
+      it 'detects enabled property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'metadata' => { 'type' => 'object', 'enabled' => true }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'metadata' => { 'type' => 'object', 'enabled' => false }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'detects format property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'timestamp' => { 'type' => 'date', 'format' => 'yyyy-MM-dd' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'timestamp' => { 'type' => 'date', 'format' => 'epoch_millis' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'detects copy_to property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'copy_to' => 'all_text' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'copy_to' => 'search_text' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'detects term_vector property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'content' => { 'type' => 'text', 'term_vector' => 'with_positions_offsets' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'content' => { 'type' => 'text', 'term_vector' => 'no' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'detects index_options property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'content' => { 'type' => 'text', 'index_options' => 'freqs' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'content' => { 'type' => 'text', 'index_options' => 'docs' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'detects null_value property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'status' => { 'type' => 'keyword', 'null_value' => 'UNKNOWN' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'status' => { 'type' => 'keyword', 'null_value' => 'MISSING' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'detects ignore_z_value property changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'location' => { 'type' => 'geo_point', 'ignore_z_value' => true }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'location' => { 'type' => 'geo_point', 'ignore_z_value' => false }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
     end
 
     context 'multi-field definitions changes' do
@@ -520,7 +674,8 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
               'title' => {
                 'type' => 'text',
                 'fields' => {
-                  'raw' => { 'type' => 'keyword' }
+                  'raw' => { 'type' => 'keyword' },
+                  'suggest' => { 'type' => 'completion' }
                 }
               }
             }
@@ -534,10 +689,87 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
               'title' => {
                 'type' => 'text',
                 'fields' => {
-                  'raw' => { 'type' => 'keyword' },
-                  'suggest' => { 'type' => 'completion' }
+                  'raw' => { 'type' => 'keyword' }
                 }
               }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
+      end
+    end
+
+    context 'dynamic mapping changes' do
+      it 'detects dynamic mapping changes' do
+        proposed_data = {
+          settings: {},
+          mappings: { 'dynamic' => true }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: { 'dynamic' => 'strict' }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'allows adding dynamic mapping' do
+        proposed_data = {
+          settings: {},
+          mappings: { 'dynamic' => true }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {}
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
+      end
+    end
+
+    context 'field existence changes' do
+      it 'detects field removal' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text' },
+              'description' => { 'type' => 'text' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'allows adding new fields' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text' },
+              'description' => { 'type' => 'text' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text' }
             }
           }
         }

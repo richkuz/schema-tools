@@ -15,9 +15,11 @@ module SchemaTools
 
       return true if immutable_index_settings_changed?(proposed_settings, current_settings)
       return true if analysis_settings_changed?(proposed_settings, current_settings)
+      return true if dynamic_mapping_changed?(proposed_mappings, current_mappings)
       return true if field_type_changed?(proposed_mappings, current_mappings)
       return true if field_analyzer_changed?(proposed_mappings, current_mappings)
       return true if immutable_field_properties_changed?(proposed_mappings, current_mappings)
+      return true if field_existence_changed?(proposed_mappings, current_mappings)
       return true if multi_field_definitions_changed?(proposed_mappings, current_mappings)
 
       false
@@ -96,6 +98,15 @@ module SchemaTools
       end
     end
 
+    def dynamic_mapping_changed?(proposed_mappings, current_mappings)
+      proposed_dynamic = proposed_mappings['dynamic']
+      current_dynamic = current_mappings['dynamic']
+
+      return false unless proposed_dynamic && current_dynamic
+
+      proposed_dynamic != current_dynamic
+    end
+
     def field_type_changed?(proposed_mappings, current_mappings)
       return false unless proposed_mappings['properties'] && current_mappings['properties']
 
@@ -139,7 +150,9 @@ module SchemaTools
         current_field = current_props[field] || {}
 
         immutable_properties = [
-          'index', 'store', 'doc_values', 'fielddata', 'norms'
+          'index', 'store', 'doc_values', 'fielddata', 'norms',
+          'enabled', 'format', 'copy_to', 'term_vector', 'index_options',
+          'null_value', 'ignore_z_value', 'precision'
         ]
 
         immutable_properties.any? do |property|
@@ -182,6 +195,16 @@ module SchemaTools
       end
     end
 
+    def field_existence_changed?(proposed_mappings, current_mappings)
+      return false unless proposed_mappings['properties'] && current_mappings['properties']
+
+      proposed_props = proposed_mappings['properties']
+      current_props = current_mappings['properties']
+
+      removed_fields = current_props.keys - proposed_props.keys
+      removed_fields.any?
+    end
+
     def multi_field_definitions_changed?(proposed_mappings, current_mappings)
       return false unless proposed_mappings['properties'] && current_mappings['properties']
 
@@ -195,15 +218,17 @@ module SchemaTools
         proposed_fields = proposed_field['fields'] || {}
         current_fields = current_field['fields'] || {}
 
-        (proposed_fields.keys & current_fields.keys).any? do |subfield_name|
+        existing_subfields_changed = (proposed_fields.keys & current_fields.keys).any? do |subfield_name|
           proposed_subfield = proposed_fields[subfield_name] || {}
           current_subfield = current_fields[subfield_name] || {}
 
           proposed_subfield != current_subfield
-        end || 
-        (current_fields.keys - proposed_fields.keys).any? do |new_subfield|
-          false
         end
+
+        removed_subfields = current_fields.keys - proposed_fields.keys
+        removed_subfields_exist = removed_subfields.any?
+
+        existing_subfields_changed || removed_subfields_exist
       end
     end
 

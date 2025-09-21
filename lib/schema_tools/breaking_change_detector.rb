@@ -1,6 +1,7 @@
 require 'json'
 require 'logger'
 
+# Breaking changes are changes that would require a reindex or have a high risk of breaking an application.
 module SchemaTools
   class BreakingChangeDetector
     def initialize(logger: Logger.new(STDOUT))
@@ -19,6 +20,7 @@ module SchemaTools
       return true if field_type_changed?(proposed_mappings, current_mappings)
       return true if field_analyzer_changed?(proposed_mappings, current_mappings)
       return true if immutable_field_properties_changed?(proposed_mappings, current_mappings)
+      return true if narrowing_properties_changed?(proposed_mappings, current_mappings)
       return true if field_existence_changed?(proposed_mappings, current_mappings)
       return true if multi_field_definitions_changed?(proposed_mappings, current_mappings)
 
@@ -149,23 +151,114 @@ module SchemaTools
         proposed_field = proposed_props[field] || {}
         current_field = current_props[field] || {}
 
-        immutable_properties = [
-          'index', 'store', 'doc_values', 'fielddata', 'norms',
-          'enabled', 'format', 'copy_to', 'term_vector', 'index_options',
-          'null_value', 'ignore_z_value', 'precision', 'ignore_above'
-        ]
-
-        immutable_properties.any? do |property|
-          proposed_value = proposed_field[property]
-          current_value = current_field[property]
-
-          next false unless proposed_value || current_value
-
-          return true if proposed_value.nil? || current_value.nil?
-
-          proposed_value != current_value
-        end
+        return true if field_level_properties_changed?(proposed_field, current_field)
+        return true if object_level_properties_changed?(proposed_field, current_field)
+        return true if nested_object_properties_changed?(proposed_field, current_field)
       end
+    end
+
+    def field_level_properties_changed?(proposed_field, current_field)
+      immutable_field_properties = [
+        'index', 'store', 'doc_values', 'fielddata', 'norms',
+        'format', 'term_vector', 'index_options', 'null_value',
+        'ignore_z_value', 'precision'
+      ]
+
+      immutable_field_properties.any? do |property|
+        proposed_value = proposed_field[property]
+        current_value = current_field[property]
+
+        next false unless proposed_value || current_value
+
+        return true if proposed_value.nil? || current_value.nil?
+
+        proposed_value != current_value
+      end
+    end
+
+    def object_level_properties_changed?(proposed_field, current_field)
+      proposed_type = proposed_field['type']
+      current_type = current_field['type']
+
+      return false unless proposed_type == 'object' || proposed_type == 'nested' ||
+                          current_type == 'object' || current_type == 'nested'
+
+      object_properties = ['enabled', 'dynamic']
+
+      object_properties.any? do |property|
+        proposed_value = proposed_field[property]
+        current_value = current_field[property]
+
+        next false unless proposed_value || current_value
+
+        return true if proposed_value.nil? || current_value.nil?
+
+        proposed_value != current_value
+      end
+    end
+
+    def nested_object_properties_changed?(proposed_field, current_field)
+      proposed_properties = proposed_field['properties']
+      current_properties = current_field['properties']
+
+      return false unless proposed_properties && current_properties
+
+      immutable_field_properties_changed?(
+        { 'properties' => proposed_properties },
+        { 'properties' => current_properties }
+      )
+    end
+
+    def narrowing_properties_changed?(proposed_mappings, current_mappings)
+      return false unless proposed_mappings['properties'] && current_mappings['properties']
+
+      proposed_props = proposed_mappings['properties']
+      current_props = current_mappings['properties']
+
+      (proposed_props.keys & current_props.keys).any? do |field|
+        proposed_field = proposed_props[field] || {}
+        current_field = current_props[field] || {}
+
+        return true if ignore_above_narrowed?(proposed_field, current_field)
+        return true if copy_to_narrowed?(proposed_field, current_field)
+        return true if format_narrowed?(proposed_field, current_field)
+      end
+    end
+
+    def ignore_above_narrowed?(proposed_field, current_field)
+      proposed_value = proposed_field['ignore_above']
+      current_value = current_field['ignore_above']
+
+      return false unless proposed_value && current_value
+
+      proposed_value < current_value
+    end
+
+    def copy_to_narrowed?(proposed_field, current_field)
+      proposed_value = proposed_field['copy_to']
+      current_value = current_field['copy_to']
+
+      return false unless proposed_value || current_value
+
+      return true if proposed_value.nil? && current_value
+
+      return false unless proposed_value && current_value
+
+      proposed_array = Array(proposed_value)
+      current_array = Array(current_value)
+
+      current_array.any? { |target| !proposed_array.include?(target) }
+    end
+
+    def format_narrowed?(proposed_field, current_field)
+      proposed_format = proposed_field['format']
+      current_format = current_field['format']
+
+      return false unless proposed_format && current_format
+
+      return true if current_format.include?('||') && !proposed_format.include?('||')
+
+      false
     end
 
     def mutable_field_properties_changed?(proposed_mappings, current_mappings)
@@ -179,7 +272,7 @@ module SchemaTools
         current_field = current_props[field] || {}
 
         mutable_properties = [
-          'boost', 'search_analyzer', 'search_quote_analyzer', 'ignore_malformed'
+          'boost', 'search_analyzer', 'search_quote_analyzer', 'ignore_malformed', 'ignore_above'
         ]
 
         mutable_properties.any? do |property|

@@ -600,7 +600,7 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
         expect(detector.breaking_change?(proposed_data, current_data)).to be true
       end
 
-      it 'detects ignore_above property changes' do
+      it 'detects ignore_above narrowing (breaking)' do
         proposed_data = {
           settings: {},
           mappings: {
@@ -615,6 +615,170 @@ RSpec.describe SchemaTools::BreakingChangeDetector do
           mappings: {
             'properties' => {
               'description' => { 'type' => 'keyword', 'ignore_above' => 256 }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'allows ignore_above widening (non-breaking)' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'description' => { 'type' => 'keyword', 'ignore_above' => 512 }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'description' => { 'type' => 'keyword', 'ignore_above' => 256 }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
+      end
+
+      it 'detects copy_to narrowing (breaking)' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'copy_to' => 'all_text' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'copy_to' => ['all_text', 'search_text'] }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'allows copy_to widening (non-breaking)' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'copy_to' => ['all_text', 'search_text'] }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'copy_to' => 'all_text' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
+      end
+
+      it 'detects copy_to removal (breaking)' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text' }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'copy_to' => 'all_text' }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'scopes enabled to object fields only' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'metadata' => { 'type' => 'object', 'enabled' => false }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'metadata' => { 'type' => 'object', 'enabled' => true }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be true
+      end
+
+      it 'ignores enabled on non-object fields' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'enabled' => false }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'title' => { 'type' => 'text', 'enabled' => true }
+            }
+          }
+        }
+
+        expect(detector.breaking_change?(proposed_data, current_data)).to be false
+      end
+
+      it 'detects nested object enabled changes' do
+        proposed_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'user' => {
+                'type' => 'object',
+                'properties' => {
+                  'profile' => { 'type' => 'object', 'enabled' => false }
+                }
+              }
+            }
+          }
+        }
+
+        current_data = {
+          settings: {},
+          mappings: {
+            'properties' => {
+              'user' => {
+                'type' => 'object',
+                'properties' => {
+                  'profile' => { 'type' => 'object', 'enabled' => true }
+                }
+              }
             }
           }
         }

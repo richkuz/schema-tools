@@ -1,3 +1,5 @@
+Diff between current revision schemas/products-1/revisions/1 and empty baseline
+
 === Settings Diff ===
 === Changes Detected ===
 
@@ -56,4 +58,4 @@
     }
 
 === Painless Scripts Diff ===
-No painless scripts found
+No painless scripts found in either version

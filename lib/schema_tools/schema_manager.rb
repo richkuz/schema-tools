@@ -72,6 +72,14 @@ module SchemaTools
       
       diff_content = []
       
+      # Add header showing what's being compared
+      if previous_revision
+        diff_content << "Diff between current revision #{current_revision} and previous revision #{previous_revision}"
+      else
+        diff_content << "Diff between current revision #{current_revision} and empty baseline"
+      end
+      diff_content << ""
+      
       diff_content << "=== Settings Diff ==="
       diff_content << @json_diff.generate_diff(previous_files[:settings], current_files[:settings])
       
@@ -161,7 +169,7 @@ module SchemaTools
       changes = []
       
       if all_script_names.empty?
-        return "No painless scripts found"
+        return "No painless scripts found in either version"
       end
       
       all_script_names.each do |script_name|

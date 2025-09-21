@@ -1,3 +1,5 @@
+Diff between current revision schemas/products-3/revisions/1 and previous revision schemas/products-2/revisions/1
+
 === Settings Diff ===
 === Changes Detected ===
 
@@ -35,4 +37,4 @@
 No changes detected
 
 === Painless Scripts Diff ===
-No painless scripts found
+No painless scripts found in either version

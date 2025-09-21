@@ -156,44 +156,90 @@ namespace :schema do
 
 
   desc "Generate diff between schema revisions"
-  task :diff, [:index_name] do |t, args|
-    index_name = args[:index_name]
-    raise "index_name parameter is required" unless index_name
+  task :diff, [:index_name_or_revision] do |t, args|
+    index_name_or_revision = args[:index_name_or_revision]
+    raise "index_name_or_revision parameter is required" unless index_name_or_revision
     
-    latest_revision = schema_manager.get_latest_revision_path(index_name)
-    raise "No revisions found for #{index_name}" unless latest_revision
-    
-    previous_revision = schema_manager.get_previous_revision_path(index_name, latest_revision)
-    
-    # If no previous revision within the same schema, try to find the latest revision of the previous schema version
-    if previous_revision.nil?
-      previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
+    # Check if the parameter is a specific revision path (contains '/revisions/')
+    if index_name_or_revision.include?('/revisions/')
+      # Parse the revision path to extract index name and revision
+      revision_path = File.join(SchemaTools::Config::SCHEMAS_PATH, index_name_or_revision)
+      raise "Revision path does not exist: #{revision_path}" unless Dir.exist?(revision_path)
       
-      if previous_schema_name
-        previous_schema_latest = schema_manager.get_latest_revision_path(previous_schema_name)
+      # Extract index name from the path
+      index_name = index_name_or_revision.split('/revisions/').first
+      
+      # Find the previous revision
+      previous_revision = schema_manager.get_previous_revision_path(index_name, revision_path)
+      
+      if previous_revision.nil?
+        # Try to find the latest revision of the previous schema version
+        previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
         
-        if previous_schema_latest
-          puts "No previous revision found within #{index_name}. Comparing against latest revision of #{previous_schema_name}."
-          previous_revision = previous_schema_latest
+        if previous_schema_name
+          previous_schema_latest = schema_manager.get_latest_revision_path(previous_schema_name)
+          
+          if previous_schema_latest
+            puts "No previous revision found within #{index_name}. Comparing against latest revision of #{previous_schema_name}."
+            previous_revision = previous_schema_latest
+          else
+            puts "No previous revision found for #{index_name} and no previous schema version (#{previous_schema_name}) exists."
+            puts "Diff generation requires at least two revisions to compare."
+            exit 0
+          end
         else
-          puts "No previous revision found for #{index_name} and no previous schema version (#{previous_schema_name}) exists."
-          puts "Diff generation requires at least two revisions to compare."
+          puts "No previous revision found for #{index_name}. This appears to be the first revision."
+          puts "Generating diff against empty baseline..."
+          
+          # Generate diff against empty baseline for first revision
+          empty_revision = nil
+          diff_output = schema_manager.generate_diff_output(index_name, revision_path, empty_revision)
+          puts diff_output
           exit 0
         end
-      else
-        puts "No previous revision found for #{index_name}. This appears to be the first revision."
-        puts "Generating diff against empty baseline..."
-        
-        # Generate diff against empty baseline for first revision
-        empty_revision = nil
-        diff_output = schema_manager.generate_diff_output(index_name, latest_revision, empty_revision)
-        puts diff_output
-        exit 0
       end
+      
+      diff_output = schema_manager.generate_diff_output(index_name, revision_path, previous_revision)
+      puts diff_output
+    else
+      # Original behavior: use index name to find latest revision
+      index_name = index_name_or_revision
+      
+      latest_revision = schema_manager.get_latest_revision_path(index_name)
+      raise "No revisions found for #{index_name}" unless latest_revision
+      
+      previous_revision = schema_manager.get_previous_revision_path(index_name, latest_revision)
+      
+      # If no previous revision within the same schema, try to find the latest revision of the previous schema version
+      if previous_revision.nil?
+        previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
+        
+        if previous_schema_name
+          previous_schema_latest = schema_manager.get_latest_revision_path(previous_schema_name)
+          
+          if previous_schema_latest
+            puts "No previous revision found within #{index_name}. Comparing against latest revision of #{previous_schema_name}."
+            previous_revision = previous_schema_latest
+          else
+            puts "No previous revision found for #{index_name} and no previous schema version (#{previous_schema_name}) exists."
+            puts "Diff generation requires at least two revisions to compare."
+            exit 0
+          end
+        else
+          puts "No previous revision found for #{index_name}. This appears to be the first revision."
+          puts "Generating diff against empty baseline..."
+          
+          # Generate diff against empty baseline for first revision
+          empty_revision = nil
+          diff_output = schema_manager.generate_diff_output(index_name, latest_revision, empty_revision)
+          puts diff_output
+          exit 0
+        end
+      end
+      
+      diff_output = schema_manager.generate_diff_output(index_name, latest_revision, previous_revision)
+      puts diff_output
     end
-    
-    diff_output = schema_manager.generate_diff_output(index_name, latest_revision, previous_revision)
-    puts diff_output
   end
 
   desc "Create index with schema definition"

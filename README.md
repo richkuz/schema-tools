@@ -176,9 +176,11 @@ Each revision must specify all the painless scripts required, even if they haven
 
 The `diff_output.txt` is helpful to see schema change diffs across revisions when opening PRs.
 
-Run `rake 'schema:diff[products-3]'` to generate a new `diff_output.txt` file for it.
+Run `rake 'schema:diff[products-3]'` to generate a new `diff_output.txt` file between the latest revision of `products-3` and the previous revision.
 
-Running `rake schema:migrate` also generates a `diff_output.txt` for each index it migrates.
+Run `rake 'schema:diff[products-3/revisions/5]'` to generate a new `diff_output.txt` file between revision 5 of `products-3` and the previous revision.
+
+Running `rake schema:migrate` will also generate a `diff_output.txt` for each index it migrates.
 
 ### Apply a schema change to Staging and Production 
 

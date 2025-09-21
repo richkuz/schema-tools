@@ -294,8 +294,8 @@ namespace :schema do
       puts "Please choose:"
       puts "1. Define a schema for an index that exists in OpenSearch or Elasticsearch"
       puts "2. Define an example schema for an index that doesn't exist"
-      puts "3. Define an example schema for a breaking change to an existing schema"
-      puts "4. Define an example schema for a non-breaking change to an existing schema"
+      puts "3. Define an example schema for a breaking change to an existing defined schema"
+      puts "4. Define an example schema for a non-breaking change to an existing defined schema"
       
       choice = STDIN.gets.chomp
       

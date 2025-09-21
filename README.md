@@ -1,19 +1,51 @@
 # Schemurai - Schema tools for OpenSearch and Elasticsearch
 
 Ruby Rake tasks to manage Elasticsearch or OpenSearch index schemas and migrations using discplined version controls.
-- Specify index settings, mappings, and analyzers in versioned `.json` files.
-- Migrate and reindex to a new index with zero downtime without modifying schemas by hand on live instances.
-- Audit the trail of index schema changes through index metadata and GitHub Actions.
 
 <p align="center">
   <img src="schemurai.png" alt="Schemurai Logo" width="250"/>
 </p>
 
+## Features
+- Specify index settings, mappings, and analyzers in versioned `.json` files.
+- Migrate and reindex to a new index with zero downtime without modifying schemas by hand on live instances.
+- Audit the trail of index schema changes through index metadata and GitHub Actions.
+- Update your local schemas to the latest revisions with one command.
+
 ## Quick start
+
+Install this Ruby gem.
 
 ```sh
 gem install schemurai
 ```
+
+Run `rake schema:define` to define your schema as source files. Point at an existing OpenSearch/Elasticsearch index or let the task create examples for you.
+
+```sh
+$ rake schema:define
+
+# Please choose:
+# 1. Define a schema for an index that exists in OpenSearch or Elasticsearch
+# 2. Define an example schema for an index that doesn't exist
+# 3. Define an example schema for a breaking change to an existing defined schema
+# 4. Define an example schema for a non-breaking change to an existing defined schema
+```
+
+The task will generate schema definition files in a folder layout like this:
+
+```
+schemas/users                  # Folder name matches the index name
+  index.json                   # Specifies index_name and from_index_name
+  reindex.painless.            # Optional reindexing data transformation logic
+  revisions/1                  # Index schema definition
+    settings.json              # OpenSearch/Elasticsearch index settings and analyzers
+    mappings.json              # OpenSearch/Elasticsearch index mappings
+    painless_scripts/          # Any painless scripts stored in the index
+      some_script.painless
+    diff_output.txt            # Auto-generated diff since from_index_name
+```
+
 
 To migrate your OpenSearch/Elasticsearch indexes to the latest versions defined in the `schemas/` folder:
 
@@ -21,71 +53,42 @@ To migrate your OpenSearch/Elasticsearch indexes to the latest versions defined 
 rake schema:migrate
 ```
 
-To define schema files for a new or existing index, run this command and follow the prompts:
-
-```sh
-rake schema:define
-```
-
-```
-Please choose:
-1. Define a schema for an index that exists in OpenSearch or Elasticsearch
-2. Define an example schema for an index that doesn't exist
-3. Define an example schema for a breaking change to an existing schema
-4. Define an example schema for a non-breaking change to an existing schema
-```
+Use `rake schema:define` to create new schema versions and `rake schema:migrate` to migrate to them.
 
 Index names follow the pattern `indexname-$number`, where `$number` increments by 1 for every breaking schema change. The first version of an index does not require a number in the name.
 
 Schema tools do not operate on index aliases.
 
-### Connect to OpenSearch or Elasticsearch
-
-Connect to OpenSearch or Elasticsearch using:
-
-```sh
-OPENSEARCH_URL=http://localhost:9200
-ELASTICSEARCH_URL=http://localhost:9200
-```
-
-Authenticate with:
-
-```sh
-OPENSEARCH_USERNAME
-OPENSEARCH_PASSWORD
-ELASTICSEARCH_USERNAME
-ELASTICSEARCH_PASSWORD
-```
 
 ## Documentation
 
 ### Directory structure reference
 
-Example directory structure:
+Example directory structure with multiple indexes, breaking revisions, and non-breaking revisions.
 
 ```
 schemas/products
-schemas/products-2
+schemas/products-2             # Define breaking changes in new version-numbered index names
 schemas/users
 schemas/users-2
 schemas/users-3
-  index.json - Specify index_name and from_index_name
-  reindex.painless - This script runs once when reindexing
-  revisions/1 - Define the index schema
+  index.json
+  reindex.painless
+  revisions/1
     settings.json
     mappings.json
-    painless_scripts/ - Any painless scripts to be PUT into the index
+    painless_scripts/
       some_script.painless
-    diff_output.txt - Auto-generated diff since from_index_name
-  revisions/2 - Apply any additional non-breaking schema changes
+    diff_output.txt            # Auto-generated diff since users-2
+  revisions/2                  # Define non-breaking changes as revisions
     settings.json
     mappings.json
     painless_scripts/
 	  some_script.painless
-    diff_output.txt - Auto-generated diff since revisions/1
+    diff_output.txt            # Auto-generated diff since revisions/1
 ```
 
-The schema folder name must match the name of the index.
+The schema folder name matches the name of the index.
 
 The `schema:migrate` task will alert and exit if you attempt to add a new revision to an existing index that would require reindexing.
 
@@ -108,7 +111,7 @@ Breaking changes are changes that would require a reindex or have a high risk of
 
 When `schema:migrate` updates an existing index, it will try the operation and rely on OpenSearch/Elasticsearch to accept or reject the change. It enforces no judgment of breaking/non-breaking changes on its own.
 
-Breaking changes (require reindex):
+Breaking changes (reindex required):
 - Immutable index settings (number_of_shards, index.codec, etc.)
 - Analysis settings changes (analyzers, tokenizers, filters, char_filters)
 - Dynamic mapping changes (dynamic: true ↔ dynamic: strict)
@@ -120,7 +123,7 @@ Breaking changes (require reindex):
   - null_value, ignore_z_value, precision
 - Multi-field subfield removal or changes
 
-Breaking changes (does not require a reindex, but still treated as breaking)
+Breaking changes (reindex not required, but still considered breaking)
 - Removing fields
 - Narrowing fields
   - ignore_above (breaking when decreasing, non-breaking when increasing)
@@ -136,7 +139,6 @@ Non-breaking changes (dynamic updates):
 - Adding dynamic mapping settings
 - Mutable field properties (boost, search_analyzer, search_quote_analyzer, ignore_malformed)
 - Changes/additions/removals of Painless scripts
-
 
 
 ### View which schema revision is applied to an index

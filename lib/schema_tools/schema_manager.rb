@@ -23,6 +23,7 @@ module SchemaTools
     end
 
     def get_latest_revision_path(index_name)
+      return nil unless index_name
       index_path = File.join(@schemas_path, index_name)
       return nil unless Dir.exist?(index_path)
       
@@ -44,6 +45,7 @@ module SchemaTools
       }
     end
 
+    # Find a previous revision within this index_name
     def get_previous_revision_path(index_name, current_revision)
       index_path = File.join(@schemas_path, index_name)
       revisions_path = File.join(index_path, 'revisions')
@@ -59,6 +61,16 @@ module SchemaTools
       revision_dirs[current_index - 1]
     end
 
+    def get_previous_revision_path_across_indexes(revision_path)
+      index_name = File.basename(revision_path.split('/revisions/').first)
+      previous_revision_path = self.get_previous_revision_path(index_name, revision_path)
+      return previous_revision_path if previous_revision_path
+
+      # Look in the previous index for its latest revision
+      previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
+      self.get_latest_revision_path(previous_schema_name)
+    end
+
     def get_reindex_script(index_name)
       index_path = File.join(@schemas_path, index_name)
       script_path = File.join(index_path, 'reindex.painless')
@@ -66,17 +78,41 @@ module SchemaTools
       File.exist?(script_path) ? File.read(script_path) : nil
     end
 
-    def generate_diff_output(index_name, current_revision, previous_revision)
-      current_files = get_revision_files(current_revision)
-      previous_files = previous_revision ? get_revision_files(previous_revision) : { settings: {}, mappings: {}, painless_scripts: {} }
+    # index_name_or_revision can be "products-3" or "produts-3/revisions/2"
+    #
+    # Given "products-3", return the diff against "products-3/revisions/<Latest minus 1>"
+    # Given "products-3/revisions/2", return the diff against "products-3/revisions/1"
+    # Given "products-3/revisions/1", return the diff against "products-2/revisions/<Latest>"
+    def generate_diff_output_for_index_name_or_revision(index_name_or_revision)
+      raise "index_name_or_revision parameter is required" unless index_name_or_revision
+      
+      revision_path = ''
+      if index_name_or_revision.include?('/revisions/')
+        revision_path = File.join(SchemaTools::Config::SCHEMAS_PATH, index_name_or_revision)
+        raise "revision path #{index_name_or_revision} does not exist!" unless Dir.exist?(revision_path)
+      else
+        revision_path = self.get_latest_revision_path(index_name_or_revision)
+        raise "No revisions found for #{index_name}" unless revision_path
+      end
+      generate_diff_output_for_revision_path(revision_path)
+    end
+
+    # revision_path e.g. "/Users/foo/schemas/products-3/revisions/1"
+    def generate_diff_output_for_revision_path(revision_path)
+      previous_revision_path = self.get_previous_revision_path_across_indexes(revision_path)
+      self.generate_diff_output(revision_path, previous_revision_path)
+    end
+
+    def generate_diff_output(revision_path, previous_revision_path)
+      current_files = get_revision_files(revision_path)
+      previous_files = previous_revision_path ? get_revision_files(previous_revision_path) : { settings: {}, mappings: {}, painless_scripts: {} }
       
       diff_content = []
       
-      # Add header showing what's being compared
-      if previous_revision
-        diff_content << "Diff between current revision #{current_revision} and previous revision #{previous_revision}"
+      if previous_revision_path
+        diff_content << "Diff between current revision #{revision_path} and previous revision #{previous_revision_path}"
       else
-        diff_content << "Diff between current revision #{current_revision} and empty baseline"
+        diff_content << "Diff between current revision #{revision_path} and empty baseline"
       end
       diff_content << ""
       
@@ -89,8 +125,9 @@ module SchemaTools
       diff_content << "\n=== Painless Scripts Diff ==="
       diff_content << generate_scripts_diff(previous_files[:painless_scripts], current_files[:painless_scripts])
       
-      diff_output_path = File.join(current_revision, 'diff_output.txt')
+      diff_output_path = File.join(revision_path, 'diff_output.txt')
       File.write(diff_output_path, diff_content.join("\n"))
+      puts "Wrote diff output to #{diff_output_path}"
       
       diff_content.join("\n")
     end
@@ -99,7 +136,7 @@ module SchemaTools
       settings = {
         index: {
           _meta: {
-            schema_tools_revision: metadata
+            schemurai_revision: metadata
           }
         }
       }
@@ -109,7 +146,7 @@ module SchemaTools
       
       current_settings['index'] ||= {}
       current_settings['index']['_meta'] ||= {}
-      current_settings['index']['_meta']['schema_tools_revision'] = metadata
+      current_settings['index']['_meta']['schemurai_revision'] = metadata
       
       File.write(settings_path, JSON.pretty_generate(current_settings))
     end

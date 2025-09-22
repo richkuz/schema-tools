@@ -89,7 +89,7 @@ RSpec.describe SchemaTools::SchemaManager do
       File.write(File.join(previous_dir, 'settings.json'), previous_settings.to_json)
       File.write(File.join(previous_dir, 'mappings.json'), {}.to_json)
       
-      result = manager.generate_diff_output('test-index', current_dir, previous_dir)
+      result = manager.generate_diff_output(current_dir, previous_dir)
       
       expect(result).to include('Settings Diff')
       expect(result).to include('Mappings Diff')

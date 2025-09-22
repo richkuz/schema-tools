@@ -66,7 +66,7 @@ RSpec.describe SchemaTools::Client do
           'settings' => {
             'index' => {
               '_meta' => {
-                'schema_tools_revision' => {
+                'schemurai_revision' => {
                   'revision' => 'test-index/revisions/1'
                 }
               }

@@ -85,7 +85,7 @@ module SchemaTools
       settings = get_index_settings(index_name)
       return nil unless settings
       
-      meta = settings.dig('index', '_meta', 'schema_tools_revision')
+      meta = settings.dig('index', '_meta', 'schemurai_revision')
       meta ? meta['revision'] : nil
     end
 

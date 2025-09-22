@@ -7,8 +7,8 @@ require 'json'
 require 'time'
 
 def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager, client)
-  puts "Migrating to index: #{to_index}"
-  puts "Dry run: #{dryrun}"
+  puts "=" * 60
+  puts "Migrating to index #{to_index}, dryrun=#{dryrun}, revision_applied_by=#{revision_applied_by}"
   
   index_config = schema_manager.get_index_config(to_index)
   raise "Index configuration not found for #{to_index}" unless index_config
@@ -22,13 +22,14 @@ def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager,
     current_revision = client.get_schema_revision(to_index)
     
     if current_revision == revision_name
-      puts "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
-      return
+      raise "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
     end
     
     if current_revision.nil?
-      puts "Unable to determine the current schema revision of #{to_index}. To re-create this index and re-migrate, run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
-      return
+      puts "Unable to determine the current schema revision of #{to_index} by inspecting the live index's _meta settings.
+  The index was likely created outside this tool.
+  Will attempt to migrate anyway as a non-breaking, in-place update to the index.
+  If this operation fails, you may need to run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
     end
   end
   
@@ -49,32 +50,30 @@ def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager,
   end
   
   unless dryrun
-    Rake::Task['schema:diff'].invoke(to_index)
+    schema_manager.generate_diff_output_for_index_name_or_revision(to_index)
     Rake::Task['schema:create'].invoke(to_index)
     Rake::Task['schema:painless'].invoke(to_index)
-  end
-  
-  unless dryrun
+    
     metadata = {
       revision: revision_name,
       revision_applied_at: Time.now.iso8601,
       revision_applied_by: revision_applied_by
     }
-    
     schema_manager.update_revision_metadata(to_index, latest_revision, metadata)
     
     settings_update = {
       index: {
         _meta: {
-          schema_tools_revision: metadata
+          schemurai_revision: metadata
         }
       }
     }
-    
     client.update_index_settings(to_index, settings_update)
+    puts "=" * 60
   end
   
   puts "Migration completed successfully"
+  puts "=" * 60
 end
 
 def validate_client!
@@ -150,7 +149,6 @@ namespace :schema do
       
       puts "All migrations completed!"
     else
-      # Original single schema migration logic
       migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager, client)
     end
   end
@@ -158,88 +156,14 @@ namespace :schema do
 
   desc "Generate diff between schema revisions"
   task :diff, [:index_name_or_revision] do |t, args|
-    index_name_or_revision = args[:index_name_or_revision]
-    raise "index_name_or_revision parameter is required" unless index_name_or_revision
-    
-    if index_name_or_revision.include?('/revisions/')
-      revision_path = File.join(SchemaTools::Config::SCHEMAS_PATH, index_name_or_revision)
-      raise "Revision path does not exist: #{revision_path}" unless Dir.exist?(revision_path)
-      
-      index_name = index_name_or_revision.split('/revisions/').first
-      
-      previous_revision = schema_manager.get_previous_revision_path(index_name, revision_path)
-      
-      if previous_revision.nil?
-        previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
-        
-        if previous_schema_name
-          previous_schema_latest = schema_manager.get_latest_revision_path(previous_schema_name)
-          
-          if previous_schema_latest
-            puts "No previous revision found within #{index_name}. Comparing against latest revision of #{previous_schema_name}."
-            previous_revision = previous_schema_latest
-          else
-            puts "No previous revision found for #{index_name} and no previous schema version (#{previous_schema_name}) exists."
-            puts "Diff generation requires at least two revisions to compare."
-            exit 0
-          end
-        else
-          puts "No previous revision found for #{index_name}. This appears to be the first revision."
-          puts "Generating diff against empty baseline..."
-          
-          empty_revision = nil
-          diff_output = schema_manager.generate_diff_output(index_name, revision_path, empty_revision)
-          puts diff_output
-          exit 0
-        end
-      end
-      
-      diff_output = schema_manager.generate_diff_output(index_name, revision_path, previous_revision)
-      puts diff_output
-    else
-      # Use index name to find latest revision
-      index_name = index_name_or_revision
-      
-      latest_revision = schema_manager.get_latest_revision_path(index_name)
-      raise "No revisions found for #{index_name}" unless latest_revision
-      
-      previous_revision = schema_manager.get_previous_revision_path(index_name, latest_revision)
-      
-      # If no previous revision within the same schema, try to find the latest revision of the previous schema version
-      if previous_revision.nil?
-        previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
-        
-        if previous_schema_name
-          previous_schema_latest = schema_manager.get_latest_revision_path(previous_schema_name)
-          
-          if previous_schema_latest
-            puts "No previous revision found within #{index_name}. Comparing against latest revision of #{previous_schema_name}."
-            previous_revision = previous_schema_latest
-          else
-            puts "No previous revision found for #{index_name} and no previous schema version (#{previous_schema_name}) exists."
-            puts "Diff generation requires at least two revisions to compare."
-            exit 0
-          end
-        else
-          puts "No previous revision found for #{index_name}. This appears to be the first revision."
-          puts "Generating diff against empty baseline..."
-          
-          # Generate diff against empty baseline for first revision
-          empty_revision = nil
-          diff_output = schema_manager.generate_diff_output(index_name, latest_revision, empty_revision)
-          puts diff_output
-          exit 0
-        end
-      end
-      
-      diff_output = schema_manager.generate_diff_output(index_name, latest_revision, previous_revision)
-      puts diff_output
-    end
+    schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
+    puts schema_manager.generate_diff_output_for_index_name_or_revision(index_name_or_revision)
   end
 
   desc "Create index with schema definition"
   task :create, [:index_name] do |t, args|
     validate_client!
+    
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -260,6 +184,7 @@ namespace :schema do
   desc "Upload painless scripts to index"
   task :painless, [:index_name] do |t, args|
     validate_client!
+    
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -277,6 +202,7 @@ namespace :schema do
   desc "Reindex from source to destination index"
   task :reindex, [:index_name] do |t, args|
     validate_client!
+    
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -314,6 +240,7 @@ namespace :schema do
   desc "Catchup reindex for new documents"
   task :catchup, [:index_name] do |t, args|
     validate_client!
+    
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -351,6 +278,7 @@ namespace :schema do
   desc "Soft delete an index by renaming it"
   task :softdelete, [:index_name] do |t, args|
     validate_client!
+
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -371,6 +299,7 @@ namespace :schema do
   desc "Hard delete an index (only works on deleted- prefixed indexes)"
   task :delete, [:index_name] do |t, args|
     validate_client!
+
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
@@ -392,6 +321,7 @@ namespace :schema do
   task :define do |t, args|
     begin
       validate_client!
+
       schema_definer = SchemaTools::SchemaDefiner.new(client, schema_manager)
       
       puts "Please choose:"

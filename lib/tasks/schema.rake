@@ -22,14 +22,14 @@ def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager,
     current_revision = client.get_schema_revision(to_index)
     
     if current_revision == revision_name
-      raise "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
+      raise "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake 'schema:close[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
     end
     
     if current_revision.nil?
       puts "Unable to determine the current schema revision of #{to_index} by inspecting the live index's _meta settings.
   The index was likely created outside this tool.
   Will attempt to migrate anyway as a non-breaking, in-place update to the index.
-  If this operation fails, you may need to run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
+  If this operation fails, you may need to run rake 'schema:close[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
     end
   end
   
@@ -275,36 +275,32 @@ namespace :schema do
     end
   end
 
-  desc "Soft delete an index by renaming it"
-  task :softdelete, [:index_name] do |t, args|
+  desc "Close an index"
+  task :close, [:index_name] do |t, args|
     validate_client!
 
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
-    timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
-    deleted_name = "deleted-#{index_name}-#{timestamp}"
-    
-    puts "Soft deleting index #{index_name} -> #{deleted_name}"
+    puts "Closing index #{index_name}"
     
     if client.index_exists?(index_name)
-      client.put("/#{index_name}/_alias/#{deleted_name}", {})
-      client.delete("/#{index_name}")
-      puts "Index #{index_name} soft deleted as #{deleted_name}"
+      client.close_index(index_name)
+      puts "Index #{index_name} closed"
     else
       puts "Index #{index_name} does not exist"
     end
   end
 
-  desc "Hard delete an index (only works on deleted- prefixed indexes)"
+  desc "Hard delete an index (only works on closed indexes)"
   task :delete, [:index_name] do |t, args|
     validate_client!
 
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
-    unless index_name.start_with?('deleted-')
-      raise "Hard delete only allowed on indexes prefixed with 'deleted-'"
+    unless client.index_closed?(index_name)
+      raise "Hard delete only allowed on closed indexes. Please run 'schema:close[#{index_name}]' first."
     end
     
     puts "Hard deleting index #{index_name}"

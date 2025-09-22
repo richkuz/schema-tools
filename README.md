@@ -203,9 +203,9 @@ GitHub Actions:
 
 ### Delete an index
 
-Run `rake schema:softdelete` to rename an index to `deleted-$index_name-$timestamp`.
+Run `rake 'schema:close[indexname]'` to close an index. This will prevent reads and writes to the index. Verify that the application can operate with the index in a closed state before deleting it.
 
-Run `rake schema:delete` to hard-delete an index. For safety, this task only hard-deletes indexes with names prefixed with `deleted-`.
+Run `rake 'schema:delete[indexname]'` to hard-delete an index. For safety, this task only hard-deletes indexes that are closed.
 
 GitHub Actions:
 - OpenSearch Staging Soft Delete

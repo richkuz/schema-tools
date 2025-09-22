@@ -155,5 +155,26 @@ module SchemaTools
     rescue => e
       false
     end
+
+    def close_index(index_name)
+      post("/#{index_name}/_close", {})
+    end
+
+    def index_closed?(index_name)
+      response = get("/#{index_name}")
+      return false unless response
+      
+      # Check if the index is closed by looking at the index status
+      # Closed indices have a specific status in the response
+      index_info = response[index_name]
+      return false unless index_info
+      
+      # Check if the index is closed by looking at the settings
+      settings = index_info['settings']
+      return false unless settings
+      
+      # An index is closed if it has the 'verified_before_close' setting set to true
+      settings.dig('index', 'verified_before_close') == 'true'
+    end
   end
 end

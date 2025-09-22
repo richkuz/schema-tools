@@ -164,7 +164,7 @@ module SchemaTools
       painless_scripts = @client.get_stored_scripts
       
       {
-        settings: settings || {},
+        settings: filter_internal_settings(settings || {}),
         mappings: mappings,
         painless_scripts: painless_scripts
       }
@@ -173,6 +173,29 @@ module SchemaTools
     def find_latest_schema_definition(base_name)
       schemas_path = @schema_manager.instance_variable_get(:@schemas_path)
       SchemaTools::Utils.find_latest_schema_definition(base_name, schemas_path)
+    end
+
+    def filter_internal_settings(settings)
+      return settings unless settings.is_a?(Hash)
+      
+      # Deep clone the settings to avoid modifying the original
+      filtered_settings = JSON.parse(JSON.generate(settings))
+      
+      # Remove OpenSearch/Elasticsearch internal fields that shouldn't be in schema definitions
+      internal_fields = [
+        'creation_date',
+        'provided_name', 
+        'uuid',
+        'version'
+      ]
+      
+      if filtered_settings['index']
+        internal_fields.each do |field|
+          filtered_settings['index'].delete(field)
+        end
+      end
+      
+      filtered_settings
     end
 
     def schemas_match?(live_data, schema_data)

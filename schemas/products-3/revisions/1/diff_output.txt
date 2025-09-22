@@ -3,9 +3,6 @@ Diff between current revision schemas/products-3/revisions/1 and previous revisi
 === Settings Diff ===
 === Changes Detected ===
 
-➕ ADDED: index.creation_date
-  New value:
-    "1758466999614"
 🔄 MODIFIED: index.number_of_replicas
   Old value:
     1
@@ -16,21 +13,10 @@ Diff between current revision schemas/products-3/revisions/1 and previous revisi
     2
   New value:
     "2"
-➕ ADDED: index.provided_name
-  New value:
-    "products-2"
 ➕ ADDED: index.replication
   New value:
     {
       "type": "DOCUMENT"
-    }
-➕ ADDED: index.uuid
-  New value:
-    "UqZrYI6sR5Oyusn7ACzFTg"
-➕ ADDED: index.version
-  New value:
-    {
-      "created": "136407827"
     }
 
 === Mappings Diff ===

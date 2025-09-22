@@ -22,12 +22,12 @@ def migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager,
     current_revision = client.get_schema_revision(to_index)
     
     if current_revision == revision_name
-      puts "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake schema:softdelete[#{to_index}] and then re-run schema:migrate[to_index=#{to_index}]"
+      puts "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
       return
     end
     
     if current_revision.nil?
-      puts "Unable to determine the current schema revision of #{to_index}. To re-create this index and re-migrate, run rake schema:softdelete[#{to_index}] and then re-run schema:migrate[to_index=#{to_index}]"
+      puts "Unable to determine the current schema revision of #{to_index}. To re-create this index and re-migrate, run rake 'schema:softdelete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
       return
     end
   end

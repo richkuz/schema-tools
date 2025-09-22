@@ -6,6 +6,4 @@ Example:
   another_script.painless
 
 Scripts will be uploaded to the index when you run:
-  rake schema:painless[index_name]
-  rake opensearch:painless[index_name]
-  rake elasticsearch:painless[index_name]
+  rake 'schema:migrate[index_name]'

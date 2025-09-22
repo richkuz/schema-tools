@@ -94,7 +94,7 @@ The `schema:migrate` task will alert and exit if you attempt to add a new revisi
 
 ### Migrate a specific index to the latest version
 
-Run `rake schema:migrate[to_index=index_name]` to migrate to the latest schema revision of `index_name`.
+Run `rake 'schema:migrate[index_name]'` to migrate to the latest schema revision of `index_name`.
 
 The `schema:migrate` task will:
 - Reindex data as needed

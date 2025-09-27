@@ -126,7 +126,7 @@ module SchemaTools
     end
 
     def put_script(script_name, script_content)
-      body = { script: { source: script_content } }
+      body = { script: { lang: "painless", source: script_content } }
       put("/_scripts/#{script_name}", body)
     end
 

@@ -198,6 +198,7 @@ module SchemaTools
       filtered_settings
     end
 
+
     def schemas_match?(live_data, schema_data)
       normalize_settings(live_data[:settings]) == normalize_settings(schema_data[:settings]) &&
       normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings])

@@ -133,22 +133,13 @@ module SchemaTools
     end
 
     def update_revision_metadata(index_name, revision_path, metadata)
-      settings = {
-        index: {
-          _meta: {
-            schemurai_revision: metadata
-          }
-        }
-      }
+      mappings_path = File.join(revision_path, 'mappings.json')
+      current_mappings = load_json_file(mappings_path) || {}
       
-      settings_path = File.join(revision_path, 'settings.json')
-      current_settings = load_json_file(settings_path) || {}
+      current_mappings['_meta'] ||= {}
+      current_mappings['_meta']['schemurai_revision'] = metadata
       
-      current_settings['index'] ||= {}
-      current_settings['index']['_meta'] ||= {}
-      current_settings['index']['_meta']['schemurai_revision'] = metadata
-      
-      File.write(settings_path, JSON.pretty_generate(current_settings))
+      File.write(mappings_path, JSON.pretty_generate(current_mappings))
     end
 
     def discover_all_schemas_with_latest_revisions

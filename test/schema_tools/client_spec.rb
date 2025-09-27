@@ -63,12 +63,10 @@ RSpec.describe SchemaTools::Client do
     it 'returns revision when present' do
       response_body = {
         'test-index' => {
-          'settings' => {
-            'index' => {
-              '_meta' => {
-                'schemurai_revision' => {
-                  'revision' => 'test-index/revisions/1'
-                }
+          'mappings' => {
+            '_meta' => {
+              'schemurai_revision' => {
+                'revision' => 'test-index/revisions/1'
               }
             }
           }

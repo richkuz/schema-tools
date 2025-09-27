@@ -81,11 +81,17 @@ module SchemaTools
       response[index_name]['settings']
     end
 
+    def get_index_mappings(index_name)
+      response = get("/#{index_name}")
+      return nil unless response
+      response[index_name]['mappings']
+    end
+
     def get_schema_revision(index_name)
-      settings = get_index_settings(index_name)
-      return nil unless settings
+      mappings = get_index_mappings(index_name)
+      return nil unless mappings
       
-      meta = settings.dig('index', '_meta', 'schemurai_revision')
+      meta = mappings.dig('_meta', 'schemurai_revision')
       meta ? meta['revision'] : nil
     end
 
@@ -99,6 +105,10 @@ module SchemaTools
 
     def update_index_settings(index_name, settings)
       put("/#{index_name}/_settings", settings)
+    end
+
+    def update_index_mappings(index_name, mappings)
+      put("/#{index_name}/_mapping", mappings)
     end
 
     def reindex(source_index, dest_index, script = nil)

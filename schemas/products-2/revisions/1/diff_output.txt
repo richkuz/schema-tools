@@ -37,6 +37,15 @@ Diff between current revision schemas/products-2/revisions/1 and previous revisi
 === Mappings Diff ===
 === Changes Detected ===
 
+➖ REMOVED: _meta
+  Old value:
+    {
+      "schemurai_revision": {
+        "revision": "products-1/revisions/1",
+        "revision_applied_at": "2025-09-27T06:21:19-04:00",
+        "revision_applied_by": "rake task"
+      }
+    }
 ➕ ADDED: properties.inventory_count
   New value:
     {

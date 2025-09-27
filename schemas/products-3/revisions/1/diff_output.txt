@@ -3,15 +3,6 @@ Diff between current revision schemas/products-3/revisions/1 and previous revisi
 === Settings Diff ===
 === Changes Detected ===
 
-➕ ADDED: index._meta
-  New value:
-    {
-      "schemurai_revision": {
-        "revision": "products-3/revisions/1",
-        "revision_applied_at": "2025-09-21T22:23:02-04:00",
-        "revision_applied_by": "rake task"
-      }
-    }
 🔄 MODIFIED: index.number_of_replicas
   Old value:
     1
@@ -29,7 +20,17 @@ Diff between current revision schemas/products-3/revisions/1 and previous revisi
     }
 
 === Mappings Diff ===
-No changes detected
+=== Changes Detected ===
+
+➖ REMOVED: _meta
+  Old value:
+    {
+      "schemurai_revision": {
+        "revision": "products-2/revisions/1",
+        "revision_applied_at": "2025-09-27T07:01:08-04:00",
+        "revision_applied_by": "rake task"
+      }
+    }
 
 === Painless Scripts Diff ===
 No painless scripts found in either version

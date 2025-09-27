@@ -27,13 +27,6 @@
         }
       }
     },
-    "number_of_replicas": "1",
-    "_meta": {
-      "schemurai_revision": {
-        "revision": "products-3/revisions/1",
-        "revision_applied_at": "2025-09-21T22:23:02-04:00",
-        "revision_applied_by": "rake task"
-      }
-    }
+    "number_of_replicas": "1"
   }
 }

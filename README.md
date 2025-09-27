@@ -100,7 +100,7 @@ The `schema:migrate` task will:
 - Reindex data as needed
 - Upload any painless scripts
 - Generate a `diff_output.txt` with changes
-- Update index settings  `_meta.schemurai_revision` with applied revision details
+- Update index mappings `_meta.schemurai_revision` with applied revision details
 
 
 ### Handle breaking versus non-breaking schema changes

@@ -6,11 +6,12 @@ require 'schema_tools/utils'
 require 'schema_tools/reindex'
 require 'schema_tools/migrate'
 require 'schema_tools/create'
-require 'schema_tools/painless'
+require 'schema_tools/upload_painless'
 require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
 require 'schema_tools/define'
+require 'schema_tools/update_metadata'
 require 'json'
 require 'time'
 
@@ -47,17 +48,22 @@ namespace :schema do
   desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
   task :migrate, [:to_index, :revision_applied_by] do |t, args|
     client = create_client!
-    to_index = args[:to_index]
-    revision_applied_by = args[:revision_applied_by] || "rake task"
     
-    SchemaTools.migrate(
-      to_index: to_index,
-      revision_applied_by: revision_applied_by,
-      client: client,
-      schema_manager: schema_manager
-    )
+    if args[:to_index]
+      SchemaTools.migrate_one_schema(
+        index_name: args[:to_index],
+        revision_applied_by: args[:revision_applied_by] || "rake task",
+        client: client,
+        schema_manager: schema_manager
+      )
+    else
+      SchemaTools.migrate_all(
+        revision_applied_by: args[:revision_applied_by] || "rake task",
+        client: client,
+        schema_manager: schema_manager
+      )
+    end
   end
-
 
   desc "Generate diff between schema revisions"
   task :diff, [:index_name_or_revision] do |t, args|
@@ -80,7 +86,7 @@ namespace :schema do
   task :painless, [:index_name] do |t, args|
     client = create_client!
     
-    SchemaTools.painless(
+    SchemaTools.upload_painless(
       index_name: args[:index_name],
       client: client,
       schema_manager: schema_manager
@@ -90,7 +96,12 @@ namespace :schema do
   desc "Reindex from source to destination index"
   task :reindex, [:index_name] do |t, args|
     client = create_client!
-    SchemaTools::reindex(index_name: args[:index_name], client:, schema_manager:)
+
+    SchemaTools.reindex(
+      index_name: args[:index_name],
+      client: client,
+      schema_manager: schema_manager
+    )
   end
 
   desc "Catchup reindex for new documents"
@@ -126,16 +137,11 @@ namespace :schema do
 
   desc "Define schema files for a new or existing index"
   task :define do |t, args|
-    begin
-      client = create_client!
+    client = create_client!
 
-      SchemaTools.define(
-        client: client,
-        schema_manager: schema_manager
-      )
-    rescue => e
-      puts "Failed to connect to OpenSearch at #{SchemaTools::Config::CONNECTION_URL}"
-      puts "Error: #{e.message}"
-    end
+    SchemaTools.define(
+      client: client,
+      schema_manager: schema_manager
+    )
   end
 end

@@ -1,5 +1,5 @@
 module SchemaTools
-  def self.painless(index_name:, client:, schema_manager:)
+  def self.upload_painless(index_name:, client:, schema_manager:)
     raise "index_name parameter is required" unless index_name
     
     latest_revision = schema_manager.get_latest_revision_path(index_name)

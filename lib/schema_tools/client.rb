@@ -5,9 +5,11 @@ require 'logger'
 
 module SchemaTools
   class Client
-    def initialize(url, logger: Logger.new(STDOUT))
+    def initialize(url, dryrun: false, logger: Logger.new(STDOUT))
       @url = url
+      @dryrun = dryrun
       @logger = logger
+      @logger.info "Client is running in DRYRUN mode. No mutating operations will be performed." if dryrun
     end
 
     def get(path)
@@ -26,6 +28,11 @@ module SchemaTools
     end
 
     def put(path, body)
+      if @dryrun
+        print_curl_command('PUT', path, body)
+        return { 'acknowledged' => true } # Return mock response for dry run
+      end
+
       uri = URI("#{@url}#{path}")
       request = Net::HTTP::Put.new(uri)
       request['Content-Type'] = 'application/json'
@@ -42,6 +49,11 @@ module SchemaTools
     end
 
     def post(path, body)
+      if @dryrun
+        print_curl_command('POST', path, body)
+        return { 'acknowledged' => true } # Return mock response for dry run
+      end
+
       uri = URI("#{@url}#{path}")
       request = Net::HTTP::Post.new(uri)
       request['Content-Type'] = 'application/json'
@@ -58,6 +70,11 @@ module SchemaTools
     end
 
     def delete(path)
+      if @dryrun
+        print_curl_command('DELETE', path)
+        return { 'acknowledged' => true } # Return mock response for dry run
+      end
+
       uri = URI("#{@url}#{path}")
       request = Net::HTTP::Delete.new(uri)
       
@@ -185,6 +202,20 @@ module SchemaTools
       
       # An index is closed if it has the 'verified_before_close' setting set to true
       settings.dig('index', 'verified_before_close') == 'true'
+    end
+
+    private
+
+    def print_curl_command(method, path, body = nil)
+      uri = URI("#{@url}#{path}")
+      curl_cmd = "curl -X #{method.upcase} '#{uri}'"
+      
+      if body
+        curl_cmd += " -H 'Content-Type: application/json'"
+        curl_cmd += " -d '#{body.to_json}'"
+      end
+      
+      @logger.info "🔍 DRY RUN - Would execute: #{curl_cmd}"
     end
   end
 end

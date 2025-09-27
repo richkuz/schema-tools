@@ -15,7 +15,7 @@ require 'json'
 require 'time'
 
 
-def validate_client!
+def create_client!
   # Check if connection URL is configured
   if SchemaTools::Config::CONNECTION_URL.nil?
     puts "No connection URL configured."
@@ -28,7 +28,7 @@ def validate_client!
   end
   
   # Initialize client and test connection
-  client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL)
+  client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL, dryrun: ENV['DRYRUN'] == 'true')
   unless client.test_connection
     puts "Failed to connect to OpenSearch/Elasticsearch at #{SchemaTools::Config::CONNECTION_URL}"
     puts "Please ensure that OPENSEARCH_URL or ELASTICSEARCH_URL environment variable is set correctly."
@@ -41,21 +41,17 @@ def validate_client!
   client
 end
 
-
 namespace :schema do
-  client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL)
   schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
 
   desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
-  task :migrate, [:to_index, :dryrun, :revision_applied_by] do |t, args|
-    validate_client!
+  task :migrate, [:to_index, :revision_applied_by] do |t, args|
+    client = create_client!
     to_index = args[:to_index]
-    dryrun = args[:dryrun] == 'true'
     revision_applied_by = args[:revision_applied_by] || "rake task"
     
     SchemaTools.migrate(
       to_index: to_index,
-      dryrun: dryrun,
       revision_applied_by: revision_applied_by,
       client: client,
       schema_manager: schema_manager
@@ -71,7 +67,7 @@ namespace :schema do
 
   desc "Create index with schema definition"
   task :create, [:index_name] do |t, args|
-    validate_client!
+    client = create_client!
     
     SchemaTools.create(
       index_name: args[:index_name],
@@ -82,7 +78,7 @@ namespace :schema do
 
   desc "Upload painless scripts to index"
   task :painless, [:index_name] do |t, args|
-    validate_client!
+    client = create_client!
     
     SchemaTools.painless(
       index_name: args[:index_name],
@@ -93,13 +89,13 @@ namespace :schema do
 
   desc "Reindex from source to destination index"
   task :reindex, [:index_name] do |t, args|
-    validate_client!
+    client = create_client!
     SchemaTools::reindex(index_name: args[:index_name], client:, schema_manager:)
   end
 
   desc "Catchup reindex for new documents"
   task :catchup, [:index_name] do |t, args|
-    validate_client!
+    client = create_client!
     
     SchemaTools.catchup(
       index_name: args[:index_name],
@@ -110,7 +106,7 @@ namespace :schema do
 
   desc "Close an index"
   task :close, [:index_name] do |t, args|
-    validate_client!
+    client = create_client!
 
     SchemaTools.close(
       index_name: args[:index_name],
@@ -120,7 +116,7 @@ namespace :schema do
 
   desc "Hard delete an index (only works on closed indexes)"
   task :delete, [:index_name] do |t, args|
-    validate_client!
+    client = create_client!
 
     SchemaTools.delete(
       index_name: args[:index_name],
@@ -131,7 +127,7 @@ namespace :schema do
   desc "Define schema files for a new or existing index"
   task :define do |t, args|
     begin
-      validate_client!
+      client = create_client!
 
       SchemaTools.define(
         client: client,

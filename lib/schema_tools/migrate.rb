@@ -1,9 +1,8 @@
 module SchemaTools
-  def self.migrate(to_index:, dryrun:, revision_applied_by:, client:, schema_manager:)
+  def self.migrate(to_index:, revision_applied_by:, client:, schema_manager:)
     # If no to_index is provided, discover and migrate all schemas
     if to_index.nil?
       puts "No specific index provided. Discovering all schemas and migrating to latest revisions..."
-      puts "Dry run: #{dryrun}"
       
       schemas = SchemaTools::Utils.discover_latest_schema_versions_only(SchemaTools::Config::SCHEMAS_PATH)
       
@@ -24,7 +23,7 @@ module SchemaTools
         puts "=" * 60
         
         begin
-          migrate_single_schema(schema[:index_name], dryrun, revision_applied_by, schema_manager, client)
+          migrate_single_schema(schema[:index_name], revision_applied_by, schema_manager, client)
           puts "✓ Migration completed successfully for #{schema[:index_name]}"
         rescue => e
           puts "✗ Migration failed for #{schema[:index_name]}: #{e.message}"
@@ -35,15 +34,15 @@ module SchemaTools
       
       puts "All migrations completed!"
     else
-      migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager, client)
+      migrate_single_schema(to_index, revision_applied_by, schema_manager, client)
     end
   end
 
   private
 
-  def self.migrate_single_schema(to_index, dryrun, revision_applied_by, schema_manager, client)
+  def self.migrate_single_schema(to_index, revision_applied_by, schema_manager, client)
     puts "=" * 60
-    puts "Migrating to index #{to_index}, dryrun=#{dryrun}, revision_applied_by=#{revision_applied_by}"
+    puts "Migrating to index #{to_index}, revision_applied_by=#{revision_applied_by}"
     
     index_config = schema_manager.get_index_config(to_index)
     raise "Index configuration not found for #{to_index}" unless index_config
@@ -80,36 +79,32 @@ If this operation fails, you may need to run rake 'schema:delete[#{to_index}]' a
       
       if client.index_exists?(from_index)
         puts "Reindexing from #{from_index} to #{to_index}"
-        unless dryrun
-          Rake::Task['schema:reindex'].invoke(to_index)
-          Rake::Task['schema:catchup'].invoke(to_index)
-        end
+        Rake::Task['schema:reindex'].invoke(to_index)
+        Rake::Task['schema:catchup'].invoke(to_index)
       else
         puts "Source index #{from_index} does not exist. Skipping reindex for #{to_index}."
         puts "Note: #{to_index} will be created as a new index without data migration."
       end
     end
     
-    unless dryrun
-      schema_manager.generate_diff_output_for_index_name_or_revision(to_index)
-      Rake::Task['schema:create'].invoke(to_index)
-      Rake::Task['schema:painless'].invoke(to_index)
-      
-      metadata = {
-        revision: revision_name,
-        revision_applied_at: Time.now.iso8601,
-        revision_applied_by: revision_applied_by
+    schema_manager.generate_diff_output_for_index_name_or_revision(to_index)
+    Rake::Task['schema:create'].invoke(to_index)
+    Rake::Task['schema:painless'].invoke(to_index)
+    
+    metadata = {
+      revision: revision_name,
+      revision_applied_at: Time.now.iso8601,
+      revision_applied_by: revision_applied_by
+    }
+    schema_manager.update_revision_metadata(to_index, latest_revision, metadata)
+    
+    mappings_update = {
+      _meta: {
+        schemurai_revision: metadata
       }
-      schema_manager.update_revision_metadata(to_index, latest_revision, metadata)
-      
-      mappings_update = {
-        _meta: {
-          schemurai_revision: metadata
-        }
-      }
-      client.update_index_mappings(to_index, mappings_update)
-      puts "=" * 60
-    end
+    }
+    client.update_index_mappings(to_index, mappings_update)
+    puts "=" * 60
     
     puts "Migration completed successfully"
     puts "=" * 60

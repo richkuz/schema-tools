@@ -17,7 +17,8 @@ namespace :myapp do
     
     # Run schema migration
     puts "📊 Running schema migration..."
-    Rake::Task['schema:migrate'].invoke(index_name, 'false', "myapp-staging-#{ENV['BUILD_NUMBER'] || Time.now.to_i}")
+    ENV['DRYRUN'] = 'false'
+    Rake::Task['schema:migrate'].invoke(index_name, "myapp-staging-#{ENV['BUILD_NUMBER'] || Time.now.to_i}")
     
     # Your deployment logic here
     puts "🔧 Updating application configuration..."
@@ -33,11 +34,13 @@ namespace :myapp do
     
     # 1. Dry run first
     puts "🔍 Running dry-run migration..."
-    Rake::Task['schema:migrate'].invoke(index_name, 'true')
+    ENV['DRYRUN'] = 'true'
+    Rake::Task['schema:migrate'].invoke(index_name)
     
     # 2. Actual migration
     puts "📊 Running production migration..."
-    Rake::Task['schema:migrate'].invoke(index_name, 'false', "myapp-production-#{Time.now.to_i}")
+    ENV['DRYRUN'] = 'false'
+    Rake::Task['schema:migrate'].invoke(index_name, "myapp-production-#{Time.now.to_i}")
     
     # 3. Update application
     puts "🔧 Updating application to use #{index_name}..."

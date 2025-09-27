@@ -57,7 +57,9 @@ module SchemaTools
       current_revision = client.get_schema_revision(to_index)
       
       if current_revision == revision_name
-        raise "Already at revision #{revision_name}. To re-create this index and re-migrate, run rake 'schema:delete[#{to_index}]' and then re-run rake 'schema:migrate[#{to_index}]'"
+        puts "Already at revision #{revision_name}."
+        puts "To re-create this index and re-migrate, run: rake 'schema:close[#{to_index}]' && rake 'schema:delete[#{to_index}]' && rake 'schema:migrate[#{to_index}]'"
+        return
       end
       
       if current_revision.nil?

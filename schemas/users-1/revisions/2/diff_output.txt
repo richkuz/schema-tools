@@ -17,6 +17,15 @@ Diff between current revision schemas/users-1/revisions/2 and previous revision 
 === Mappings Diff ===
 === Changes Detected ===
 
+➕ ADDED: _meta
+  New value:
+    {
+      "schemurai_revision": {
+        "revision": "users-1/revisions/2",
+        "revision_applied_at": "2025-09-27T07:17:29-04:00",
+        "revision_applied_by": "rake task"
+      }
+    }
 ➕ ADDED: properties.full_name
   New value:
     {

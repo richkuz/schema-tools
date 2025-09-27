@@ -22,15 +22,16 @@ Diff between current revision schemas/products-3/revisions/1 and previous revisi
 === Mappings Diff ===
 === Changes Detected ===
 
-➖ REMOVED: _meta
+🔄 MODIFIED: _meta.schemurai_revision.revision
   Old value:
-    {
-      "schemurai_revision": {
-        "revision": "products-2/revisions/1",
-        "revision_applied_at": "2025-09-27T07:01:08-04:00",
-        "revision_applied_by": "rake task"
-      }
-    }
+    "products-2/revisions/1"
+  New value:
+    "products-3/revisions/1"
+🔄 MODIFIED: _meta.schemurai_revision.revision_applied_at
+  Old value:
+    "2025-09-27T07:01:08-04:00"
+  New value:
+    "2025-09-27T07:25:03-04:00"
 
 === Painless Scripts Diff ===
 No painless scripts found in either version

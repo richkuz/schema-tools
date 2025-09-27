@@ -70,6 +70,10 @@ If this operation fails, you may need to run rake 'schema:delete[#{to_index}]' a
       end
     end
     
+    if !index_config['from_index_name']
+      puts "No from_index_name specified; will not reindex data from a previous index."
+    end
+
     # Check for reindex requirements before creating the index
     if index_config['from_index_name'] && !client.index_exists?(to_index)
       from_index = index_config['from_index_name']

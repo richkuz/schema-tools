@@ -1,11 +1,15 @@
-# Example reindex script for transforming data during migration
-# Modify this script to transform your data as needed
-#
-# Example: Rename a field
-# if (ctx._source.containsKey('old_field_name')) {
-#   ctx._source.new_field_name = ctx._source.old_field_name;
-#   ctx._source.remove('old_field_name');
-# }
-#
-# Example: Add a new field
-# ctx._source.new_field = 'default_value';
+// Example reindex script for transforming data during migration
+// Modify this script to transform your data as needed
+//
+// Example: Rename a field
+// if (ctx._source.containsKey('old_field_name')) {
+//   ctx._source.new_field_name = ctx._source.old_field_name;
+//   ctx._source.remove('old_field_name');
+// }
+//
+// Example: Add a new field
+// ctx._source.new_field = 'default_value';
+
+// For this migration, no transformations are needed since schemas are identical
+// Just update the timestamp to reflect migration time
+ctx._source.updated_at = new java.util.Date().toString();

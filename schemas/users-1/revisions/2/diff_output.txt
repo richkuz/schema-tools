@@ -22,7 +22,7 @@ Diff between current revision schemas/users-1/revisions/2 and previous revision 
     {
       "schemurai_revision": {
         "revision": "users-1/revisions/2",
-        "revision_applied_at": "2025-09-27T07:17:29-04:00",
+        "revision_applied_at": "2025-09-27T07:30:38-04:00",
         "revision_applied_by": "rake task"
       }
     }
@@ -41,4 +41,4 @@ Diff between current revision schemas/users-1/revisions/2 and previous revision 
 ➕ ADDED SCRIPT: update_full_name
   Content:
     1: ctx._source.full_name = ctx._source.first_name + " " + ctx._source.last_name;
-    2: ctx._source.updated_at = new Date().toInstant().toString();
+    2: ctx._source.updated_at = Instant.now().toString();

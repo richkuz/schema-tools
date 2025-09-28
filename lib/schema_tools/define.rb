@@ -1,6 +1,6 @@
 module SchemaTools
   def self.define(client:)
-    schema_definer = SchemaTools::SchemaDefiner.new(client)
+    schema_definer = SchemaDefiner.new(client)
     
     puts "Please choose:"
     puts "1. Define a schema for an index that exists in OpenSearch or Elasticsearch"
@@ -17,7 +17,7 @@ module SchemaTools
     case choice
     when '1'
       # List available indices (connection already validated during client initialization)
-      puts "Connecting to #{SchemaTools::Config::CONNECTION_URL}..."
+      puts "Connecting to #{Config::CONNECTION_URL}..."
       indices = client.list_indices
       
       if indices.empty?
@@ -46,7 +46,7 @@ module SchemaTools
       
       selected_index = indices[selection - 1]
       puts "Selected index: #{selected_index}"
-      puts "Checking #{SchemaTools::Config::CONNECTION_URL} for the latest version of \"#{selected_index}\""
+      puts "Checking #{Config::CONNECTION_URL} for the latest version of \"#{selected_index}\""
       schema_definer.define_schema_for_existing_index(selected_index)
     when '2'
       puts "Type the name of a new index to define. A version number suffix is not required."

@@ -3,15 +3,13 @@ require_relative 'utils'
 require_relative 'diff'
 
 module SchemaTools
-  include SchemaTools::Config
-
   def self.migrate_all(client:)
     puts "Discovering all schemas and migrating each to their latest revisions..."
     
-    schemas = discover_latest_schema_versions_only(SCHEMAS_PATH)
+    schemas = discover_latest_schema_versions_only(Config.SCHEMAS_PATH)
     
     if schemas.empty?
-      puts "No schemas found in #{SCHEMAS_PATH}"
+      puts "No schemas found in #{Config.SCHEMAS_PATH}"
       return
     end
     

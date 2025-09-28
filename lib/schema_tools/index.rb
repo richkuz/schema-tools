@@ -6,8 +6,6 @@ module SchemaTools
   # Describes a live index or index on disk
   class Index
 
-    include SchemaTools::Utils
-
     attr_reader :index_name, :base_name, :version_number
       # index_name: "products-3"
       # base_name: "products" 

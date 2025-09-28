@@ -31,7 +31,7 @@ module SchemaTools
 
     # Insert persistent metadata on top of everything
     persistent_metadata = {
-      revision: latest_schema_revision.revision_path,
+      revision: latest_schema_revision.revision_relative_path,
       revision_applied_at: Time.now.iso8601,
       revision_applied_by: Config.SCHEMURAI_USER
     }
@@ -51,11 +51,9 @@ module SchemaTools
     )
   end
 
-  private
-
-  def overwrite_revision_metadata(index_name, revision_absolute_path, metadata)
+  def self.overwrite_revision_metadata(index_name, revision_absolute_path, metadata)
     mappings_path = File.join(revision_absolute_path, 'mappings.json')
-    current_mappings = load_json_file(mappings_path) || {}
+    current_mappings = JSON.parse(File.read(mappings_path)) # Raises if invalid/non-existent
     
     current_mappings['_meta'] ||= {}
     current_mappings['_meta']['schemurai_revision'] = metadata

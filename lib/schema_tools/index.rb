@@ -8,7 +8,7 @@ module SchemaTools
 
     include SchemaTools::Utils
 
-    attr_reader 
+    attr_reader
       :index_name     # "products-3"
       :base_name      # "products"
       :version_number # nil for "products", 1 for "products-1", etc.
@@ -16,13 +16,13 @@ module SchemaTools
     # index_name: Exact name of the index, e.g. "products-3"
     def initialize(index_name)
       @index_name = index_name
-      @base_name = extract_base_name(index_name)
-      @version_number = extract_version_number(index_name)
+      @base_name = Utils.extract_base_name(index_name)
+      @version_number = Utils.extract_version_number(index_name)
     end
 
     # Generate the next index name in the sequence after this Index
     # Example: "products" -> "products-2", "products-5" -> "products-6"
-    def generate_next_index_name(index)
+    def generate_next_index_name
       next_version_number = @version_number ? @version_number + 1 : 2
       "#{@base_name}-#{next_version_number}"
     end
@@ -48,7 +48,7 @@ module SchemaTools
     # Returns: An array of matching Index objects found in SCHEMAS_PATH,
     #          sorted by version_number (nil first), or [].
     def self.find_matching_file_indexes(base_name)
-      schema_dirs = Dir.glob(File.join(SCHEMAS_PATH, "#{base_name}*"))
+      schema_dirs = Dir.glob(File.join(Config.SCHEMAS_PATH, "#{base_name}*"))
                        .select { |d| File.directory?(d) }
 
       matching_indexes = schema_dirs.map do |dir|

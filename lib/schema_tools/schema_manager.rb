@@ -5,13 +5,11 @@ require_relative 'schema_revision'
 
 module SchemaTools
   class SchemaManager
-    include SchemaTools::Config
-
     def initialize()
     end
 
     def get_index_config(index_name)
-      index_path = File.join(SCHEMAS_PATH, index_name)
+      index_path = File.join(Config.SCHEMAS_PATH, index_name)
       return nil unless Dir.exist?(index_path)
       
       index_json_path = File.join(index_path, 'index.json')
@@ -31,7 +29,7 @@ module SchemaTools
     end
 
     def get_reindex_script(index_name)
-      index_path = File.join(SCHEMAS_PATH, index_name)
+      index_path = File.join(Config.SCHEMAS_PATH, index_name)
       script_path = File.join(index_path, 'reindex.painless')
       
       File.exist?(script_path) ? File.read(script_path) : nil
@@ -48,12 +46,12 @@ module SchemaTools
     end
 
     def discover_all_schemas_with_latest_revisions
-      return [] unless Dir.exist?(SCHEMAS_PATH)
+      return [] unless Dir.exist?(Config.SCHEMAS_PATH)
       
       schemas = []
       
       # Get all directories in the schemas path
-      Dir.glob(File.join(SCHEMAS_PATH, '*'))
+      Dir.glob(File.join(Config.SCHEMAS_PATH, '*'))
          .select { |d| File.directory?(d) }
          .each do |schema_dir|
         schema_name = File.basename(schema_dir)

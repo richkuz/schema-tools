@@ -10,9 +10,9 @@ require_relative 'schema_manager'
 module SchemaTools
   class SchemaDefiner
 
-    def initialize(client)
+    def initialize(client, schema_manager = nil)
       @client = client
-      @schema_manager = SchemaManager.new()
+      @schema_manager = schema_manager || SchemaManager.new()
       @breaking_change_detector = BreakingChangeDetector.new()
     end
 
@@ -52,20 +52,19 @@ module SchemaTools
       puts "Latest schema definition found at \"#{latest_schema_revision.revision_relative_path}\""
 
       puts "Comparing live index to the latest schema definition's settings, mappings, and painless scripts..."
-      schema_data = @schema_manager.get_revision_files(latest_schema_revision.revision_absolute_path)
+      schema_data = @schema_manager.get_revision_files(latest_schema_revision)
       
       if schemas_match?(live_data, schema_data)
         puts "Latest schema definition already matches the live index."
       elsif @breaking_change_detector.breaking_change?(live_data, schema_data)
         puts "Index settings and mappings constitute a breaking change from the latest schema definition."
-        new_index_name = generate_next_index_name(schema_base_name)
+        new_index_name = latest_file_index.generate_next_index_name
         generate_example_schema_files(new_index_name, live_data)
         puts "\nMigrate to this schema definition by running:"
         puts "$ rake schema:migrate"
       else
         puts "Index settings and mappings constitute a non-breaking change from the latest schema definition."
-        next_revision_number = generate_next_revision_number(schema_base_name)
-        generate_revision_files(schema_base_name, next_revision_number, live_data)
+        generate_next_revision_files(latest_schema_revision.generate_next_revision_absolute_path, live_data)
         puts "\nMigrate to this schema definition by running:"
         puts "$ rake schema:migrate"
       end
@@ -112,15 +111,40 @@ module SchemaTools
       end
       puts "Latest schema definition found at \"#{latest_schema_revision.revision_relative_path}\""
       
-      next_revision_number = latest_schema_revision.generate_next_revision_number
       example_data = generate_example_data
-      generate_revision_files(base_name, next_revision_number, example_data)
+      generate_next_revision_files(latest_schema_revision.generate_next_revision_absolute_path, example_data)
       puts "\nMigrate to this schema definition by running:"
+      puts "$ rake schema:migrate"
+    end
+
+    def define_example_schema_for_new_index(index_name_pattern)
+      base_name = Utils.extract_base_name(index_name_pattern)
+      
+      puts "Searching for index folders on disk that start with #{base_name}"
+      latest_file_index = Index.find_matching_file_indexes(base_name).last
+      
+      if latest_file_index
+        latest_schema_revision = SchemaRevision.for_latest_revision(latest_file_index.index_name)
+        if latest_schema_revision
+          puts "Latest schema definition of \"#{base_name}\" is defined at \"#{latest_schema_revision.revision_relative_path}\""
+          return
+        end
+      end
+      
+      puts "No schema definition exists for \"#{index_name_pattern}\""
+      example_data = generate_example_data
+      generate_example_schema_files(index_name_pattern, example_data)
+      puts "\nCreate a live index for this example by running:"
       puts "$ rake schema:migrate"
     end
 
 
     private
+
+    def schemas_match?(live_data, schema_data)
+      normalize_settings(live_data[:settings]) == normalize_settings(schema_data[:settings]) &&
+      normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings])
+    end
 
     def extract_live_index_data(index_name)
       settings = @client.get_index_settings(index_name)
@@ -156,11 +180,6 @@ module SchemaTools
       end
       
       filtered_settings
-    end
-
-    def schemas_match?(live_data, schema_data)
-      normalize_settings(live_data[:settings]) == normalize_settings(schema_data[:settings]) &&
-      normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings])
     end
 
     def generate_example_schema_files(index_name, data)
@@ -199,8 +218,7 @@ module SchemaTools
       puts "    diff_output.txt"
     end
 
-    def generate_revision_files(index_name, revision_number, data)
-      revision_path = File.join(Config.SCHEMAS_PATH, index_name, 'revisions', revision_number.to_s)
+    def generate_next_revision_files(revision_path, data)
       FileUtils.mkdir_p(revision_path)
       FileUtils.mkdir_p(File.join(revision_path, 'painless_scripts'))
       
@@ -212,7 +230,7 @@ module SchemaTools
       File.write(File.join(revision_path, 'diff_output.txt'), 'Schema revision')
       
       puts "\nGenerated example schema definition files:"
-      puts "schemas/#{index_name}"
+      puts "schemas/#{File.basename(index_name_or_path)}"
       puts "  revisions/#{revision_number}"
       puts "    settings.json"
       puts "    mappings.json"

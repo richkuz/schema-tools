@@ -29,6 +29,13 @@ module SchemaTools
       File.basename(@revision_relative_path.split('/revisions/').last)
     end
 
+    # Given a @revision_absolute_path like "/Users/foo/schemas/products-3/revisions/5",
+    # return "/Users/foo/schemas/products-3/revisions/#{generate_next_revision_number}"
+    def generate_next_revision_absolute_path
+      base_path = File.dirname(@revision_absolute_path) # everything up to /revisions
+      File.join(base_path, generate_next_revision_number)
+    end
+
     def generate_next_revision_number
       (revision_number.to_i + 1).to_s
     end

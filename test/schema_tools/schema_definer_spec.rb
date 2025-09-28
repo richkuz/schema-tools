@@ -16,7 +16,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
   before do
     allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
     FileUtils.mkdir_p(schemas_path)
-    allow(client).to receive(:instance_variable_get).with(:@url).and_return('http://localhost:9200')
+    allow(client).to receive(:url).and_return('http://localhost:9200')
   end
   
   after do
@@ -93,14 +93,14 @@ RSpec.describe SchemaTools::SchemaDefiner do
   describe '#find_latest_schema_definition' do
     before do
       FileUtils.mkdir_p(File.join(schemas_path, 'products'))
-      FileUtils.mkdir_p(File.join(schemas_path, 'products-1'))
-      FileUtils.mkdir_p(File.join(schemas_path, 'products-3'))
-      FileUtils.mkdir_p(File.join(schemas_path, 'products-2'))
+      FileUtils.mkdir_p(File.join(schemas_path, 'products-1', 'revisions', '1'))
+      FileUtils.mkdir_p(File.join(schemas_path, 'products-3', 'revisions', '1'))
+      FileUtils.mkdir_p(File.join(schemas_path, 'products-2', 'revisions', '1'))
     end
 
     it 'finds the latest schema definition by version number' do
       result = definer.send(:find_latest_schema_definition, 'products')
-      expect(result).to eq(File.join(schemas_path, 'products-3'))
+      expect(result).to eq(File.join(schemas_path, 'products-3', 'revisions', '1'))
     end
 
     it 'returns nil when no schema definitions found' do
@@ -252,7 +252,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
 
     it 'handles case when no schema definition exists' do
       expect { definer.define_schema_for_existing_index('products') }
-        .to output(/No schema definition exists for "products-3"/).to_stdout
+        .to output(/Index "products-3" is the latest versioned index name found/).to_stdout
     end
 
     it 'handles case when index not found' do
@@ -260,7 +260,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       allow(client).to receive(:get).with('/_cat/indices/nonexistent*?format=json').and_return([])
       
       expect { definer.define_schema_for_existing_index('nonexistent') }
-        .to output(/Index "nonexistent" not found/).to_stdout
+        .to output(/No live indexes found starting with "nonexistent"/).to_stdout
     end
   end
 
@@ -281,7 +281,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
   describe '#define_breaking_change_schema' do
     it 'handles case when no schema definition exists' do
       expect { definer.define_breaking_change_schema('nonexistent') }
-        .to output(/No schema definition exists for "nonexistent"/).to_stdout
+        .to output(/No index folder exists starting with "nonexistent"/).to_stdout
     end
 
     it 'generates breaking change schema' do
@@ -295,7 +295,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
   describe '#define_non_breaking_change_schema' do
     it 'handles case when no schema definition exists' do
       expect { definer.define_non_breaking_change_schema('nonexistent') }
-        .to output(/No schema definition exists for "nonexistent"/).to_stdout
+        .to output(/No index folder exists starting with "nonexistent"/).to_stdout
     end
 
     it 'generates non-breaking change schema' do

@@ -64,9 +64,9 @@ RSpec.describe 'Schema Define Integration' do
 
       it 'generates schema files for existing index' do
         expect { definer.define_schema_for_existing_index('products') }
-          .to output(/Index "products" found at http:\/\/localhost:9200, latest index name is "products-3"/).to_stdout
+          .to output(/Index "products-3" is the latest versioned index name found/).to_stdout
 
-        index_path = File.join(schemas_path, 'products-3')
+        index_path = File.join(schemas_path, 'products')
         expect(File.exist?(File.join(index_path, 'index.json'))).to be true
         expect(File.exist?(File.join(index_path, 'reindex.painless'))).to be true
         expect(File.exist?(File.join(index_path, 'revisions', '1', 'settings.json'))).to be true
@@ -85,7 +85,7 @@ RSpec.describe 'Schema Define Integration' do
 
       it 'reports index not found' do
         expect { definer.define_schema_for_existing_index('nonexistent') }
-          .to output(/Index "nonexistent" not found at http:\/\/localhost:9200/).to_stdout
+          .to output(/No live indexes found starting with "nonexistent"/).to_stdout
       end
     end
 
@@ -138,7 +138,7 @@ RSpec.describe 'Schema Define Integration' do
 
       it 'reports schemas match' do
         expect { definer.define_schema_for_existing_index('products') }
-          .to output(/Latest schema definition already matches the index/).to_stdout
+          .to output(/Latest schema definition already matches the live index/).to_stdout
       end
     end
 
@@ -254,7 +254,7 @@ RSpec.describe 'Schema Define Integration' do
         expect { definer.define_non_breaking_change_schema('existing') }
           .to output(/Generated example schema definition files/).to_stdout
 
-        revision_path = File.join(schemas_path, 'existing-2', 'revisions', '2')
+        revision_path = File.join(schemas_path, 'existing', 'revisions', '2')
         expect(File.exist?(File.join(revision_path, 'settings.json'))).to be true
         expect(File.exist?(File.join(revision_path, 'mappings.json'))).to be true
       end

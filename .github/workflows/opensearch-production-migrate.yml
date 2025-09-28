@@ -31,8 +31,9 @@ jobs:
       
       - name: Run migration
         run: |
-          rake 'schema:migrate[${{ github.event.inputs.index_name }},revision_applied_by=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}]'
+          rake 'schema:migrate[${{ github.event.inputs.index_name }}]'
         env:
           OPENSEARCH_URL: ${{ secrets.OPENSEARCH_PRODUCTION_URL }}
           SCHEMAS_PATH: schemas
+          SCHEMURAI_USER: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DRYRUN: ${{ github.event.inputs.dryrun }}

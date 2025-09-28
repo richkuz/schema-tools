@@ -46,20 +46,13 @@ end
 
 namespace :schema do
   desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
-  task :migrate, [:to_index, :revision_applied_by] do |t, args|
+  task :migrate, [:to_index] do |t, args|
     client = create_client!
     
     if args[:to_index]
-      SchemaTools.migrate_one_schema(
-        index_name: args[:to_index],
-        revision_applied_by: args[:revision_applied_by] || "rake task",
-        client: client
-      )
+      SchemaTools.migrate_one_schema(index_name: args[:to_index], client: client)
     else
-      SchemaTools.migrate_all(
-        revision_applied_by: args[:revision_applied_by] || "rake task",
-        client: client
-      )
+      SchemaTools.migrate_all(client: client)
     end
   end
 

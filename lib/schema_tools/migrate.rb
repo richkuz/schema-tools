@@ -3,7 +3,7 @@ require_relative 'schema_revision'
 module SchemaTools
   include SchemaTools::Config
 
-  def self.migrate_all(revision_applied_by:, client:)
+  def self.migrate_all(client:)
     puts "Discovering all schemas and migrating each to their latest revisions..."
     
     schemas = discover_latest_schema_versions_only(SCHEMAS_PATH)
@@ -25,7 +25,7 @@ module SchemaTools
       puts "=" * 60
       
       begin
-        migrate_one_schema(schema[:index_name], revision_applied_by, client)
+        migrate_one_schema(schema[:index_name], client)
         puts "✓ Migration completed successfully for #{schema[:index_name]}"
       rescue => e
         puts "✗ Migration failed for #{schema[:index_name]}: #{e.message}"
@@ -37,11 +37,11 @@ module SchemaTools
     puts "All migrations completed!"
   end
 
-  def self.migrate_one_schema(index_name, revision_applied_by, client)
+  def self.migrate_one_schema(index_name, client)
     schema_manager = SchemaTools::SchemaManager.new()
 
     puts "=" * 60
-    puts "Migrating to index #{index_name}, revision_applied_by=#{revision_applied_by}"
+    puts "Migrating to index #{index_name}"
     
     index_config = schema_manager.get_index_config(index_name)
     raise "Index configuration not found for #{index_name}" unless index_config
@@ -51,7 +51,7 @@ module SchemaTools
     
     SchemaTools.diff(schema_revision: latest_schema_revision)
 
-    revision_name = latest_schema_revision.revision_relative_path
+    revision_name = latest_schema_revision.revision_relative_path # products-3/revisions/2
 
     if !client.index_exists?(index_name)
       SchemaTools.create(index_name:, client:)
@@ -65,13 +65,15 @@ module SchemaTools
       
       if current_revision.nil?
         puts "Unable to determine the current schema revision of #{index_name} by inspecting the live index's _meta mappings.
-The index was likely created outside this tool.
-Will attempt to migrate anyway as a non-breaking, in-place update to the index.
-If this operation fails, you may want to re-create the index by running: rake 'schema:delete[#{index_name}]' && rake 'schema:migrate[#{index_name}]'"
+  The index was likely created outside this tool.
+  Will attempt to migrate anyway as a non-breaking, in-place update to the index.
+  If this operation fails, you may want to re-create the index by running: rake 'schema:delete[#{index_name}]' && rake 'schema:migrate[#{index_name}]'"
       end
     end
     
     SchemaTools.upload_painless(index_name:, client:)
+
+    SchemaTools.update_metadata(index_name:, metadata: {}, client:)
 
     from_index = index_config['from_index_name']
     if !from_index
@@ -81,12 +83,6 @@ If this operation fails, you may want to re-create the index by running: rake 's
       SchemaTools.catchup(index_name:, client:)
     end
     
-    metadata = {
-      revision: revision_name,
-      revision_applied_at: Time.now.iso8601,
-      revision_applied_by: revision_applied_by
-    }
-    SchemaTools.update_metadata(index_name:, metadata:, client:)
 
     puts "=" * 60
     

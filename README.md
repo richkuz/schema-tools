@@ -154,7 +154,7 @@ The `schema:migrate` task writes metadata into index mappings to denote the revi
         "schemurai_revision": {
           "revision": "products-2/revisions/3",
           "revision_applied_at": TIMESTAMP,
-          "revision_applied_by": "...",
+          "revision_applied_by": "rake task", # Descriptive name, see Config.SCHEMURAI_USER
           "reindex_started_at": TIMESTAMP,
           "reindex_completed_at": TIMESTAMP,
           "catchup_started_at": TIMESTAMP,

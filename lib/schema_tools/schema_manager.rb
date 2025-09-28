@@ -35,16 +35,6 @@ module SchemaTools
       File.exist?(script_path) ? File.read(script_path) : nil
     end
 
-    def update_revision_metadata(index_name, revision_path, metadata)
-      mappings_path = File.join(revision_path, 'mappings.json')
-      current_mappings = load_json_file(mappings_path) || {}
-      
-      current_mappings['_meta'] ||= {}
-      current_mappings['_meta']['schemurai_revision'] = metadata
-      
-      File.write(mappings_path, JSON.pretty_generate(current_mappings))
-    end
-
     def discover_all_schemas_with_latest_revisions
       return [] unless Dir.exist?(Config.SCHEMAS_PATH)
       

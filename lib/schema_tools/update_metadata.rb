@@ -32,9 +32,9 @@ module SchemaTools
     
     # Insert persistent metadata on top of everything (only if not already present)
     persistent_metadata = {
-      revision: latest_schema_revision.revision_relative_path,
-      revision_applied_at: Time.now.iso8601,
-      revision_applied_by: Config.schemurai_user
+      'revision' => latest_schema_revision.revision_relative_path,
+      'revision_applied_at' => Time.now.iso8601,
+      'revision_applied_by' => Config.schemurai_user
     }
     
     # Always apply persistent metadata last to ensure it takes precedence

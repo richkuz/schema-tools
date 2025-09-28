@@ -254,7 +254,7 @@ RSpec.describe 'Schema Define Integration' do
         expect { definer.define_non_breaking_change_schema('existing') }
           .to output(/Generated example schema definition files/).to_stdout
 
-        revision_path = File.join(schemas_path, 'existing', 'revisions', '2')
+        revision_path = File.join(schemas_path, 'existing-2', 'revisions', '2')
         expect(File.exist?(File.join(revision_path, 'settings.json'))).to be true
         expect(File.exist?(File.join(revision_path, 'mappings.json'))).to be true
       end

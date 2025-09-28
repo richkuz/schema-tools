@@ -3,9 +3,10 @@ require_relative 'config'
 require_relative 'utils'
 
 module SchemaTools
+  # Represents a revision of an index schema on disk
   class SchemaRevision
 
-    attr_reader :revision_relative_path, :revision_absolute_path
+    attr_reader :revision_relative_path, :revision_absolute_path, :index_name, :revision_number
 
     # revision_relative_path: A revision path relative to the schemas folder, e.g. "products-3/revisions/2"
     def initialize(revision_relative_path)
@@ -22,11 +23,12 @@ module SchemaTools
       unless Dir.exist?(@revision_absolute_path)
         raise "Revision path does not exist: #{@revision_absolute_path}"
       end
-    end
 
-    # A SchemaRevision for "products-3/revisions/2" returns "2"
-    def revision_number
-      File.basename(@revision_relative_path.split('/revisions/').last)
+      # e.g. A SchemaRevision for "products-3/revisions/2" returns "products-3"
+      @index_name = @revision_relative_path.split('/revisions/').first
+
+      # A SchemaRevision for "products-3/revisions/2" returns "2"
+      @revision_number = File.basename(@revision_relative_path.split('/revisions/').last)
     end
 
     # Given a @revision_absolute_path like "/Users/foo/schemas/products-3/revisions/5",
@@ -38,11 +40,6 @@ module SchemaTools
 
     def generate_next_revision_number
       (revision_number.to_i + 1).to_s
-    end
-
-    # e.g. A SchemaRevision for "products-3/revisions/2" returns "products-3"
-    def index_name
-      @revision_relative_path.split('/revisions/').first
     end
 
     # index_name "products-3" returns a SchemaRevision for "products-3/revisions/5" (whatever the highest revision number is),
@@ -65,29 +62,10 @@ module SchemaTools
       new(revision_relative_path)
     end
 
-    # TODO This function might not be used anymore
-    #
-    # revision_path_or_index_name can be "produts-3/revisions/2" or "products-3"
-    #
-    # Given "products-3", return a SchemaRevision for the latest revision, e.g. "products-3/revisions/5"
-    # Given "products-3/revisions/2", return a SchemaRevision for that path if it exists
-    # Raise an error if SchemaRevision relative path does not exist
-    def self.for_revision_path_or_index_name(revision_path_or_index_name)
-      raise "revision_path_or_index_name parameter is required" unless revision_path_or_index_name
-      # Create SchemaRevision from the input
-      current_schema_revision = if revision_path_or_index_name.include?('/revisions/')
-        SchemaRevision.new(revision_path_or_index_name)
-      else
-        schema_revision = SchemaRevision.find_latest_revision(revision_path_or_index_name)
-        raise "No revisions found for #{revision_path_or_index_name}" unless schema_revision
-        schema_revision
-      end
-    end
-
     # Given a SchemaRevision, "products-3/revisions/2", returns a SchemaRevision "products-3/revisions/1"
     # Given a SchemaRevision, "products-3/revisions/1", returns nil.
     # Returns nil if no previous revision exists
-    def self.previous_revision_within_index(schema_revision)
+    def self.find_previous_revision_within_index(schema_revision)
       index_name = schema_revision.index_name
       current_revision_number = schema_revision.revision_number.to_i
       
@@ -107,9 +85,9 @@ module SchemaTools
     # Given a SchemaRevision, "products-3/revisions/2", returns a SchemaRevision "products-3/revisions/1"
     # Given a SchemaRevision, "products-3/revisions/1", returns a SchemaRevision "products-2/revisions/5"
     # Returns nil if no previous revision exists
-    def self.previous_revision_across_indexes(schema_revision)
+    def self.find_previous_revision_across_indexes(schema_revision)
       # First try to find a previous revision within the same index
-      previous_within_index = previous_revision_within_index(schema_revision)
+      previous_within_index = find_previous_revision_within_index(schema_revision)
       return previous_within_index if previous_within_index
 
       # If no previous revision within the same index, look for the latest revision

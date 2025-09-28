@@ -143,11 +143,11 @@ describe SchemaTools::SchemaRevision do
     end
   end
 
-  describe '.previous_revision_within_index' do
+  describe '.find_previous_revision_within_index' do
     context 'with revision 2' do
       it 'returns revision 1' do
         current = SchemaTools::SchemaRevision.new('products-2/revisions/2')
-        previous = SchemaTools::SchemaRevision.previous_revision_within_index(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_within_index(current)
         
         expect(previous).to be_a(SchemaTools::SchemaRevision)
         expect(previous.index_name).to eq('products-2')
@@ -158,18 +158,18 @@ describe SchemaTools::SchemaRevision do
     context 'with revision 1' do
       it 'returns nil for revision 1' do
         current = SchemaTools::SchemaRevision.new('products-1/revisions/1')
-        previous = SchemaTools::SchemaRevision.previous_revision_within_index(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_within_index(current)
         
         expect(previous).to be_nil
       end
     end
   end
 
-  describe '.previous_revision_across_indexes' do
+  describe '.find_previous_revision_across_indexes' do
     context 'with products-2/revisions/1' do
       it 'returns products-1/revisions/1' do
         current = SchemaTools::SchemaRevision.new('products-2/revisions/1')
-        previous = SchemaTools::SchemaRevision.previous_revision_across_indexes(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_across_indexes(current)
         
         expect(previous).to be_a(SchemaTools::SchemaRevision)
         expect(previous.index_name).to eq('products-1')
@@ -180,7 +180,7 @@ describe SchemaTools::SchemaRevision do
     context 'with products-3/revisions/1' do
       it 'returns products-2/revisions/2 (latest revision of products-2)' do
         current = SchemaTools::SchemaRevision.new('products-3/revisions/1')
-        previous = SchemaTools::SchemaRevision.previous_revision_across_indexes(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_across_indexes(current)
         
         expect(previous).to be_a(SchemaTools::SchemaRevision)
         expect(previous.index_name).to eq('products-2')
@@ -191,7 +191,7 @@ describe SchemaTools::SchemaRevision do
     context 'with products-1/revisions/1' do
       it 'returns nil (no previous index)' do
         current = SchemaTools::SchemaRevision.new('products-1/revisions/1')
-        previous = SchemaTools::SchemaRevision.previous_revision_across_indexes(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_across_indexes(current)
         
         expect(previous).to be_nil
       end
@@ -200,7 +200,7 @@ describe SchemaTools::SchemaRevision do
     context 'with users/revisions/1' do
       it 'returns nil (no previous index)' do
         current = SchemaTools::SchemaRevision.new('users/revisions/1')
-        previous = SchemaTools::SchemaRevision.previous_revision_across_indexes(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_across_indexes(current)
         
         expect(previous).to be_nil
       end
@@ -209,7 +209,7 @@ describe SchemaTools::SchemaRevision do
     context 'with products-2/revisions/2' do
       it 'returns products-2/revisions/1 (previous within same index)' do
         current = SchemaTools::SchemaRevision.new('products-2/revisions/2')
-        previous = SchemaTools::SchemaRevision.previous_revision_across_indexes(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_across_indexes(current)
         
         expect(previous).to be_a(SchemaTools::SchemaRevision)
         expect(previous.index_name).to eq('products-2')
@@ -239,7 +239,7 @@ describe SchemaTools::SchemaRevision do
 
       it 'returns nil when previous revision number does not exist' do
         current = SchemaTools::SchemaRevision.new('products-4/revisions/3')
-        previous = SchemaTools::SchemaRevision.previous_revision_within_index(current)
+        previous = SchemaTools::SchemaRevision.find_previous_revision_within_index(current)
         
         # Should return nil because revision 2 doesn't exist
         expect(previous).to be_nil

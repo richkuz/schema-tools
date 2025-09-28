@@ -7,7 +7,7 @@ module SchemaTools
     raise "schema_revision required" unless schema_revision
     
     schema_manager = SchemaTools::SchemaManager.new()
-    previous_schema_revision = SchemaRevision.previous_revision_across_indexes(schema_revision)
+    previous_schema_revision = SchemaRevision.find_previous_revision_across_indexes(schema_revision)
 
     current_files = schema_manager.get_revision_files(current_schema_revision)
     previous_files = previous_schema_revision ? schema_manager.get_revision_files(previous_schema_revision) : { settings: {}, mappings: {}, painless_scripts: {} }

@@ -95,6 +95,103 @@ RSpec.describe SchemaTools::SchemaDefiner do
     end
   end
 
+  describe '#schemas_and_painless_scripts_match?' do
+    let(:live_data) do
+      {
+        settings: { 'index' => { 'number_of_shards' => 1 } },
+        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } },
+        painless_scripts: {
+          'script1' => 'ctx._source.test = "value"',
+          'script2' => 'ctx._source.another = "test"'
+        }
+      }
+    end
+
+    let(:schema_data) do
+      {
+        settings: { 'index' => { 'number_of_shards' => 1 } },
+        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } },
+        painless_scripts: {
+          'script1' => 'ctx._source.test = "value"',
+          'script2' => 'ctx._source.another = "test"'
+        }
+      }
+    end
+
+    context 'when all components match' do
+      it 'returns true' do
+        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be true
+      end
+    end
+
+    context 'when settings differ' do
+      before do
+        schema_data[:settings] = { 'index' => { 'number_of_shards' => 2 } }
+      end
+
+      it 'returns false' do
+        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
+      end
+    end
+
+    context 'when mappings differ' do
+      before do
+        schema_data[:mappings] = { 'properties' => { 'id' => { 'type' => 'text' } } }
+      end
+
+      it 'returns false' do
+        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
+      end
+    end
+
+    context 'when painless scripts differ' do
+      before do
+        schema_data[:painless_scripts] = {
+          'script1' => 'ctx._source.test = "different_value"',
+          'script2' => 'ctx._source.another = "test"'
+        }
+      end
+
+      it 'returns false' do
+        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
+      end
+    end
+
+    context 'when painless scripts have different number of scripts' do
+      before do
+        schema_data[:painless_scripts] = {
+          'script1' => 'ctx._source.test = "value"'
+        }
+      end
+
+      it 'returns false' do
+        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
+      end
+    end
+
+    context 'when painless scripts are empty in both' do
+      before do
+        live_data[:painless_scripts] = {}
+        schema_data[:painless_scripts] = {}
+      end
+
+      it 'returns true' do
+        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be true
+      end
+    end
+
+    context 'when painless scripts are nil in both' do
+      before do
+        live_data[:painless_scripts] = nil
+        schema_data[:painless_scripts] = nil
+      end
+
+      it 'returns true' do
+        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be true
+      end
+    end
+  end
+
   describe '#define_example_schema_for_new_index' do
     context 'when no schema definition exists' do
       it 'creates new schema files' do

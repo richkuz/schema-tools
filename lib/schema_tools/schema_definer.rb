@@ -53,8 +53,8 @@ module SchemaTools
       puts "Comparing live index to the latest schema definition's settings, mappings, and painless scripts..."
       schema_data = SchemaFiles.get_revision_files(latest_schema_revision)
       
-      if schemas_match?(live_data, schema_data)
-        puts "Latest schema definition already matches the live index."
+      if schemas_and_painless_scripts_match?(live_data, schema_data)
+        puts "Latest schema definition and any painless scripts already match the live index."
       elsif @breaking_change_detector.breaking_change?(live_data, schema_data)
         puts "Index settings and mappings constitute a breaking change from the latest schema definition."
         new_index_name = latest_file_index.generate_next_index_name
@@ -148,9 +148,10 @@ module SchemaTools
 
     private
 
-    def schemas_match?(live_data, schema_data)
+    def schemas_and_painless_scripts_match?(live_data, schema_data)
       normalize_settings(live_data[:settings]) == normalize_settings(schema_data[:settings]) &&
-      normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings])
+      normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings]) &&
+      normalize_painless_scripts(live_data[:painless_scripts]) == normalize_painless_scripts(schema_data[:painless_scripts])
     end
 
     def extract_live_index_data(index_name)
@@ -326,6 +327,11 @@ module SchemaTools
     def normalize_mappings(mappings)
       return {} unless mappings
       JSON.parse(JSON.generate(mappings))
+    end
+
+    def normalize_painless_scripts(painless_scripts)
+      return {} unless painless_scripts
+      JSON.parse(JSON.generate(painless_scripts))
     end
 
     def write_painless_scripts(scripts_dir, painless_scripts)

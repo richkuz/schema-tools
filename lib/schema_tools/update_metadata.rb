@@ -19,7 +19,7 @@ module SchemaTools
     raise "metadata parameter is required" unless metadata
     raise "client is required" unless client
 
-    latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
+    latest_schema_revision = SchemaRevision.find_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     
     # Fetch existing metadata

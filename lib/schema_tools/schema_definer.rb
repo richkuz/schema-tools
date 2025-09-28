@@ -40,7 +40,7 @@ module SchemaTools
         return
       end
 
-      latest_schema_revision = SchemaRevision.for_latest_revision(latest_file_index.index_name)
+      latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
       unless latest_schema_revision
         puts "No revision folders exist in #{Config.SCHEMAS_PATH} for \"#{latest_file_index.index_name}\""
         puts "Creating a new example index revision folder."
@@ -84,7 +84,7 @@ module SchemaTools
         return
       end
 
-      latest_schema_revision = SchemaRevision.for_latest_revision(latest_file_index.index_name)
+      latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
       unless latest_schema_revision
         puts "No revision folders exist in #{Config.SCHEMAS_PATH} for \"#{latest_file_index.index_name}\""
         return
@@ -108,7 +108,7 @@ module SchemaTools
         return
       end
 
-      latest_schema_revision = SchemaRevision.for_latest_revision(latest_file_index.index_name)
+      latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
       unless latest_schema_revision
         puts "No revision folders exist in #{Config.SCHEMAS_PATH} for \"#{latest_file_index.index_name}\""
         return
@@ -132,7 +132,7 @@ module SchemaTools
       latest_file_index = Index.find_matching_file_indexes(base_name).last
       
       if latest_file_index
-        latest_schema_revision = SchemaRevision.for_latest_revision(latest_file_index.index_name)
+        latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
         if latest_schema_revision
           puts "Latest schema definition of \"#{base_name}\" is defined at \"#{latest_schema_revision.revision_relative_path}\""
           return

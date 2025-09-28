@@ -67,7 +67,7 @@ RSpec.describe 'Integration Tests' do
       config = manager.get_index_config(index_name)
       expect(config).to eq(index_config)
       
-      latest_schema_revision = SchemaTools::SchemaRevision.for_latest_revision(index_name)
+      latest_schema_revision = SchemaTools::SchemaRevision.find_latest_revision(index_name)
       expect(latest_schema_revision.revision_absolute_path).to eq(revisions_dir)
       
       revision_files = manager.get_revision_files(latest_schema_revision)

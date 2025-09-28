@@ -46,7 +46,7 @@ module SchemaTools
     index_config = schema_manager.get_index_config(index_name)
     raise "Index configuration not found for #{index_name}" unless index_config
     
-    latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
+    latest_schema_revision = SchemaRevision.find_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     
     SchemaTools.diff(schema_revision: latest_schema_revision)
@@ -112,7 +112,7 @@ module SchemaTools
       # Check if this schema has an index.json and revisions
       schema_manager = SchemaTools::SchemaManager.new(schemas_path: schemas_path)
       index_config = schema_manager.get_index_config(schema_name)
-      latest_schema_revision = SchemaRevision.for_latest_revision(schema_name)
+      latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
       
       if index_config && latest_schema_revision
         if schema_groups[base_name].nil? || version_number > schema_groups[base_name][:version_number]

@@ -4,7 +4,7 @@ module SchemaTools
   def self.create(index_name:, client:)
     raise "index_name parameter is required" unless index_name
     
-    latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
+    latest_schema_revision = SchemaRevision.find_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     
     schema_manager = SchemaManager.new()

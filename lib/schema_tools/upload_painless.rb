@@ -5,7 +5,7 @@ module SchemaTools
     raise "index_name parameter is required" unless index_name
     
     schema_manager = SchemaTools::SchemaManager.new()
-    latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
+    latest_schema_revision = SchemaRevision.find_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     
     revision_files = schema_manager.get_revision_files(latest_schema_revision.revision_absolute_path)

@@ -47,7 +47,7 @@ module SchemaTools
 
     # index_name "products-3" returns a SchemaRevision for "products-3/revisions/5" (whatever the highest revision number is),
     # or returns nil if none exists.
-    def self.for_latest_revision(index_name)
+    def self.find_latest_revision(index_name)
       index_path = File.join(Config.SCHEMAS_PATH, index_name)
       return nil unless Dir.exist?(index_path)
       
@@ -78,7 +78,7 @@ module SchemaTools
       current_schema_revision = if revision_path_or_index_name.include?('/revisions/')
         SchemaRevision.new(revision_path_or_index_name)
       else
-        schema_revision = SchemaRevision.for_latest_revision(revision_path_or_index_name)
+        schema_revision = SchemaRevision.find_latest_revision(revision_path_or_index_name)
         raise "No revisions found for #{revision_path_or_index_name}" unless schema_revision
         schema_revision
       end
@@ -123,12 +123,12 @@ module SchemaTools
       
       # Try the previous versioned index first (e.g., products-2 -> products-1)
       previous_index_name = "#{base_name}-#{current_version - 1}"
-      previous_revision = for_latest_revision(previous_index_name)
+      previous_revision = find_latest_revision(previous_index_name)
       return previous_revision if previous_revision
       
       # If no previous versioned index exists, try the base name without version (e.g., products-2 -> products)
       # This handles the case where the earliest index name doesn't have a version number
-      base_revision = for_latest_revision(base_name)
+      base_revision = find_latest_revision(base_name)
       base_revision
     end
   end

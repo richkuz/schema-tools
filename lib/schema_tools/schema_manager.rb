@@ -48,7 +48,7 @@ module SchemaTools
         
         # Check if this schema has an index.json and revisions
         index_config = get_index_config(schema_name)
-        latest_schema_revision = SchemaRevision.for_latest_revision(schema_name)
+        latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
         
         if index_config && latest_schema_revision
           schemas << {

@@ -97,24 +97,24 @@ describe SchemaTools::SchemaRevision do
     end
   end
 
-  describe '.for_latest_revision' do
+  describe '.find_latest_revision' do
     context 'with existing index' do
       it 'returns the latest revision for products-1' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('products-1')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('products-1')
         expect(revision).to be_a(SchemaTools::SchemaRevision)
         expect(revision.index_name).to eq('products-1')
         expect(revision.revision_number).to eq('1')
       end
 
       it 'returns the latest revision for products-2' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('products-2')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('products-2')
         expect(revision).to be_a(SchemaTools::SchemaRevision)
         expect(revision.index_name).to eq('products-2')
         expect(revision.revision_number).to eq('2')
       end
 
       it 'returns the latest revision for users (no version number)' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('users')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('users')
         expect(revision).to be_a(SchemaTools::SchemaRevision)
         expect(revision.index_name).to eq('users')
         expect(revision.revision_number).to eq('1')
@@ -123,7 +123,7 @@ describe SchemaTools::SchemaRevision do
 
     context 'with non-existent index' do
       it 'returns nil for non-existent index' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('non-existent')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('non-existent')
         expect(revision).to be_nil
       end
     end
@@ -137,7 +137,7 @@ describe SchemaTools::SchemaRevision do
       end
 
       it 'returns nil for index with no revisions' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('empty-index')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('empty-index')
         expect(revision).to be_nil
       end
     end
@@ -233,7 +233,7 @@ describe SchemaTools::SchemaRevision do
       end
 
       it 'finds the highest numbered revision as latest' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('products-4')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('products-4')
         expect(revision.revision_number).to eq('3')
       end
 
@@ -260,7 +260,7 @@ describe SchemaTools::SchemaRevision do
       end
 
       it 'ignores non-numeric revision directories' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('products-5')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('products-5')
         expect(revision.revision_number).to eq('1')
       end
     end
@@ -274,7 +274,7 @@ describe SchemaTools::SchemaRevision do
       end
 
       it 'works with existing products-1 schema' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('products-1')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('products-1')
         if revision
           expect(revision.index_name).to eq('products-1')
           expect(revision.revision_number).to eq('1')
@@ -283,7 +283,7 @@ describe SchemaTools::SchemaRevision do
       end
 
       it 'works with existing users-1 schema' do
-        revision = SchemaTools::SchemaRevision.for_latest_revision('users-1')
+        revision = SchemaTools::SchemaRevision.find_latest_revision('users-1')
         if revision
           expect(revision.index_name).to eq('users-1')
           expect(revision.revision_number).to match(/\d+/)

@@ -78,8 +78,7 @@ module SchemaTools
       puts "No from_index_name specified; will not reindex data from a previous index."
     else
       SchemaTools.reindex(index_name:, client:)
-      # TODO Add this back in when we implement catchup:
-      # SchemaTools.catchup(index_name:, client:)
+      SchemaTools.catchup(index_name:, client:)
     end
     
 

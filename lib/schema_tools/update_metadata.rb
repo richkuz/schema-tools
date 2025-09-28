@@ -37,14 +37,8 @@ module SchemaTools
       revision_applied_by: Config.schemurai_user
     }
     
-    # Only add persistent metadata if revision is not already present
-    unless merged_metadata.key?('revision')
-      merged_metadata = merged_metadata.merge(persistent_metadata)
-    else
-      # Update only the timestamp fields if revision already exists, but don't duplicate
-      merged_metadata['revision_applied_at'] = Time.now.iso8601
-      merged_metadata['revision_applied_by'] = Config.schemurai_user
-    end
+    # Always apply persistent metadata last to ensure it takes precedence
+    merged_metadata = merged_metadata.merge(persistent_metadata)
     
     mappings_update = {
       _meta: {

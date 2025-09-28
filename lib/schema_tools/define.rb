@@ -2,7 +2,7 @@ module SchemaTools
   def self.define(client:)
     schema_definer = SchemaDefiner.new(client)
     
-    puts "Please choose:"
+    puts "\nPlease choose:"
     puts "1. Define a schema for an index that exists in OpenSearch or Elasticsearch"
     puts "2. Define an example schema for an index that doesn't exist"
     puts "3. Define an example schema for a breaking change to an existing defined schema"

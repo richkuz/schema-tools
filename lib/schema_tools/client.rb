@@ -158,19 +158,38 @@ module SchemaTools
     end
 
     def get_stored_scripts
-      response = get("/_scripts")
-      return {} unless response
-      
-      scripts = {}
-      response.each do |script_id, script_data|
-        scripts[script_id] = script_data.dig('script', 'source')
+      # Try the legacy Elasticsearch API first (works for Elasticsearch and older OpenSearch)
+      begin
+        response = get("/_scripts")
+        return {} unless response
+        
+        scripts = {}
+        response.each do |script_id, script_data|
+          scripts[script_id] = script_data.dig('script', 'source')
+        end
+        
+        return scripts
+      rescue => e
+        # If the legacy API fails (e.g., OpenSearch 2.x), try the new API
+        begin
+          response = get("/_cluster/state/metadata?filter_path=metadata.stored_scripts")
+          return {} unless response
+          
+          stored_scripts_data = response.dig('metadata', 'stored_scripts')
+          return {} unless stored_scripts_data
+          
+          scripts = {}
+          stored_scripts_data.each do |script_id, script_data|
+            scripts[script_id] = script_data.dig('script', 'source')
+          end
+          
+          return scripts
+        rescue => fallback_error
+          # If both APIs fail, log the original error and return empty hash
+          @logger.warn("Could not retrieve stored scripts: #{e.message}") if @logger
+          {}
+        end
       end
-      
-      scripts
-    rescue => e
-      # If scripts endpoint is not available or returns an error, return empty hash
-      @logger.warn("Could not retrieve stored scripts: #{e.message}") if @logger
-      {}
     end
 
     def delete_index(index_name)

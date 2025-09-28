@@ -26,7 +26,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
 
   describe 'breaking change detection in schema definer' do
     before do
-      FileUtils.mkdir_p(File.join(schemas_path, 'products', 'revisions', '1'))
+      FileUtils.mkdir_p(File.join(schemas_path, 'products-3', 'revisions', '1'))
       
       settings = {
         'index' => {
@@ -42,8 +42,8 @@ RSpec.describe 'Breaking Change Detection Integration' do
         }
       }
       
-      File.write(File.join(schemas_path, 'products', 'revisions', '1', 'settings.json'), settings.to_json)
-      File.write(File.join(schemas_path, 'products', 'revisions', '1', 'mappings.json'), mappings.to_json)
+      File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'settings.json'), settings.to_json)
+      File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'mappings.json'), mappings.to_json)
       
       allow(client).to receive(:index_exists?).with('products').and_return(false)
       allow(client).to receive(:get).with('/_cat/indices/products*?format=json').and_return([
@@ -162,7 +162,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
         .to output(/Index settings and mappings constitute a non-breaking change/).to_stdout
 
       # Should generate new revision for non-breaking change
-      revision_path = File.join(schemas_path, 'products', 'revisions', '2')
+      revision_path = File.join(schemas_path, 'products-3', 'revisions', '2')
       expect(File.exist?(File.join(revision_path, 'settings.json'))).to be true
     end
 
@@ -189,7 +189,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
         .to output(/Index settings and mappings constitute a non-breaking change/).to_stdout
 
       # Should generate new revision for non-breaking change
-      revision_path = File.join(schemas_path, 'products', 'revisions', '2')
+      revision_path = File.join(schemas_path, 'products-3', 'revisions', '2')
       expect(File.exist?(File.join(revision_path, 'settings.json'))).to be true
     end
   end

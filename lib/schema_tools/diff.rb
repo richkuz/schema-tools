@@ -9,15 +9,15 @@ module SchemaTools
     schema_manager = SchemaTools::SchemaManager.new()
     previous_schema_revision = SchemaRevision.find_previous_revision_across_indexes(schema_revision)
 
-    current_files = schema_manager.get_revision_files(current_schema_revision)
+    current_files = schema_manager.get_revision_files(schema_revision)
     previous_files = previous_schema_revision ? schema_manager.get_revision_files(previous_schema_revision) : { settings: {}, mappings: {}, painless_scripts: {} }
     
     diff_content = []
     
     if previous_schema_revision
-      diff_content << "Diff between current revision #{current_schema_revision.revision_relative_path} and previous revision #{previous_schema_revision.revision_relative_path}"
+      diff_content << "Diff between current revision #{schema_revision.revision_relative_path} and previous revision #{previous_schema_revision.revision_relative_path}"
     else
-      diff_content << "Diff between current revision #{current_schema_revision.revision_relative_path} and empty baseline"
+      diff_content << "Diff between current revision #{schema_revision.revision_relative_path} and empty baseline"
     end
     diff_content << ""
     
@@ -32,16 +32,14 @@ module SchemaTools
     diff_content << self.diff_painless_scripts(previous_files[:painless_scripts], current_files[:painless_scripts])
     
     diff_content = diff_content.join("\n")
-    diff_output_path = File.join(current_schema_revision.revision_absolute_path, 'diff_output.txt')
+    diff_output_path = File.join(schema_revision.revision_absolute_path, 'diff_output.txt')
     File.write(diff_output_path, diff_content)
     puts "Wrote diff output to #{diff_output_path}"
     
     diff_content
   end
 
-  private
-
-  def diff_painless_scripts(old_scripts, new_scripts)
+  def self.diff_painless_scripts(old_scripts, new_scripts)
     all_script_names = (old_scripts.keys + new_scripts.keys).uniq.sort
     changes = []
     

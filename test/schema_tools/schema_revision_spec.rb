@@ -10,22 +10,13 @@ describe SchemaTools::SchemaRevision do
   let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
 
   before do
-    # Set up test schemas directory
-    FileUtils.mkdir_p(schemas_path)
-    
-    # Mock the SCHEMAS_PATH for testing
     allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
-    allow(SchemaTools::SchemaRevision).to receive(:schemas_path).and_return(schemas_path)
-    
-    # Create test schema structure
+    FileUtils.mkdir_p(schemas_path)
     setup_test_schemas
   end
 
   after do
-    # Restore original SCHEMAS_PATH
     allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(original_schemas_path)
-    
-    # Clean up temp directory
     FileUtils.rm_rf(temp_dir)
   end
 

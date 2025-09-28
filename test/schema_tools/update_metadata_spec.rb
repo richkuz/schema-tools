@@ -21,7 +21,6 @@ RSpec.describe SchemaTools do
     allow(SchemaTools::Config).to receive(:SCHEMURAI_USER).and_return('test_user')
     FileUtils.mkdir_p(revision_path)
     
-    # Create initial mappings file
     initial_mappings = {
       'properties' => {
         'id' => { 'type' => 'keyword' },

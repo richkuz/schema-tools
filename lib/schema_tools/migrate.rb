@@ -1,4 +1,6 @@
 require_relative 'schema_revision'
+require_relative 'utils'
+require_relative 'diff'
 
 module SchemaTools
   include SchemaTools::Config
@@ -106,11 +108,11 @@ module SchemaTools
     
     schema_dirs.each do |schema_dir|
       schema_name = File.basename(schema_dir)
-      base_name = extract_base_name(schema_name)
-      version_number = extract_version_number(schema_name)
+      base_name = Utils.extract_base_name(schema_name)
+      version_number = Utils.extract_version_number(schema_name)
       
       # Check if this schema has an index.json and revisions
-      schema_manager = SchemaTools::SchemaManager.new(schemas_path: schemas_path)
+      schema_manager = SchemaTools::SchemaManager.new()
       index_config = schema_manager.get_index_config(schema_name)
       latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
       

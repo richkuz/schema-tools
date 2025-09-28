@@ -22,12 +22,16 @@ Diff between current revision products-3/revisions/1 and previous revision produ
 === Mappings Diff ===
 === Changes Detected ===
 
-➖ REMOVED: _meta.schemurai_revision.reindex_completed_at
+🔄 MODIFIED: _meta.schemurai_revision.reindex_completed_at
   Old value:
     "2025-09-28T13:15:12-04:00"
-➖ REMOVED: _meta.schemurai_revision.reindex_started_at
+  New value:
+    "2025-09-28T13:51:01-04:00"
+🔄 MODIFIED: _meta.schemurai_revision.reindex_started_at
   Old value:
     "2025-09-28T13:14:57-04:00"
+  New value:
+    "2025-09-28T13:51:01-04:00"
 🔄 MODIFIED: _meta.schemurai_revision.revision
   Old value:
     "products-2/revisions/1"
@@ -37,7 +41,7 @@ Diff between current revision products-3/revisions/1 and previous revision produ
   Old value:
     "2025-09-28T13:15:12-04:00"
   New value:
-    "2025-09-27T08:19:16-04:00"
+    "2025-09-28T13:51:01-04:00"
 
 === Painless Scripts Diff ===
 No painless scripts found in either version

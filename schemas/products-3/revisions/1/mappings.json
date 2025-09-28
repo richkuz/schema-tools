@@ -42,10 +42,10 @@
   "_meta": {
     "schemurai_revision": {
       "revision_applied_by": "rake task",
-      "revision_applied_at": "2025-09-28T13:51:01-04:00",
-      "reindex_started_at": "2025-09-28T13:51:01-04:00",
-      "revision": "products-3/revisions/1",
-      "reindex_completed_at": "2025-09-28T13:51:01-04:00"
+      "reindex_completed_at": "2025-09-28T13:52:32-04:00",
+      "revision_applied_at": "2025-09-28T13:52:32-04:00",
+      "reindex_started_at": "2025-09-28T13:52:22-04:00",
+      "revision": "products-3/revisions/1"
     }
   }
 }

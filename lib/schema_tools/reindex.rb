@@ -18,7 +18,7 @@ module SchemaTools
     puts "Starting reindex from #{from_index} to #{index_name}"
     begin
       SchemaTools.update_metadata(index_name:, metadata: { reindex_started_at: Time.now.iso8601 }, client:)
-      response = client.reindex(from_index, index_name, reindex_script, false)
+      response = client.reindex(from_index, index_name, reindex_script)
       puts response
 
       if response['took']

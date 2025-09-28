@@ -7,7 +7,7 @@ module SchemaTools
     latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     
-    schema_manager = SchemaTools::SchemaManager.new()
+    schema_manager = SchemaManager.new()
     revision_files = schema_manager.get_revision_files(latest_schema_revision.revision_absolute_path)
     
     if client.index_exists?(index_name)
@@ -17,5 +17,6 @@ module SchemaTools
       puts "Creating index #{index_name}"
       client.create_index(index_name, revision_files[:settings], revision_files[:mappings])
     end
+    SchemaTools.update_metadata(index_name:, metadata: { }, client:)
   end
 end

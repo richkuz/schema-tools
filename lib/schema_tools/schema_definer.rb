@@ -5,14 +5,13 @@ require_relative 'utils'
 require_relative 'schema_revision'
 require_relative 'config'
 require_relative 'index'
-require_relative 'schema_manager'
+require_relative 'schema_files'
 
 module SchemaTools
   class SchemaDefiner
 
-    def initialize(client, schema_manager = nil)
+    def initialize(client)
       @client = client
-      @schema_manager = schema_manager || SchemaManager.new()
       @breaking_change_detector = BreakingChangeDetector.new()
     end
 
@@ -52,7 +51,7 @@ module SchemaTools
       puts "Latest schema definition found at \"#{latest_schema_revision.revision_relative_path}\""
 
       puts "Comparing live index to the latest schema definition's settings, mappings, and painless scripts..."
-      schema_data = @schema_manager.get_revision_files(latest_schema_revision)
+      schema_data = SchemaFiles.get_revision_files(latest_schema_revision)
       
       if schemas_match?(live_data, schema_data)
         puts "Latest schema definition already matches the live index."

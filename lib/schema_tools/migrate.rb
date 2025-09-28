@@ -40,12 +40,10 @@ module SchemaTools
   end
 
   def self.migrate_one_schema(index_name, client)
-    schema_manager = SchemaTools::SchemaManager.new()
-
     puts "=" * 60
     puts "Migrating to index #{index_name}"
     
-    index_config = schema_manager.get_index_config(index_name)
+    index_config = SchemaFiles.get_index_config(index_name)
     raise "Index configuration not found for #{index_name}" unless index_config
     
     latest_schema_revision = SchemaRevision.find_latest_revision(index_name)
@@ -112,8 +110,7 @@ module SchemaTools
       version_number = Utils.extract_version_number(schema_name)
       
       # Check if this schema has an index.json and revisions
-      schema_manager = SchemaTools::SchemaManager.new()
-      index_config = schema_manager.get_index_config(schema_name)
+      index_config = SchemaFiles.get_index_config(schema_name)
       latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
       
       if index_config && latest_schema_revision

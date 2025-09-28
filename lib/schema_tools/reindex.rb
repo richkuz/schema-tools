@@ -3,8 +3,7 @@ module SchemaTools
     raise "index_name parameter is required" unless index_name
     raise "client is required" unless client
     
-    schema_manager = SchemaTools::SchemaManager.new()
-    index_config = schema_manager.get_index_config(index_name)
+    index_config = SchemaFiles.get_index_config(index_name)
     raise "Index configuration not found for #{index_name}" unless index_config
     
     from_index = index_config['from_index_name']
@@ -14,7 +13,7 @@ module SchemaTools
       raise "Source index #{from_index} does not exist. Cannot reindex to #{index_name}."
     end
     
-    reindex_script = schema_manager.get_reindex_script(index_name)
+    reindex_script = SchemaFiles.get_reindex_script(index_name)
     
     puts "Starting reindex from #{from_index} to #{index_name}"
     begin

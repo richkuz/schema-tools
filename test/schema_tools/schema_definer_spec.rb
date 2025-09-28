@@ -1,7 +1,7 @@
 require_relative '../spec_helper'
 require 'schema_tools/schema_definer'
 require 'schema_tools/client'
-require 'schema_tools/schema_manager'
+require 'schema_tools/schema_files'
 require 'tempfile'
 require 'webmock/rspec'
 
@@ -10,8 +10,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
   let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
   let(:client) { instance_double(SchemaTools::Client) }
-  let(:schema_manager) { SchemaTools::SchemaManager.new() }
-  let(:definer) { SchemaTools::SchemaDefiner.new(client, schema_manager) }
+  let(:definer) { SchemaTools::SchemaDefiner.new(client) }
   
   before do
     allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)

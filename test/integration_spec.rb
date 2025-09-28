@@ -1,6 +1,6 @@
 require_relative 'spec_helper'
 require 'schema_tools/client'
-require 'schema_tools/schema_manager'
+require 'schema_tools/schema_files'
 require 'schema_tools/schema_revision'
 require 'schema_tools/config'
 require 'tempfile'
@@ -10,7 +10,7 @@ RSpec.describe 'Integration Tests' do
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
   let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
   let(:client) { SchemaTools::Client.new('http://localhost:9200') }
-  let(:manager) { SchemaTools::SchemaManager.new() }
+  let(:manager) { SchemaTools::SchemaFiles }
   
   before do
     FileUtils.mkdir_p(schemas_path)

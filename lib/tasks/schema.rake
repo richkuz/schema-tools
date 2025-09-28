@@ -1,5 +1,5 @@
 require 'schema_tools/client'
-require 'schema_tools/schema_manager'
+require 'schema_tools/schema_files'
 require 'schema_tools/schema_definer'
 require 'schema_tools/config'
 require 'schema_tools/utils'

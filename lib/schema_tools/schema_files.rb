@@ -4,11 +4,8 @@ require 'time'
 require_relative 'schema_revision'
 
 module SchemaTools
-  class SchemaManager
-    def initialize()
-    end
-
-    def get_index_config(index_name)
+  class SchemaFiles
+    def self.get_index_config(index_name)
       index_path = File.join(Config.SCHEMAS_PATH, index_name)
       return nil unless Dir.exist?(index_path)
       
@@ -20,7 +17,7 @@ module SchemaTools
 
     # Return a map of settings, mappings, and painless_scripts content
     # Raises an error if settings or mappings don't exist and are not valid JSON
-    def get_revision_files(schema_revision)
+    def self.get_revision_files(schema_revision)
       {
         settings: load_json_file(File.join(schema_revision.revision_absolute_path, 'settings.json')),
         mappings: load_json_file(File.join(schema_revision.revision_absolute_path, 'mappings.json')),
@@ -28,14 +25,14 @@ module SchemaTools
       }
     end
 
-    def get_reindex_script(index_name)
+    def self.get_reindex_script(index_name)
       index_path = File.join(Config.SCHEMAS_PATH, index_name)
       script_path = File.join(index_path, 'reindex.painless')
       
       File.exist?(script_path) ? File.read(script_path) : nil
     end
 
-    def discover_all_schemas_with_latest_revisions
+    def self.discover_all_schemas_with_latest_revisions
       return [] unless Dir.exist?(Config.SCHEMAS_PATH)
       
       schemas = []
@@ -64,12 +61,12 @@ module SchemaTools
 
     private
 
-    def load_json_file(file_path)
+    def self.load_json_file(file_path)
       raise "#{file_path} not found" unless File.exist?(file_path)
       JSON.parse(File.read(file_path))
     end
 
-    def load_painless_scripts(scripts_dir)
+    def self.load_painless_scripts(scripts_dir)
       return {} unless Dir.exist?(scripts_dir)
       
       scripts = {}

@@ -7,8 +7,7 @@ module SchemaTools
     latest_schema_revision = SchemaRevision.find_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     
-    schema_manager = SchemaManager.new()
-    revision_files = schema_manager.get_revision_files(latest_schema_revision.revision_absolute_path)
+    revision_files = SchemaFiles.get_revision_files(latest_schema_revision.revision_absolute_path)
     
     if client.index_exists?(index_name)
       puts "Index #{index_name} already exists, updating settings only"

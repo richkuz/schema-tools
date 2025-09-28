@@ -6,7 +6,7 @@ module SchemaTools
   def self.diff(schema_revision:)
     raise "schema_revision required" unless schema_revision
     
-    schema_manager = SchemaTools::SchemaManager.new()
+    schema_manager = SchemaTools::SchemaFiles
     previous_schema_revision = SchemaRevision.find_previous_revision_across_indexes(schema_revision)
 
     current_files = schema_manager.get_revision_files(schema_revision)

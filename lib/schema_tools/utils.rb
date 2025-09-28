@@ -1,4 +1,4 @@
-require_relative 'schema_manager'
+require_relative 'schema_files'
 require_relative 'schema_revision'
 
 module SchemaTools

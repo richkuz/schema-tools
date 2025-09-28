@@ -1,6 +1,6 @@
 require_relative '../spec_helper'
 require 'schema_tools/migrate'
-require 'schema_tools/schema_manager'
+require 'schema_tools/schema_files'
 require 'schema_tools/schema_revision'
 require 'schema_tools/utils'
 require 'tempfile'
@@ -68,16 +68,14 @@ RSpec.describe SchemaTools do
 
   describe '.migrate_one_schema' do
     let(:index_name) { 'test-index' }
-    let(:schema_manager) { double('schema_manager') }
     let(:index_config) { { 'from_index_name' => 'old-index' } }
     let(:schema_revision) { double('schema_revision', index_name: index_name, revision_relative_path: "#{index_name}/revisions/1", revision_absolute_path: "/path/to/#{index_name}/revisions/1") }
 
     before do
       create_test_schema(index_name, 1)
       
-      allow(SchemaTools::SchemaManager).to receive(:new).and_return(schema_manager)
-      allow(schema_manager).to receive(:get_index_config).with(index_name).and_return(index_config)
-      allow(schema_manager).to receive(:get_revision_files).and_return({ settings: {}, mappings: {}, painless_scripts: {} })
+      allow(SchemaTools::SchemaFiles).to receive(:get_index_config).with(index_name).and_return(index_config)
+      allow(SchemaTools::SchemaFiles).to receive(:get_revision_files).and_return({ settings: {}, mappings: {}, painless_scripts: {} })
       allow(SchemaTools::SchemaRevision).to receive(:find_latest_revision).with(index_name).and_return(schema_revision)
       allow(SchemaTools::SchemaRevision).to receive(:find_previous_revision_across_indexes).with(schema_revision).and_return(nil)
       allow(schema_revision).to receive(:revision_relative_path).and_return("#{index_name}/revisions/1")
@@ -137,7 +135,7 @@ RSpec.describe SchemaTools do
 
     context 'when index config is missing' do
       it 'raises appropriate error' do
-        allow(schema_manager).to receive(:get_index_config).with(index_name).and_return(nil)
+        allow(SchemaTools::SchemaFiles).to receive(:get_index_config).with(index_name).and_return(nil)
         
         expect { SchemaTools.migrate_one_schema(index_name, client) }.to raise_error(/Index configuration not found/)
       end
@@ -178,7 +176,6 @@ RSpec.describe SchemaTools do
     end
 
     context 'when schemas exist' do
-      let(:schema_manager) { double('schema_manager') }
       let(:schema_revision) { double('schema_revision', revision_absolute_path: '/path/to/revision', revision_number: '1') }
 
       before do
@@ -188,9 +185,8 @@ RSpec.describe SchemaTools do
         create_test_schema('users-2', 2)
         create_test_schema('users-3', 3)
         
-        # Mock SchemaManager to return valid configs
-        allow(SchemaTools::SchemaManager).to receive(:new).and_return(schema_manager)
-        allow(schema_manager).to receive(:get_index_config).and_return({ 'index_name' => 'test' })
+        # Mock SchemaFiles to return valid configs
+        allow(SchemaTools::SchemaFiles).to receive(:get_index_config).and_return({ 'index_name' => 'test' })
         allow(SchemaTools::SchemaRevision).to receive(:find_latest_revision).and_return(schema_revision)
       end
 
@@ -219,15 +215,12 @@ RSpec.describe SchemaTools do
     end
 
     context 'when schemas have no valid configuration' do
-      let(:schema_manager) { double('schema_manager') }
-
       before do
         # Create directory without proper schema files
         FileUtils.mkdir_p(File.join(schemas_path, 'invalid-schema'))
         
-        # Mock SchemaManager to return nil for invalid schemas
-        allow(SchemaTools::SchemaManager).to receive(:new).and_return(schema_manager)
-        allow(schema_manager).to receive(:get_index_config).and_return(nil)
+        # Mock SchemaFiles to return nil for invalid schemas
+        allow(SchemaTools::SchemaFiles).to receive(:get_index_config).and_return(nil)
         allow(SchemaTools::SchemaRevision).to receive(:find_latest_revision).and_return(nil)
       end
 

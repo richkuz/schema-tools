@@ -1,6 +1,6 @@
 require_relative '../spec_helper'
 require 'schema_tools/client'
-require 'schema_tools/schema_manager'
+require 'schema_tools/schema_files'
 require 'schema_tools/schema_definer'
 require 'tempfile'
 require 'webmock/rspec'
@@ -10,7 +10,6 @@ RSpec.describe 'Schema Define Integration' do
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
   let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
   let(:client) { SchemaTools::Client.new('http://localhost:9200') }
-  let(:schema_manager) { SchemaTools::SchemaManager.new() }
   let(:definer) { SchemaTools::SchemaDefiner.new(client) }
   
   before do

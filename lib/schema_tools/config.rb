@@ -4,10 +4,10 @@ module SchemaTools
     CONNECTION_URL = ENV['OPENSEARCH_URL'] || ENV['ELASTICSEARCH_URL']
 
     # Optional username for HTTP basic authentication
-    CONNECTION_USERNAME = ENV['CONNECTION_USERNAME']
+    CONNECTION_USERNAME = ENV['OPENSEARCH_USERNAME'] || ENV['ELASTICSEARCH_USERNAME']
 
     # Optional password for HTTP basic authentication
-    CONNECTION_PASSWORD = ENV['CONNECTION_PASSWORD']
+    CONNECTION_PASSWORD = ENV['OPENSEARCH_PASSWORD'] || ENV['ELASTICSEARCH_PASSWORD']
 
     # Folder on disk where all schema definitions are stored
     SCHEMAS_PATH = ENV['SCHEMAS_PATH'] || 'schemas'

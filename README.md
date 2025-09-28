@@ -33,8 +33,11 @@ export ELASTICSEARCH_URL=https://your-cluster.com
 For authenticated instances, optionally set username and password:
 
 ```sh
-export CONNECTION_USERNAME=your_username
-export CONNECTION_PASSWORD=your_password
+export ELASTICSEARCH_USERNAME=your_username
+export ELASTICSEARCH_PASSWORD=your_password
+# or
+export OPENSEARCH_USERNAME=your_username
+export OPENSEARCH_PASSWORD=your_password
 ```
 
 Run `rake schema:define` to define your schema as source files. Point at an existing OpenSearch/Elasticsearch index or let the task create examples for you.

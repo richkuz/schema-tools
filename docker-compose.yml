@@ -1,4 +1,6 @@
 services:
+  # Connect using:
+  # 
   opensearch:
     image: opensearchproject/opensearch:2.19.0
     container_name: opensearch-node

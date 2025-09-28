@@ -187,9 +187,12 @@ module SchemaTools
     end
 
     def test_connection
-      get("/_cluster/health")
+      path = "/_cluster/health"
+      puts "Testing connection to #{@url}#{path}"
+      get(path)
       true
     rescue => e
+      puts e
       false
     end
 

@@ -5,6 +5,8 @@ require 'logger'
 
 module SchemaTools
   class Client
+    attr_reader :url
+    
     def initialize(url, dryrun: false, logger: Logger.new(STDOUT))
       @url = url
       @dryrun = dryrun

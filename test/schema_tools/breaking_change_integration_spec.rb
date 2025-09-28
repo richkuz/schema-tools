@@ -11,7 +11,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
   let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
   let(:client) { instance_double(SchemaTools::Client) }
   let(:schema_manager) { SchemaTools::SchemaManager.new() }
-  let(:definer) { SchemaTools::SchemaDefiner.new(client, schema_manager) }
+  let(:definer) { SchemaTools::SchemaDefiner.new(client) }
   
   before do
     allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)

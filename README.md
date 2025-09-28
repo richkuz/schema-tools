@@ -143,11 +143,13 @@ Non-breaking changes (dynamic updates):
 
 ### View which schema revision is applied to an index
 
-The `schema:migrate` task writes metadata into index settings to denote the revision. Fetch this metadata via `GET /products-2/`:
+The `schema:migrate` task writes metadata into index mappings to denote the revision. Fetch this metadata via `GET /products-2/`:
 
 ```
-"settings": {
-    "index": {
+{
+  "index_name": {
+    "setting": { ... },
+    "mappings": {
       "_meta": {
         "schemurai_revision": {
           "revision": "products-2/revisions/3",
@@ -158,6 +160,10 @@ The `schema:migrate` task writes metadata into index settings to denote the revi
           "catchup_started_at": TIMESTAMP,
           "catchup_completed_at": TIMESTAMP,
         }
+      }
+    }
+  }
+}
 ```
 
 ### Transform data during migration

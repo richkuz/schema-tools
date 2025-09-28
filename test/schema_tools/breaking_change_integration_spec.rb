@@ -8,16 +8,19 @@ require 'webmock/rspec'
 RSpec.describe 'Breaking Change Detection Integration' do
   let(:temp_dir) { Dir.mktmpdir }
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
+  let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
   let(:client) { instance_double(SchemaTools::Client) }
-  let(:schema_manager) { SchemaTools::SchemaManager.new(schemas_path) }
+  let(:schema_manager) { SchemaTools::SchemaManager.new() }
   let(:definer) { SchemaTools::SchemaDefiner.new(client, schema_manager) }
   
   before do
+    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
     FileUtils.mkdir_p(schemas_path)
     allow(client).to receive(:instance_variable_get).with(:@url).and_return('http://localhost:9200')
   end
   
   after do
+    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(original_schemas_path)
     FileUtils.rm_rf(temp_dir)
   end
 

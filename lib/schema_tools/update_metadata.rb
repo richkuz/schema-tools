@@ -9,12 +9,12 @@ module SchemaTools
   #   revision_applied_at: Time.now.iso8601,
   #   revision_applied_by: revision_applied_by
   # }
-  def self.update_metadata(index_name:, metadata:, client:, schema_manager:)
+  def self.update_metadata(index_name:, metadata:, client:)
     raise "index_name parameter is required" unless index_name
     raise "metadata parameter is required" unless metadata
     raise "client is required" unless client
-    raise "schema_manager is required" unless schema_manager
-
+    schema_manager = SchemaTools::SchemaManager.new()
+    
     # Fetch existing metadata and merge with the new metadata
     existing_mappings = client.get_index_mappings(index_name)
     existing_metadata = existing_mappings&.dig('_meta', 'schemurai_revision') || {}

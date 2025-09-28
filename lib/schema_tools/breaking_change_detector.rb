@@ -1,11 +1,9 @@
 require 'json'
-require 'logger'
 
 # Breaking changes are changes that would require a reindex or have a high risk of breaking an application.
 module SchemaTools
   class BreakingChangeDetector
-    def initialize(logger: Logger.new(STDOUT))
-      @logger = logger
+    def initialize()
     end
 
     def breaking_change?(proposed_data, current_data)

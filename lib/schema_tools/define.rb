@@ -1,6 +1,6 @@
 module SchemaTools
-  def self.define(client:, schema_manager:)
-    schema_definer = SchemaTools::SchemaDefiner.new(client, schema_manager)
+  def self.define(client:)
+    schema_definer = SchemaTools::SchemaDefiner.new(client)
     
     puts "Please choose:"
     puts "1. Define a schema for an index that exists in OpenSearch or Elasticsearch"

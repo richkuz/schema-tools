@@ -2,11 +2,9 @@ require 'fileutils'
 
 module SchemaTools
   class SchemaRevision
-    attr_reader :revision_relative_path, :revision_absolute_path
+    include SchemaTools::Config
 
-    def self.schemas_path
-      SchemaTools::Config::SCHEMAS_PATH
-    end
+    attr_reader :revision_relative_path, :revision_absolute_path
 
     # revision_relative_path: A revision path relative to the schemas folder, e.g. "products-3/revisions/2"
     def initialize(revision_relative_path)
@@ -17,7 +15,7 @@ module SchemaTools
         raise "Invalid revision path format. Expected '{index_name}/revisions/{revision_number}', got: #{@revision_relative_path}"
       end
       
-      @revision_absolute_path = File.join(self.class.schemas_path, revision_relative_path)
+      @revision_absolute_path = File.join(SCHEMAS_PATH, revision_relative_path)
       
       # Validate that the revision path exists on disk
       unless Dir.exist?(@revision_absolute_path)
@@ -25,7 +23,7 @@ module SchemaTools
       end
     end
 
-    # e.g. A SchemaRevision for "products-3/revisions/2" returns "2"
+    # A SchemaRevision for "products-3/revisions/2" returns "2"
     def revision_number
       File.basename(@revision_relative_path.split('/revisions/').last)
     end
@@ -35,10 +33,10 @@ module SchemaTools
       @revision_relative_path.split('/revisions/').first
     end
 
-    # e.g. "products-3" returns a SchemaRevision for "products-3/revisions/5" (whatever the highest revision number is),
+    # index_name "products-3" returns a SchemaRevision for "products-3/revisions/5" (whatever the highest revision number is),
     # or returns nil if none exists.
     def self.for_latest_revision(index_name)
-      index_path = File.join(schemas_path, index_name)
+      index_path = File.join(SCHEMAS_PATH, index_name)
       return nil unless Dir.exist?(index_path)
       
       revisions_path = File.join(index_path, 'revisions')
@@ -55,8 +53,28 @@ module SchemaTools
       new(revision_relative_path)
     end
 
+    # TODO This function might not be used anymore
+    #
+    # revision_path_or_index_name can be "produts-3/revisions/2" or "products-3"
+    #
+    # Given "products-3", return a SchemaRevision for the latest revision, e.g. "products-3/revisions/5"
+    # Given "products-3/revisions/2", return a SchemaRevision for that path if it exists
+    # Raise an error if SchemaRevision relative path does not exist
+    def self.for_revision_path_or_index_name(revision_path_or_index_name)
+      raise "revision_path_or_index_name parameter is required" unless revision_path_or_index_name
+      # Create SchemaRevision from the input
+      current_schema_revision = if revision_path_or_index_name.include?('/revisions/')
+        SchemaRevision.new(revision_path_or_index_name)
+      else
+        schema_revision = SchemaRevision.for_latest_revision(revision_path_or_index_name)
+        raise "No revisions found for #{revision_path_or_index_name}" unless schema_revision
+        schema_revision
+      end
+    end
+
     # Given a SchemaRevision, "products-3/revisions/2", returns a SchemaRevision "products-3/revisions/1"
-    # Given a SchemaRevision,  "products-3/revisions/1", returns nil.
+    # Given a SchemaRevision, "products-3/revisions/1", returns nil.
+    # Returns nil if no previous revision exists
     def self.previous_revision_within_index(schema_revision)
       index_name = schema_revision.index_name
       current_revision_number = schema_revision.revision_number.to_i
@@ -68,7 +86,7 @@ module SchemaTools
       revision_relative_path = "#{index_name}/revisions/#{previous_revision_number}"
       
       # Check if the previous revision exists on disk
-      revision_absolute_path = File.join(schemas_path, revision_relative_path)
+      revision_absolute_path = File.join(SCHEMAS_PATH, revision_relative_path)
       return nil unless Dir.exist?(revision_absolute_path)
       
       new(revision_relative_path)
@@ -76,7 +94,7 @@ module SchemaTools
 
     # Given a SchemaRevision, "products-3/revisions/2", returns a SchemaRevision "products-3/revisions/1"
     # Given a SchemaRevision, "products-3/revisions/1", returns a SchemaRevision "products-2/revisions/5"
-    # Returns nil if at revision 1 of the earliest index name.
+    # Returns nil if no previous revision exists
     def self.previous_revision_across_indexes(schema_revision)
       # First try to find a previous revision within the same index
       previous_within_index = previous_revision_within_index(schema_revision)

@@ -1,9 +1,10 @@
 require_relative 'schema_revision'
 
 module SchemaTools
-  def self.upload_painless(index_name:, client:, schema_manager:)
+  def self.upload_painless(index_name:, client:)
     raise "index_name parameter is required" unless index_name
     
+    schema_manager = SchemaTools::SchemaManager.new()
     latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     

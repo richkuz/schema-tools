@@ -1,9 +1,9 @@
 module SchemaTools
-  def self.reindex(index_name:, client:, schema_manager:)
+  def self.reindex(index_name:, client:)
     raise "index_name parameter is required" unless index_name
     raise "client is required" unless client
-    raise "schema_manager is required" unless schema_manager
     
+    schema_manager = SchemaTools::SchemaManager.new()
     index_config = schema_manager.get_index_config(index_name)
     raise "Index configuration not found for #{index_name}" unless index_config
     

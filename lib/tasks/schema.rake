@@ -11,7 +11,9 @@ require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
 require 'schema_tools/define'
+require 'schema_tools/diff'
 require 'schema_tools/update_metadata'
+require 'schema_tools/schema_revision'
 require 'json'
 require 'time'
 
@@ -43,8 +45,6 @@ def create_client!
 end
 
 namespace :schema do
-  schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
-
   desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
   task :migrate, [:to_index, :revision_applied_by] do |t, args|
     client = create_client!
@@ -53,22 +53,23 @@ namespace :schema do
       SchemaTools.migrate_one_schema(
         index_name: args[:to_index],
         revision_applied_by: args[:revision_applied_by] || "rake task",
-        client: client,
-        schema_manager: schema_manager
+        client: client
       )
     else
       SchemaTools.migrate_all(
         revision_applied_by: args[:revision_applied_by] || "rake task",
-        client: client,
-        schema_manager: schema_manager
+        client: client
       )
     end
   end
 
-  desc "Generate diff between schema revisions"
-  task :diff, [:index_name_or_revision] do |t, args|
-    schema_manager = SchemaTools::SchemaManager.new(SchemaTools::Config::SCHEMAS_PATH)
-    puts schema_manager.generate_diff_output_for_index_name_or_revision(index_name_or_revision)
+  desc "Generate diff output file for a given schema revision path, e.g. products-3/revisions/5"
+  task :diff, [:revision_path] do |t, args|
+    diff = SchemaTools.diff(
+      schema_revision: SchemaRevision.new(revision_path)
+    )
+    
+    puts diff
   end
 
   desc "Create index with schema definition"
@@ -77,8 +78,7 @@ namespace :schema do
     
     SchemaTools.create(
       index_name: args[:index_name],
-      client: client,
-      schema_manager: schema_manager
+      client: client
     )
   end
 
@@ -88,8 +88,7 @@ namespace :schema do
     
     SchemaTools.upload_painless(
       index_name: args[:index_name],
-      client: client,
-      schema_manager: schema_manager
+      client: client
     )
   end
 
@@ -99,8 +98,7 @@ namespace :schema do
 
     SchemaTools.reindex(
       index_name: args[:index_name],
-      client: client,
-      schema_manager: schema_manager
+      client: client
     )
   end
 
@@ -110,8 +108,7 @@ namespace :schema do
     
     SchemaTools.catchup(
       index_name: args[:index_name],
-      client: client,
-      schema_manager: schema_manager
+      client: client
     )
   end
 
@@ -140,8 +137,7 @@ namespace :schema do
     client = create_client!
 
     SchemaTools.define(
-      client: client,
-      schema_manager: schema_manager
+      client: client
     )
   end
 end

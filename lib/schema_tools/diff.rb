@@ -1,0 +1,96 @@
+require_relative 'json_diff'
+
+module SchemaTools
+  # Diff schema_revision against the previous revision (including previous indexes)
+  # Store the output in diff_output.txt
+  def self.diff(schema_revision:)
+    raise "schema_revision required" unless schema_revision
+    
+    schema_manager = SchemaTools::SchemaManager.new()
+    previous_schema_revision = SchemaRevision.previous_revision_across_indexes(schema_revision)
+
+    current_files = schema_manager.get_revision_files(current_schema_revision)
+    previous_files = previous_schema_revision ? schema_manager.get_revision_files(previous_schema_revision) : { settings: {}, mappings: {}, painless_scripts: {} }
+    
+    diff_content = []
+    
+    if previous_schema_revision
+      diff_content << "Diff between current revision #{current_schema_revision.revision_relative_path} and previous revision #{previous_schema_revision.revision_relative_path}"
+    else
+      diff_content << "Diff between current revision #{current_schema_revision.revision_relative_path} and empty baseline"
+    end
+    diff_content << ""
+    
+    json_diff = JsonDiff.new()
+    diff_content << "=== Settings Diff ==="
+    diff_content << json_diff.generate_diff(previous_files[:settings], current_files[:settings])
+    
+    diff_content << "\n=== Mappings Diff ==="
+    diff_content << json_diff.generate_diff(previous_files[:mappings], current_files[:mappings])
+    
+    diff_content << "\n=== Painless Scripts Diff ==="
+    diff_content << self.diff_painless_scripts(previous_files[:painless_scripts], current_files[:painless_scripts])
+    
+    diff_content = diff_content.join("\n")
+    diff_output_path = File.join(current_schema_revision.revision_absolute_path, 'diff_output.txt')
+    File.write(diff_output_path, diff_content)
+    puts "Wrote diff output to #{diff_output_path}"
+    
+    diff_content
+  end
+
+  private
+
+  def diff_painless_scripts(old_scripts, new_scripts)
+    all_script_names = (old_scripts.keys + new_scripts.keys).uniq.sort
+    changes = []
+    
+    if all_script_names.empty?
+      return "No painless scripts found in either version"
+    end
+    
+    all_script_names.each do |script_name|
+      old_content = old_scripts[script_name]
+      new_content = new_scripts[script_name]
+      
+      if old_content.nil? && new_content
+        changes << "➕ ADDED SCRIPT: #{script_name}"
+        changes << "  Content:"
+        new_content.split("\n").each_with_index do |line, index|
+          changes << "    #{index + 1}: #{line}"
+        end
+      elsif old_content && new_content.nil?
+        changes << "➖ REMOVED SCRIPT: #{script_name}"
+        changes << "  Previous content:"
+        old_content.split("\n").each_with_index do |line, index|
+          changes << "    #{index + 1}: #{line}"
+        end
+      elsif old_content != new_content
+        changes << "🔄 MODIFIED SCRIPT: #{script_name}"
+        
+        # Show line-by-line differences for modified scripts
+        old_lines = old_content.split("\n")
+        new_lines = new_content.split("\n")
+        
+        changes << "  Changes:"
+        max_lines = [old_lines.length, new_lines.length].max
+        
+        (0...max_lines).each do |line_num|
+          old_line = old_lines[line_num]
+          new_line = new_lines[line_num]
+          
+          if old_line.nil?
+            changes << "    + #{line_num + 1}: #{new_line}"
+          elsif new_line.nil?
+            changes << "    - #{line_num + 1}: #{old_line}"
+          elsif old_line != new_line
+            changes << "    ~ #{line_num + 1}: #{old_line} → #{new_line}"
+          end
+        end
+      end
+    end
+    
+    changes.empty? ? "No script changes" : changes.join("\n")
+  end
+
+end

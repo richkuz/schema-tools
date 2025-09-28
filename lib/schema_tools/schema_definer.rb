@@ -1,17 +1,15 @@
 require 'json'
 require 'fileutils'
-require 'logger'
 require 'schema_tools/breaking_change_detector'
 require_relative 'utils'
 require_relative 'schema_revision'
 
 module SchemaTools
   class SchemaDefiner
-    def initialize(client, schema_manager, logger: Logger.new(STDOUT))
+    def initialize(client)
       @client = client
-      @schema_manager = schema_manager
-      @logger = logger
-      @breaking_change_detector = BreakingChangeDetector.new(logger: logger)
+      @schema_manager = schema_manager = SchemaTools::SchemaManager.new()
+      @breaking_change_detector = BreakingChangeDetector.new()
     end
 
     def define_schema_for_existing_index(index_name)
@@ -171,9 +169,14 @@ module SchemaTools
       }
     end
 
+    # Find the latest schema definition for a given base name
+    # Example: "products" -> "schemas/products-3" (if products-3 is the latest)
     def find_latest_schema_definition(base_name)
-      schemas_path = @schema_manager.instance_variable_get(:@schemas_path)
-      SchemaTools::Utils.find_latest_schema_definition(base_name, schemas_path)
+      schema_dirs = Dir.glob(File.join(SchemaTools::Config::SCHEMAS_PATH, "#{base_name}*"))
+                      .select { |d| File.directory?(d) }
+                      .sort_by { |d| extract_version_number(File.basename(d)) }
+      
+      schema_dirs.last
     end
 
     def filter_internal_settings(settings)
@@ -205,7 +208,8 @@ module SchemaTools
       normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings])
     end
 
-
+    # Generate the next index name for a given base index name
+    # Example: "products" -> "products-2", "products-3" -> "products-4"
     def generate_next_index_name(base_name)
       latest_schema_path = find_latest_schema_definition(base_name)
       return "#{base_name}-2" unless latest_schema_path

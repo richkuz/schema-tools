@@ -2,8 +2,7 @@ require 'json'
 
 module SchemaTools
   class JsonDiff
-    def initialize(logger: nil)
-      @logger = logger
+    def initialize()      
     end
 
     # Generate a detailed diff between two JSON objects

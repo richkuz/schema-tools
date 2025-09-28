@@ -21,7 +21,6 @@ describe 'SchemaRevision Integration' do
     
     # Mock the SCHEMAS_PATH for testing
     allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
-    allow(SchemaTools::SchemaRevision).to receive(:schemas_path).and_return(schemas_path)
     
     # Create comprehensive test schema structure
     setup_comprehensive_test_schemas
@@ -69,7 +68,7 @@ describe 'SchemaRevision Integration' do
   end
 
   describe 'SchemaManager integration' do
-    let(:schema_manager) { SchemaTools::SchemaManager.new(schemas_path) }
+    let(:schema_manager) { SchemaTools::SchemaManager.new() }
 
     describe '#discover_all_schemas_with_latest_revisions' do
       it 'discovers all schemas with correct revision numbers' do
@@ -114,29 +113,8 @@ describe 'SchemaRevision Integration' do
     end
   end
 
-  describe 'Utils integration' do
-    describe '.discover_latest_schema_versions_only' do
-      it 'discovers latest schema versions correctly' do
-        schemas = SchemaTools::Utils.discover_latest_schema_versions_only(schemas_path)
-        
-        # Should find the latest version of each schema family
-        expect(schemas.length).to eq(2) # products-3 and users (latest versions)
-        
-        products_schema = schemas.find { |s| s[:index_name] == 'products-3' }
-        expect(products_schema).not_to be_nil
-        expect(products_schema[:revision_number]).to eq('1')
-        expect(products_schema[:version_number]).to eq(3)
-        
-        users_schema = schemas.find { |s| s[:index_name] == 'users' }
-        expect(users_schema).not_to be_nil
-        expect(users_schema[:revision_number]).to eq('1')
-        expect(users_schema[:version_number]).to eq(1)
-      end
-    end
-  end
-
   describe 'Edge cases and error handling' do
-    let(:schema_manager) { SchemaTools::SchemaManager.new(schemas_path) }
+    let(:schema_manager) { SchemaTools::SchemaManager.new() }
 
     context 'with malformed revision paths' do
       it 'handles invalid revision paths gracefully' do

@@ -1,13 +1,15 @@
 require_relative 'schema_revision'
 
 module SchemaTools
-  def self.migrate_all(revision_applied_by:, client:, schema_manager:)
+  include SchemaTools::Config
+
+  def self.migrate_all(revision_applied_by:, client:)
     puts "Discovering all schemas and migrating each to their latest revisions..."
     
-    schemas = SchemaTools::Utils.discover_latest_schema_versions_only(SchemaTools::Config::SCHEMAS_PATH)
+    schemas = discover_latest_schema_versions_only(SCHEMAS_PATH)
     
     if schemas.empty?
-      puts "No schemas found in #{SchemaTools::Config::SCHEMAS_PATH}"
+      puts "No schemas found in #{SCHEMAS_PATH}"
       return
     end
     
@@ -23,7 +25,7 @@ module SchemaTools
       puts "=" * 60
       
       begin
-        migrate_one_schema(schema[:index_name], revision_applied_by, schema_manager, client)
+        migrate_one_schema(schema[:index_name], revision_applied_by, client)
         puts "✓ Migration completed successfully for #{schema[:index_name]}"
       rescue => e
         puts "✗ Migration failed for #{schema[:index_name]}: #{e.message}"
@@ -35,7 +37,9 @@ module SchemaTools
     puts "All migrations completed!"
   end
 
-  def self.migrate_one_schema(index_name, revision_applied_by, schema_manager, client)
+  def self.migrate_one_schema(index_name, revision_applied_by, client)
+    schema_manager = SchemaTools::SchemaManager.new()
+
     puts "=" * 60
     puts "Migrating to index #{index_name}, revision_applied_by=#{revision_applied_by}"
     
@@ -45,12 +49,12 @@ module SchemaTools
     latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
     raise "No revisions found for #{index_name}" unless latest_schema_revision
     
-    schema_manager.generate_diff_output_for_index_name_or_revision(index_name)
+    SchemaTools.diff(schema_revision: latest_schema_revision)
 
     revision_name = latest_schema_revision.revision_relative_path
 
     if !client.index_exists?(index_name)
-      SchemaTools.create(index_name:, client:, schema_manager:)
+      SchemaTools.create(index_name:, client:)
     else
       current_revision = client.get_schema_revision(index_name)
       if current_revision == revision_name
@@ -67,14 +71,14 @@ If this operation fails, you may want to re-create the index by running: rake 's
       end
     end
     
-    SchemaTools.upload_painless(index_name:, client:, schema_manager:)
+    SchemaTools.upload_painless(index_name:, client:)
 
     from_index = index_config['from_index_name']
     if !from_index
       puts "No from_index_name specified; will not reindex data from a previous index."
     else
-      SchemaTools.reindex(index_name:, client:, schema_manager:)
-      SchemaTools.catchup(index_name:, client:, schema_manager:)
+      SchemaTools.reindex(index_name:, client:)
+      SchemaTools.catchup(index_name:, client:)
     end
     
     metadata = {
@@ -82,11 +86,51 @@ If this operation fails, you may want to re-create the index by running: rake 's
       revision_applied_at: Time.now.iso8601,
       revision_applied_by: revision_applied_by
     }
-    SchemaTools.update_metadata(index_name:, metadata:, client:, schema_manager:)
+    SchemaTools.update_metadata(index_name:, metadata:, client:)
 
     puts "=" * 60
     
     puts "Migration completed successfully"
     puts "=" * 60
+  end
+
+  private
+  
+  # Find all latest schema versions across all schema families
+  # Returns array of { index_name, latest_revision, revision_number, version_number }
+  def self.discover_latest_schema_versions_only(schemas_path)
+    return [] unless Dir.exist?(schemas_path)
+    
+    # Get all schema directories
+    schema_dirs = Dir.glob(File.join(schemas_path, '*'))
+                      .select { |d| File.directory?(d) }
+    
+    # Group schemas by base name and find the latest version of each
+    schema_groups = {}
+    
+    schema_dirs.each do |schema_dir|
+      schema_name = File.basename(schema_dir)
+      base_name = extract_base_name(schema_name)
+      version_number = extract_version_number(schema_name)
+      
+      # Check if this schema has an index.json and revisions
+      schema_manager = SchemaTools::SchemaManager.new(schemas_path: schemas_path)
+      index_config = schema_manager.get_index_config(schema_name)
+      latest_schema_revision = SchemaRevision.for_latest_revision(schema_name)
+      
+      if index_config && latest_schema_revision
+        if schema_groups[base_name].nil? || version_number > schema_groups[base_name][:version_number]
+          schema_groups[base_name] = {
+            index_name: schema_name,
+            latest_revision: latest_schema_revision.revision_absolute_path,
+            revision_number: latest_schema_revision.revision_number,
+            version_number: version_number
+          }
+        end
+      end
+    end
+    
+    # Return only the latest version of each schema family
+    schema_groups.values
   end
 end

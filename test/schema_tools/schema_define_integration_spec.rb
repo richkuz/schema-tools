@@ -8,15 +8,18 @@ require 'webmock/rspec'
 RSpec.describe 'Schema Define Integration' do
   let(:temp_dir) { Dir.mktmpdir }
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
+  let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
   let(:client) { SchemaTools::Client.new('http://localhost:9200') }
-  let(:schema_manager) { SchemaTools::SchemaManager.new(schemas_path) }
+  let(:schema_manager) { SchemaTools::SchemaManager.new() }
   let(:definer) { SchemaTools::SchemaDefiner.new(client, schema_manager) }
   
   before do
+    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
     FileUtils.mkdir_p(schemas_path)
   end
   
   after do
+    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(original_schemas_path)
     FileUtils.rm_rf(temp_dir)
   end
 

@@ -31,7 +31,12 @@ def create_client!
   end
   
   # Initialize client and test connection
-  client = SchemaTools::Client.new(SchemaTools::Config.connection_url, dryrun: ENV['DRYRUN'] == 'true')
+  client = SchemaTools::Client.new(
+    SchemaTools::Config.connection_url, 
+    dryrun: ENV['DRYRUN'] == 'true',
+    username: SchemaTools::Config.connection_username,
+    password: SchemaTools::Config.connection_password
+  )
   unless client.test_connection
     puts "Failed to connect to OpenSearch/Elasticsearch at #{SchemaTools::Config.connection_url}"
     puts "Please ensure that OPENSEARCH_URL or ELASTICSEARCH_URL environment variable is set correctly."

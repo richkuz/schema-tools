@@ -20,6 +20,23 @@ Install this Ruby gem.
 gem install schemurai
 ```
 
+### Configuration
+
+Set the connection URL for your OpenSearch or Elasticsearch instance:
+
+```sh
+export OPENSEARCH_URL=http://localhost:9200
+# or
+export ELASTICSEARCH_URL=https://your-cluster.com
+```
+
+For authenticated instances, optionally set username and password:
+
+```sh
+export CONNECTION_USERNAME=your_username
+export CONNECTION_PASSWORD=your_password
+```
+
 Run `rake schema:define` to define your schema as source files. Point at an existing OpenSearch/Elasticsearch index or let the task create examples for you.
 
 ```sh

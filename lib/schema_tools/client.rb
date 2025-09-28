@@ -7,16 +7,19 @@ module SchemaTools
   class Client
     attr_reader :url
     
-    def initialize(url, dryrun: false, logger: Logger.new(STDOUT))
+    def initialize(url, dryrun: false, logger: Logger.new(STDOUT), username: nil, password: nil)
       @url = url
       @dryrun = dryrun
       @logger = logger
+      @username = username
+      @password = password
       @logger.info "Client is running in DRYRUN mode. No mutating operations will be performed." if dryrun
     end
 
     def get(path)
       uri = URI("#{@url}#{path}")
       request = Net::HTTP::Get.new(uri)
+      add_auth_header(request)
       response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
       
       case response.code.to_i
@@ -39,6 +42,7 @@ module SchemaTools
       request = Net::HTTP::Put.new(uri)
       request['Content-Type'] = 'application/json'
       request.body = body.to_json
+      add_auth_header(request)
       
       response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
       
@@ -60,6 +64,7 @@ module SchemaTools
       request = Net::HTTP::Post.new(uri)
       request['Content-Type'] = 'application/json'
       request.body = body.to_json
+      add_auth_header(request)
       
       response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
       
@@ -79,6 +84,7 @@ module SchemaTools
 
       uri = URI("#{@url}#{path}")
       request = Net::HTTP::Delete.new(uri)
+      add_auth_header(request)
       
       response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
       
@@ -210,9 +216,19 @@ module SchemaTools
 
     private
 
+    def add_auth_header(request)
+      if @username && @password
+        request.basic_auth(@username, @password)
+      end
+    end
+
     def print_curl_command(method, path, body = nil)
       uri = URI("#{@url}#{path}")
       curl_cmd = "curl -X #{method.upcase} '#{uri}'"
+      
+      if @username && @password
+        curl_cmd += " -u '#{@username}:#{@password}'"
+      end
       
       if body
         curl_cmd += " -H 'Content-Type: application/json'"

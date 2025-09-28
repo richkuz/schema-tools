@@ -64,7 +64,11 @@ module SchemaTools
         puts "$ rake schema:migrate"
       else
         puts "Index settings and mappings constitute a non-breaking change from the latest schema definition."
-        generate_next_revision_files(latest_schema_revision.generate_next_revision_absolute_path, live_data)
+        generate_next_revision_files(
+          latest_file_index.index_name,
+          latest_schema_revision.generate_next_revision_absolute_path,
+          live_data
+        )
         puts "\nMigrate to this schema definition by running:"
         puts "$ rake schema:migrate"
       end
@@ -112,7 +116,11 @@ module SchemaTools
       puts "Latest schema definition found at \"#{latest_schema_revision.revision_relative_path}\""
       
       example_data = generate_example_data
-      generate_next_revision_files(latest_schema_revision.generate_next_revision_absolute_path, example_data)
+      generate_next_revision_files(
+        latest_file_index.index_name,
+        latest_schema_revision.generate_next_revision_absolute_path,
+        example_data
+      )
       puts "\nMigrate to this schema definition by running:"
       puts "$ rake schema:migrate"
     end
@@ -218,7 +226,7 @@ module SchemaTools
       puts "    diff_output.txt"
     end
 
-    def generate_next_revision_files(revision_path, data)
+    def generate_next_revision_files(index_name, revision_path, data)
       FileUtils.mkdir_p(revision_path)
       FileUtils.mkdir_p(File.join(revision_path, 'painless_scripts'))
       
@@ -229,8 +237,10 @@ module SchemaTools
       
       File.write(File.join(revision_path, 'diff_output.txt'), 'Schema revision')
       
+      revision_number = File.basename(revision_path)
+      
       puts "\nGenerated example schema definition files:"
-      puts "schemas/#{File.basename(index_name_or_path)}"
+      puts "schemas/#{index_name}"
       puts "  revisions/#{revision_number}"
       puts "    settings.json"
       puts "    mappings.json"

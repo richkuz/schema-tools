@@ -8,10 +8,10 @@ module SchemaTools
 
     include SchemaTools::Utils
 
-    attr_reader
-      :index_name     # "products-3"
-      :base_name      # "products"
-      :version_number # nil for "products", 1 for "products-1", etc.
+    attr_reader :index_name, :base_name, :version_number
+      # index_name: "products-3"
+      # base_name: "products" 
+      # version_number: nil for "products", 1 for "products-1", etc.
 
     # index_name: Exact name of the index, e.g. "products-3"
     def initialize(index_name)

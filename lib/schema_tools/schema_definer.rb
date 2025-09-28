@@ -31,7 +31,7 @@ module SchemaTools
       puts "Searching for index folders on disk that start with #{base_name}"
       latest_file_index = Index.find_matching_file_indexes(base_name).last
       unless latest_file_index
-        puts "No index folder exists starting with \"#{index_name_pattern}\" in \"#{Config.SCHEMAS_PATH}\""
+        puts "No index folder exists starting with \"#{index_name_pattern}\" in \"#{Config.schemas_path}\""
         puts "Creating a new example index revision folder."
         generate_example_schema_files(base_name, live_data)
         puts "\nCreate a live index for this example by running:"
@@ -41,7 +41,7 @@ module SchemaTools
 
       latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
       unless latest_schema_revision
-        puts "No revision folders exist in #{Config.SCHEMAS_PATH} for \"#{latest_file_index.index_name}\""
+        puts "No revision folders exist in #{Config.schemas_path} for \"#{latest_file_index.index_name}\""
         puts "Creating a new example index revision folder."
         generate_example_schema_files(base_name, live_data)
         puts "\nCreate a live index for this example by running:"
@@ -58,7 +58,7 @@ module SchemaTools
       elsif @breaking_change_detector.breaking_change?(live_data, schema_data)
         puts "Index settings and mappings constitute a breaking change from the latest schema definition."
         new_index_name = latest_file_index.generate_next_index_name
-        generate_example_schema_files(new_index_name, live_data)
+        generate_example_schema_files(new_index_name, live_data, latest_file_index.index_name)
         puts "\nMigrate to this schema definition by running:"
         puts "$ rake schema:migrate"
       else
@@ -79,13 +79,13 @@ module SchemaTools
       puts "Searching for index folders on disk that start with #{base_name}"
       latest_file_index = Index.find_matching_file_indexes(base_name).last
       unless latest_file_index
-        puts "No index folder exists starting with \"#{index_name_pattern}\" in \"#{Config.SCHEMAS_PATH}\""
+        puts "No index folder exists starting with \"#{index_name_pattern}\" in \"#{Config.schemas_path}\""
         return
       end
 
       latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
       unless latest_schema_revision
-        puts "No revision folders exist in #{Config.SCHEMAS_PATH} for \"#{latest_file_index.index_name}\""
+        puts "No revision folders exist in #{Config.schemas_path} for \"#{latest_file_index.index_name}\""
         return
       end
       puts "Latest schema definition found at \"#{latest_schema_revision.revision_relative_path}\""
@@ -103,13 +103,13 @@ module SchemaTools
       puts "Searching for index folders on disk that start with #{base_name}"
       latest_file_index = Index.find_matching_file_indexes(base_name).last
       unless latest_file_index
-        puts "No index folder exists starting with \"#{index_name_pattern}\" in \"#{Config.SCHEMAS_PATH}\""
+        puts "No index folder exists starting with \"#{index_name_pattern}\" in \"#{Config.schemas_path}\""
         return
       end
 
       latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
       unless latest_schema_revision
-        puts "No revision folders exist in #{Config.SCHEMAS_PATH} for \"#{latest_file_index.index_name}\""
+        puts "No revision folders exist in #{Config.schemas_path} for \"#{latest_file_index.index_name}\""
         return
       end
       puts "Latest schema definition found at \"#{latest_schema_revision.revision_relative_path}\""
@@ -189,8 +189,8 @@ module SchemaTools
       filtered_settings
     end
 
-    def generate_example_schema_files(index_name, data)
-      index_path = File.join(Config.SCHEMAS_PATH, index_name)
+    def generate_example_schema_files(index_name, data, from_index_name = nil)
+      index_path = File.join(Config.schemas_path, index_name)
       
       FileUtils.mkdir_p(index_path)
       FileUtils.mkdir_p(File.join(index_path, 'revisions', '1'))
@@ -198,7 +198,7 @@ module SchemaTools
       
       index_config = {
         index_name: index_name,
-        from_index_name: nil
+        from_index_name: from_index_name
       }
       
       File.write(File.join(index_path, 'index.json'), JSON.pretty_generate(index_config))

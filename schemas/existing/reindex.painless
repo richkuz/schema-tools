@@ -1,0 +1,11 @@
+# Example reindex script for transforming data during migration
+# Modify this script to transform your data as needed
+#
+# Example: Rename a field
+# if (ctx._source.containsKey('old_field_name')) {
+#   ctx._source.new_field_name = ctx._source.old_field_name;
+#   ctx._source.remove('old_field_name');
+# }
+#
+# Example: Add a new field
+# ctx._source.new_field = 'default_value';

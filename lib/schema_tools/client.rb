@@ -137,7 +137,9 @@ module SchemaTools
       }
       body[:script] = { source: script } if script
       
-      post("/_reindex", body)
+      url = "/_reindex?wait_for_completion=false"
+      
+      post(url, body)
     end
 
     def get_task_status(task_id)

@@ -8,7 +8,7 @@ module SchemaTools
   # This method always sets these values: {
   #   revision: revision_path,
   #   revision_applied_at: Time.now.iso8601,
-  #   revision_applied_by: Config.SCHEMURAI_USER
+  #   revision_applied_by: Config.schemurai_user
   # }
   #
   # index_name: "products-2", exact index name to update live and in schema files
@@ -26,22 +26,32 @@ module SchemaTools
     existing_mappings = client.get_index_mappings(index_name)
     existing_metadata = existing_mappings&.dig('_meta', 'schemurai_revision') || {}
 
-    # Insert any new metadata on top of existing
-    merged_metadata = existing_metadata.merge(metadata)
-
-    # Insert persistent metadata on top of everything
+    # Insert any new metadata on top of existing (avoid duplicates)
+    merged_metadata = existing_metadata.dup
+    metadata.each { |key, value| merged_metadata[key.to_s] = value }
+    
+    # Insert persistent metadata on top of everything (only if not already present)
     persistent_metadata = {
       revision: latest_schema_revision.revision_relative_path,
       revision_applied_at: Time.now.iso8601,
-      revision_applied_by: Config.SCHEMURAI_USER
+      revision_applied_by: Config.schemurai_user
     }
-    merged_metadata = merged_metadata.merge(persistent_metadata)
+    
+    # Only add persistent metadata if revision is not already present
+    unless merged_metadata.key?('revision')
+      merged_metadata = merged_metadata.merge(persistent_metadata)
+    else
+      # Update only the timestamp fields if revision already exists, but don't duplicate
+      merged_metadata['revision_applied_at'] = Time.now.iso8601
+      merged_metadata['revision_applied_by'] = Config.schemurai_user
+    end
     
     mappings_update = {
       _meta: {
         schemurai_revision: merged_metadata
       }
     }
+    
     client.update_index_mappings(index_name, mappings_update)
     
     overwrite_revision_metadata(

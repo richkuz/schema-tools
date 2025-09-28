@@ -8,5 +8,18 @@ module SchemaTools
 
     # Descriptive name shown when writing revision_applied_by to index metadata
     SCHEMURAI_USER = ENV['SCHEMURAI_USER'] || 'rake task'
+
+    def self.schemurai_user
+      SCHEMURAI_USER
+    end
+
+    def self.connection_url
+      CONNECTION_URL
+    end
+    
+    def self.schemas_path
+      SCHEMAS_PATH
+    end
+
   end
 end

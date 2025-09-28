@@ -9,16 +9,16 @@ require 'fileutils'
 RSpec.describe SchemaTools do
   let(:temp_dir) { Dir.mktmpdir }
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
-  let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
+  let(:original_schemas_path) { SchemaTools::Config.schemas_path }
   let(:client) { double('client') }
   
   before do
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(schemas_path)
     FileUtils.mkdir_p(schemas_path)
   end
   
   after do
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(original_schemas_path)
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(original_schemas_path)
     FileUtils.rm_rf(temp_dir)
   end
 
@@ -38,8 +38,8 @@ RSpec.describe SchemaTools do
         ])
         
         # Mock the migration process for each schema
-        expect(SchemaTools).to receive(:migrate_one_schema).with('products', client)
-        expect(SchemaTools).to receive(:migrate_one_schema).with('users', client)
+        expect(SchemaTools).to receive(:migrate_one_schema).with(index_name: 'products', client: client)
+        expect(SchemaTools).to receive(:migrate_one_schema).with(index_name: 'users', client: client)
         
         expect { SchemaTools.migrate_all(client: client) }.to output(/Found 2 schema\(s\) to migrate/).to_stdout
       end
@@ -52,8 +52,8 @@ RSpec.describe SchemaTools do
         ])
         
         # First schema fails, second succeeds
-        expect(SchemaTools).to receive(:migrate_one_schema).with('products', client).and_raise('Migration failed')
-        expect(SchemaTools).to receive(:migrate_one_schema).with('users', client)
+        expect(SchemaTools).to receive(:migrate_one_schema).with(index_name: 'products', client: client).and_raise('Migration failed')
+        expect(SchemaTools).to receive(:migrate_one_schema).with(index_name: 'users', client: client)
         
         expect { SchemaTools.migrate_all(client: client) }.to output(/Migration failed for products/).to_stdout
       end
@@ -92,7 +92,7 @@ RSpec.describe SchemaTools do
         expect(SchemaTools).to receive(:reindex).with(index_name: index_name, client: client)
         expect(SchemaTools).to receive(:catchup).with(index_name: index_name, client: client)
         
-        expect { SchemaTools.migrate_one_schema(index_name, client) }.to output(/Migration completed successfully/).to_stdout
+        expect { SchemaTools.migrate_one_schema(index_name: index_name, client: client) }.to output(/Migration completed successfully/).to_stdout
       end
     end
 
@@ -101,7 +101,7 @@ RSpec.describe SchemaTools do
         expect(client).to receive(:index_exists?).with(index_name).and_return(true)
         expect(client).to receive(:get_schema_revision).with(index_name).and_return("#{index_name}/revisions/1")
         
-        expect { SchemaTools.migrate_one_schema(index_name, client) }.to output(/Already at revision/).to_stdout
+        expect { SchemaTools.migrate_one_schema(index_name: index_name, client: client) }.to output(/Already at revision/).to_stdout
       end
     end
 
@@ -115,7 +115,7 @@ RSpec.describe SchemaTools do
         expect(SchemaTools).to receive(:reindex).with(index_name: index_name, client: client)
         expect(SchemaTools).to receive(:catchup).with(index_name: index_name, client: client)
         
-        expect { SchemaTools.migrate_one_schema(index_name, client) }.to output(/Migration completed successfully/).to_stdout
+        expect { SchemaTools.migrate_one_schema(index_name: index_name, client: client) }.to output(/Migration completed successfully/).to_stdout
       end
     end
 
@@ -129,7 +129,7 @@ RSpec.describe SchemaTools do
         expect(SchemaTools).to receive(:reindex).with(index_name: index_name, client: client)
         expect(SchemaTools).to receive(:catchup).with(index_name: index_name, client: client)
         
-        expect { SchemaTools.migrate_one_schema(index_name, client) }.to output(/Unable to determine the current schema revision/).to_stdout
+        expect { SchemaTools.migrate_one_schema(index_name: index_name, client: client) }.to output(/Unable to determine the current schema revision/).to_stdout
       end
     end
 
@@ -137,7 +137,7 @@ RSpec.describe SchemaTools do
       it 'raises appropriate error' do
         allow(SchemaTools::SchemaFiles).to receive(:get_index_config).with(index_name).and_return(nil)
         
-        expect { SchemaTools.migrate_one_schema(index_name, client) }.to raise_error(/Index configuration not found/)
+        expect { SchemaTools.migrate_one_schema(index_name: index_name, client: client) }.to raise_error(/Index configuration not found/)
       end
     end
 
@@ -145,7 +145,7 @@ RSpec.describe SchemaTools do
       it 'raises appropriate error' do
         allow(SchemaTools::SchemaRevision).to receive(:find_latest_revision).with(index_name).and_return(nil)
         
-        expect { SchemaTools.migrate_one_schema(index_name, client) }.to raise_error(/No revisions found/)
+        expect { SchemaTools.migrate_one_schema(index_name: index_name, client: client) }.to raise_error(/No revisions found/)
       end
     end
 
@@ -161,7 +161,7 @@ RSpec.describe SchemaTools do
         expect(SchemaTools).not_to receive(:reindex)
         expect(SchemaTools).not_to receive(:catchup)
         
-        expect { SchemaTools.migrate_one_schema(index_name, client) }.to output(/No from_index_name specified/).to_stdout
+        expect { SchemaTools.migrate_one_schema(index_name: index_name, client: client) }.to output(/No from_index_name specified/).to_stdout
       end
     end
   end

@@ -11,5 +11,5 @@
 // ctx._source.new_field = 'default_value';
 
 // For this migration, no transformations are needed since schemas are identical
-// Just update the timestamp to reflect migration time
-ctx._source.updated_at = new java.util.Date().toString();
+// Just update the timestamp to reflect migration time in ISO8601 format
+ctx._source.updated_at = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(new java.util.Date());

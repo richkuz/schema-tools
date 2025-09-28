@@ -8,18 +8,18 @@ require 'tempfile'
 RSpec.describe 'Integration Tests' do
   let(:temp_dir) { Dir.mktmpdir }
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
-  let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
+  let(:original_schemas_path) { SchemaTools::Config.schemas_path }
   let(:client) { SchemaTools::Client.new('http://localhost:9200') }
   let(:manager) { SchemaTools::SchemaFiles }
   
   before do
     FileUtils.mkdir_p(schemas_path)
     
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(schemas_path)
   end
   
   after do
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(original_schemas_path)
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(original_schemas_path)
     
     FileUtils.rm_rf(temp_dir)
   end
@@ -99,7 +99,7 @@ RSpec.describe 'Integration Tests' do
       reindex_script = 'ctx._source.new_field = "value"'
       File.write(File.join(index_dir, 'reindex.painless'), reindex_script)
       
-      stub_request(:post, 'http://localhost:9200/_reindex')
+      stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=false')
         .with(body: {
           source: { index: source_index },
           dest: { index: dest_index },

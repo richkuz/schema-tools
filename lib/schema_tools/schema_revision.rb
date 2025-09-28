@@ -17,7 +17,7 @@ module SchemaTools
         raise "Invalid revision path format. Expected '{index_name}/revisions/{revision_number}', got: #{@revision_relative_path}"
       end
       
-      @revision_absolute_path = File.join(Config.SCHEMAS_PATH, revision_relative_path)
+      @revision_absolute_path = File.join(Config.schemas_path, revision_relative_path)
       
       # Validate that the revision path exists on disk
       unless Dir.exist?(@revision_absolute_path)
@@ -45,7 +45,7 @@ module SchemaTools
     # index_name "products-3" returns a SchemaRevision for "products-3/revisions/5" (whatever the highest revision number is),
     # or returns nil if none exists.
     def self.find_latest_revision(index_name)
-      index_path = File.join(Config.SCHEMAS_PATH, index_name)
+      index_path = File.join(Config.schemas_path, index_name)
       return nil unless Dir.exist?(index_path)
       
       revisions_path = File.join(index_path, 'revisions')
@@ -76,7 +76,7 @@ module SchemaTools
       revision_relative_path = "#{index_name}/revisions/#{previous_revision_number}"
       
       # Check if the previous revision exists on disk
-      revision_absolute_path = File.join(Config.SCHEMAS_PATH, revision_relative_path)
+      revision_absolute_path = File.join(Config.schemas_path, revision_relative_path)
       return nil unless Dir.exist?(revision_absolute_path)
       
       new(revision_relative_path)

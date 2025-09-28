@@ -20,7 +20,7 @@ require 'time'
 
 def create_client!
   # Check if connection URL is configured
-  if SchemaTools::Config::CONNECTION_URL.nil?
+  if SchemaTools::Config.connection_url.nil?
     puts "No connection URL configured."
     puts "Please set either OPENSEARCH_URL or ELASTICSEARCH_URL environment variable."
     puts "Example:"
@@ -31,9 +31,9 @@ def create_client!
   end
   
   # Initialize client and test connection
-  client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL, dryrun: ENV['DRYRUN'] == 'true')
+  client = SchemaTools::Client.new(SchemaTools::Config.connection_url, dryrun: ENV['DRYRUN'] == 'true')
   unless client.test_connection
-    puts "Failed to connect to OpenSearch/Elasticsearch at #{SchemaTools::Config::CONNECTION_URL}"
+    puts "Failed to connect to OpenSearch/Elasticsearch at #{SchemaTools::Config.connection_url}"
     puts "Please ensure that OPENSEARCH_URL or ELASTICSEARCH_URL environment variable is set correctly."
     puts "Example:"
     puts "  export OPENSEARCH_URL=http://localhost:9200"

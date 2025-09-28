@@ -6,10 +6,10 @@ module SchemaTools
   def self.migrate_all(client:)
     puts "Discovering all schemas and migrating each to their latest revisions..."
     
-    schemas = discover_latest_schema_versions_only(Config.SCHEMAS_PATH)
+    schemas = discover_latest_schema_versions_only(Config.schemas_path)
     
     if schemas.empty?
-      puts "No schemas found in #{Config.SCHEMAS_PATH}"
+      puts "No schemas found in #{Config.schemas_path}"
       return
     end
     
@@ -25,7 +25,7 @@ module SchemaTools
       puts "=" * 60
       
       begin
-        migrate_one_schema(schema[:index_name], client)
+        migrate_one_schema(index_name: schema[:index_name], client: client)
         puts "✓ Migration completed successfully for #{schema[:index_name]}"
       rescue => e
         puts "✗ Migration failed for #{schema[:index_name]}: #{e.message}"
@@ -37,7 +37,7 @@ module SchemaTools
     puts "All migrations completed!"
   end
 
-  def self.migrate_one_schema(index_name, client)
+  def self.migrate_one_schema(index_name:, client:)
     puts "=" * 60
     puts "Migrating to index #{index_name}"
     

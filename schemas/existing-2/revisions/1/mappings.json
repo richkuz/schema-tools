@@ -1,0 +1,21 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "name": {
+      "type": "text",
+      "analyzer": "example_analyzer"
+    },
+    "description": {
+      "type": "text",
+      "analyzer": "example_analyzer"
+    },
+    "created_at": {
+      "type": "date"
+    },
+    "updated_at": {
+      "type": "date"
+    }
+  }
+}

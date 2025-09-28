@@ -16,12 +16,12 @@ class DataSeeder
   def initialize(index_name, count = 5000)
     @index_name = index_name
     @count = count
-    @client = SchemaTools::Client.new(SchemaTools::Config::CONNECTION_URL)
+    @client = SchemaTools::Client.new(SchemaTools::Config.connection_url)
   end
 
   def seed!
     puts "🌱 Seeding #{@count} documents into #{@index_name} index..."
-    puts "📡 Connecting to: #{SchemaTools::Config::CONNECTION_URL}"
+    puts "📡 Connecting to: #{SchemaTools::Config.connection_url}"
     
     # Test connection
     unless @client.test_connection
@@ -247,7 +247,7 @@ class DataSeeder
     ndjson = bulk_body.map { |line| JSON.generate(line) }.join("\n") + "\n"
     
     # Send bulk request
-    uri = URI("#{SchemaTools::Config::CONNECTION_URL}/_bulk")
+    uri = URI("#{SchemaTools::Config.connection_url}/_bulk")
     request = Net::HTTP::Post.new(uri)
     request['Content-Type'] = 'application/x-ndjson'
     request.body = ndjson

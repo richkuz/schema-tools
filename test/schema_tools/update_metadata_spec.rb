@@ -9,16 +9,16 @@ require 'webmock/rspec'
 RSpec.describe SchemaTools do
   let(:temp_dir) { Dir.mktmpdir }
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
-  let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
-  let(:original_schemurai_user) { SchemaTools::Config::SCHEMURAI_USER }
+  let(:original_schemas_path) { SchemaTools::Config.schemas_path }
+  let(:original_schemurai_user) { SchemaTools::Config.schemurai_user }
   let(:client) { instance_double(SchemaTools::Client) }
   let(:index_name) { 'products-2' }
   let(:revision_path) { File.join(schemas_path, index_name, 'revisions', '1') }
   let(:mappings_path) { File.join(revision_path, 'mappings.json') }
   
   before do
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
-    allow(SchemaTools::Config).to receive(:SCHEMURAI_USER).and_return('test_user')
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(schemas_path)
+    allow(SchemaTools::Config).to receive(:schemurai_user).and_return('test_user')
     FileUtils.mkdir_p(revision_path)
     
     initial_mappings = {
@@ -31,8 +31,8 @@ RSpec.describe SchemaTools do
   end
   
   after do
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(original_schemas_path)
-    allow(SchemaTools::Config).to receive(:SCHEMURAI_USER).and_return(original_schemurai_user)
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(original_schemas_path)
+    allow(SchemaTools::Config).to receive(:schemurai_user).and_return(original_schemurai_user)
     FileUtils.rm_rf(temp_dir)
   end
 

@@ -8,18 +8,18 @@ require 'webmock/rspec'
 RSpec.describe SchemaTools::SchemaDefiner do
   let(:temp_dir) { Dir.mktmpdir }
   let(:schemas_path) { File.join(temp_dir, 'schemas') }
-  let(:original_schemas_path) { SchemaTools::Config::SCHEMAS_PATH }
+  let(:original_schemas_path) { SchemaTools::Config.schemas_path }
   let(:client) { instance_double(SchemaTools::Client) }
   let(:definer) { SchemaTools::SchemaDefiner.new(client) }
   
   before do
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(schemas_path)
     FileUtils.mkdir_p(schemas_path)
     allow(client).to receive(:url).and_return('http://localhost:9200')
   end
   
   after do
-    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(original_schemas_path)
+    allow(SchemaTools::Config).to receive(:schemas_path).and_return(original_schemas_path)
     FileUtils.rm_rf(temp_dir)
   end
 

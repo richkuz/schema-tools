@@ -46,7 +46,7 @@ module SchemaTools
     # Returns: An array of matching Index objects found in SCHEMAS_PATH,
     #          sorted by version_number (nil first), or [].
     def self.find_matching_file_indexes(base_name)
-      schema_dirs = Dir.glob(File.join(Config.SCHEMAS_PATH, "#{base_name}*"))
+      schema_dirs = Dir.glob(File.join(Config.schemas_path, "#{base_name}*"))
                        .select { |d| File.directory?(d) }
 
       matching_indexes = schema_dirs.map do |dir|

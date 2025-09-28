@@ -17,7 +17,7 @@ module SchemaTools
     case choice
     when '1'
       # List available indices (connection already validated during client initialization)
-      puts "Connecting to #{Config::CONNECTION_URL}..."
+      puts "Connecting to #{Config.connection_url}..."
       indices = client.list_indices
       
       if indices.empty?
@@ -46,7 +46,7 @@ module SchemaTools
       
       selected_index = indices[selection - 1]
       puts "Selected index: #{selected_index}"
-      puts "Checking #{Config::CONNECTION_URL} for the latest version of \"#{selected_index}\""
+      puts "Checking #{Config.connection_url} for the latest version of \"#{selected_index}\""
       schema_definer.define_schema_for_existing_index(selected_index)
     when '2'
       puts "Type the name of a new index to define. A version number suffix is not required."

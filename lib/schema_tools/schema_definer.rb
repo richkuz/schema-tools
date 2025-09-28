@@ -3,6 +3,7 @@ require 'fileutils'
 require 'logger'
 require 'schema_tools/breaking_change_detector'
 require_relative 'utils'
+require_relative 'schema_revision'
 
 module SchemaTools
   class SchemaDefiner
@@ -43,10 +44,10 @@ module SchemaTools
         return
       end
       
-      latest_revision_path = @schema_manager.get_latest_revision_path(File.basename(latest_schema_path))
-      puts "Latest schema definition of \"#{schema_base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{File.basename(latest_revision_path)}."
+      latest_schema_revision = SchemaRevision.for_latest_revision(File.basename(latest_schema_path))
+      puts "Latest schema definition of \"#{schema_base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{latest_schema_revision.revision_number}."
       
-      schema_data = @schema_manager.get_revision_files(latest_revision_path)
+      schema_data = @schema_manager.get_revision_files(latest_schema_revision.revision_absolute_path)
       
       if schemas_match?(live_data, schema_data)
         puts "Latest schema definition already matches the index."
@@ -84,8 +85,8 @@ module SchemaTools
         return
       end
       
-      latest_revision_path = @schema_manager.get_latest_revision_path(File.basename(latest_schema_path))
-      puts "Latest schema definition of \"#{base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{File.basename(latest_revision_path)}"
+      latest_schema_revision = SchemaRevision.for_latest_revision(File.basename(latest_schema_path))
+      puts "Latest schema definition of \"#{base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{latest_schema_revision.revision_number}"
       puts "\nCreate this index by running:"
       puts "$ rake schema:migrate"
     end
@@ -102,8 +103,8 @@ module SchemaTools
         return
       end
       
-      latest_revision_path = @schema_manager.get_latest_revision_path(File.basename(latest_schema_path))
-      puts "Latest schema definition of \"#{base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{File.basename(latest_revision_path)}"
+      latest_schema_revision = SchemaRevision.for_latest_revision(File.basename(latest_schema_path))
+      puts "Latest schema definition of \"#{base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{latest_schema_revision.revision_number}"
       
       new_index_name = generate_next_index_name(base_name)
       example_data = generate_example_data
@@ -124,8 +125,8 @@ module SchemaTools
         return
       end
       
-      latest_revision_path = @schema_manager.get_latest_revision_path(File.basename(latest_schema_path))
-      puts "Latest schema definition of \"#{base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{File.basename(latest_revision_path)}"
+      latest_schema_revision = SchemaRevision.for_latest_revision(File.basename(latest_schema_path))
+      puts "Latest schema definition of \"#{base_name}\" is defined in #{File.basename(latest_schema_path)}/revisions/#{latest_schema_revision.revision_number}"
       
       next_revision = generate_next_revision_number(latest_schema_path)
       example_data = generate_example_data

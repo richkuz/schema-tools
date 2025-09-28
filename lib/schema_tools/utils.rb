@@ -1,4 +1,5 @@
 require_relative 'schema_manager'
+require_relative 'schema_revision'
 
 module SchemaTools
   module Utils
@@ -68,14 +69,14 @@ module SchemaTools
         # Check if this schema has an index.json and revisions
         schema_manager = SchemaTools::SchemaManager.new(schemas_path)
         index_config = schema_manager.get_index_config(schema_name)
-        latest_revision = schema_manager.get_latest_revision_path(schema_name)
+        latest_schema_revision = SchemaRevision.for_latest_revision(schema_name)
         
-        if index_config && latest_revision
+        if index_config && latest_schema_revision
           if schema_groups[base_name].nil? || version_number > schema_groups[base_name][:version_number]
             schema_groups[base_name] = {
               index_name: schema_name,
-              latest_revision: latest_revision,
-              revision_number: File.basename(latest_revision),
+              latest_revision: latest_schema_revision.revision_absolute_path,
+              revision_number: latest_schema_revision.revision_number,
               version_number: version_number
             }
           end

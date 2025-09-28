@@ -3,6 +3,7 @@ require 'fileutils'
 require 'time'
 require 'logger'
 require_relative 'json_diff'
+require_relative 'schema_revision'
 
 module SchemaTools
   class SchemaManager
@@ -22,21 +23,6 @@ module SchemaTools
       JSON.parse(File.read(index_json_path))
     end
 
-    def get_latest_revision_path(index_name)
-      return nil unless index_name
-      index_path = File.join(@schemas_path, index_name)
-      return nil unless Dir.exist?(index_path)
-      
-      revisions_path = File.join(index_path, 'revisions')
-      return nil unless Dir.exist?(revisions_path)
-      
-      revision_dirs = Dir.glob(File.join(revisions_path, '*'))
-                        .select { |d| File.directory?(d) }
-                        .sort_by { |d| File.basename(d).to_i }
-      
-      revision_dirs.last
-    end
-
     def get_revision_files(revision_path)
       {
         settings: load_json_file(File.join(revision_path, 'settings.json')),
@@ -47,28 +33,18 @@ module SchemaTools
 
     # Find a previous revision within this index_name
     def get_previous_revision_path(index_name, current_revision)
-      index_path = File.join(@schemas_path, index_name)
-      revisions_path = File.join(index_path, 'revisions')
-      return nil unless Dir.exist?(revisions_path)
-      
-      revision_dirs = Dir.glob(File.join(revisions_path, '*'))
-                        .select { |d| File.directory?(d) }
-                        .sort_by { |d| File.basename(d).to_i }
-      
-      current_index = revision_dirs.find_index { |d| d == current_revision }
-      return nil unless current_index && current_index > 0
-      
-      revision_dirs[current_index - 1]
+      # Convert current_revision to a SchemaRevision object
+      current_schema_revision = SchemaRevision.new(current_revision.gsub(@schemas_path + '/', ''))
+      previous_schema_revision = SchemaRevision.previous_revision_within_index(current_schema_revision)
+      previous_schema_revision&.revision_absolute_path
     end
 
     def get_previous_revision_path_across_indexes(revision_path)
-      index_name = File.basename(revision_path.split('/revisions/').first)
-      previous_revision_path = self.get_previous_revision_path(index_name, revision_path)
-      return previous_revision_path if previous_revision_path
-
-      # Look in the previous index for its latest revision
-      previous_schema_name = SchemaTools::Utils.generate_previous_version_name(index_name)
-      self.get_latest_revision_path(previous_schema_name)
+      # Convert revision_path to a SchemaRevision object
+      revision_relative_path = revision_path.gsub(@schemas_path + '/', '')
+      current_schema_revision = SchemaRevision.new(revision_relative_path)
+      previous_schema_revision = SchemaRevision.previous_revision_across_indexes(current_schema_revision)
+      previous_schema_revision&.revision_absolute_path
     end
 
     def get_reindex_script(index_name)
@@ -86,15 +62,14 @@ module SchemaTools
     def generate_diff_output_for_index_name_or_revision(index_name_or_revision)
       raise "index_name_or_revision parameter is required" unless index_name_or_revision
       
-      revision_path = ''
+      schema_revision = nil
       if index_name_or_revision.include?('/revisions/')
-        revision_path = File.join(SchemaTools::Config::SCHEMAS_PATH, index_name_or_revision)
-        raise "revision path #{index_name_or_revision} does not exist!" unless Dir.exist?(revision_path)
+        schema_revision = SchemaRevision.new(index_name_or_revision)
       else
-        revision_path = self.get_latest_revision_path(index_name_or_revision)
-        raise "No revisions found for #{index_name}" unless revision_path
+        schema_revision = SchemaRevision.for_latest_revision(index_name_or_revision)
+        raise "No revisions found for #{index_name_or_revision}" unless schema_revision
       end
-      generate_diff_output_for_revision_path(revision_path)
+      generate_diff_output_for_revision_path(schema_revision.revision_absolute_path)
     end
 
     # revision_path e.g. "/Users/foo/schemas/products-3/revisions/1"
@@ -155,13 +130,13 @@ module SchemaTools
         
         # Check if this schema has an index.json and revisions
         index_config = get_index_config(schema_name)
-        latest_revision = get_latest_revision_path(schema_name)
+        latest_schema_revision = SchemaRevision.for_latest_revision(schema_name)
         
-        if index_config && latest_revision
+        if index_config && latest_schema_revision
           schemas << {
             index_name: schema_name,
-            latest_revision: latest_revision,
-            revision_number: File.basename(latest_revision)
+            latest_revision: latest_schema_revision.revision_absolute_path,
+            revision_number: latest_schema_revision.revision_number
           }
         end
       end

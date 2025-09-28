@@ -1,3 +1,5 @@
+require_relative 'schema_revision'
+
 module SchemaTools
   def self.migrate_all(revision_applied_by:, client:, schema_manager:)
     puts "Discovering all schemas and migrating each to their latest revisions..."
@@ -40,12 +42,12 @@ module SchemaTools
     index_config = schema_manager.get_index_config(index_name)
     raise "Index configuration not found for #{index_name}" unless index_config
     
-    latest_revision = schema_manager.get_latest_revision_path(index_name)
-    raise "No revisions found for #{index_name}" unless latest_revision
+    latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
+    raise "No revisions found for #{index_name}" unless latest_schema_revision
     
     schema_manager.generate_diff_output_for_index_name_or_revision(index_name)
 
-    revision_name = "#{index_name}/revisions/#{File.basename(latest_revision)}"
+    revision_name = latest_schema_revision.revision_relative_path
 
     if !client.index_exists?(index_name)
       SchemaTools.create(index_name:, client:, schema_manager:)

@@ -1,11 +1,13 @@
+require_relative 'schema_revision'
+
 module SchemaTools
   def self.create(index_name:, client:, schema_manager:)
     raise "index_name parameter is required" unless index_name
     
-    latest_revision = schema_manager.get_latest_revision_path(index_name)
-    raise "No revisions found for #{index_name}" unless latest_revision
+    latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
+    raise "No revisions found for #{index_name}" unless latest_schema_revision
     
-    revision_files = schema_manager.get_revision_files(latest_revision)
+    revision_files = schema_manager.get_revision_files(latest_schema_revision.revision_absolute_path)
     
     if client.index_exists?(index_name)
       puts "Index #{index_name} already exists, updating settings only"

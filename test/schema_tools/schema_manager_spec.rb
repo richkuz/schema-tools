@@ -33,26 +33,6 @@ RSpec.describe SchemaTools::SchemaManager do
     end
   end
   
-  describe '#get_latest_revision_path' do
-    it 'returns latest revision path' do
-      index_dir = File.join(schemas_path, 'test-index')
-      revisions_dir = File.join(index_dir, 'revisions')
-      FileUtils.mkdir_p(File.join(revisions_dir, '1'))
-      FileUtils.mkdir_p(File.join(revisions_dir, '2'))
-      
-      result = manager.get_latest_revision_path('test-index')
-      expect(result).to eq(File.join(revisions_dir, '2'))
-    end
-    
-    it 'returns nil when no revisions found' do
-      index_dir = File.join(schemas_path, 'test-index')
-      FileUtils.mkdir_p(index_dir)
-      
-      result = manager.get_latest_revision_path('test-index')
-      expect(result).to be_nil
-    end
-  end
-  
   describe '#get_revision_files' do
     it 'loads revision files correctly' do
       revision_dir = File.join(temp_dir, 'revision')

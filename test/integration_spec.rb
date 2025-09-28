@@ -1,6 +1,8 @@
 require_relative 'spec_helper'
 require 'schema_tools/client'
 require 'schema_tools/schema_manager'
+require 'schema_tools/schema_revision'
+require 'schema_tools/config'
 require 'tempfile'
 
 RSpec.describe 'Integration Tests' do
@@ -11,6 +13,9 @@ RSpec.describe 'Integration Tests' do
   
   before do
     FileUtils.mkdir_p(schemas_path)
+    # Mock the SCHEMAS_PATH for testing
+    allow(SchemaTools::Config).to receive(:SCHEMAS_PATH).and_return(schemas_path)
+    allow(SchemaTools::SchemaRevision).to receive(:schemas_path).and_return(schemas_path)
   end
   
   after do
@@ -60,10 +65,10 @@ RSpec.describe 'Integration Tests' do
       config = manager.get_index_config(index_name)
       expect(config).to eq(index_config)
       
-      latest_revision = manager.get_latest_revision_path(index_name)
-      expect(latest_revision).to eq(revisions_dir)
+      latest_schema_revision = SchemaTools::SchemaRevision.for_latest_revision(index_name)
+      expect(latest_schema_revision.revision_absolute_path).to eq(revisions_dir)
       
-      revision_files = manager.get_revision_files(latest_revision)
+      revision_files = manager.get_revision_files(latest_schema_revision.revision_absolute_path)
       expect(revision_files[:settings]).to eq(settings)
       expect(revision_files[:mappings]).to eq(mappings)
       

@@ -1,3 +1,5 @@
+require_relative 'schema_revision'
+
 module SchemaTools
   # Merge a metadata hash into the index mappings._meta.schemurai
   # and update the associated mappings.json file on disk.
@@ -19,10 +21,10 @@ module SchemaTools
     
     merged_metadata = existing_metadata.merge(metadata)
     
-    latest_revision = schema_manager.get_latest_revision_path(index_name)
-    raise "No revisions found for #{index_name}" unless latest_revision
+    latest_schema_revision = SchemaRevision.for_latest_revision(index_name)
+    raise "No revisions found for #{index_name}" unless latest_schema_revision
     
-    schema_manager.update_revision_metadata(index_name, latest_revision, merged_metadata)
+    schema_manager.update_revision_metadata(index_name, latest_schema_revision.revision_absolute_path, merged_metadata)
     
     mappings_update = {
       _meta: {

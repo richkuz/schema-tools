@@ -32,7 +32,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
 
       it 'reports no live indexes found' do
         expect { definer.define_schema_for_existing_live_index('products') }
-          .to output(/No live indexes found starting with "products"/).to_stdout
+          .to output(/Could not find a live index named products for which to define a schema revision/).to_stdout
       end
     end
 
@@ -45,18 +45,18 @@ RSpec.describe SchemaTools::SchemaDefiner do
           { 'index' => 'products-3' },
           { 'index' => 'products-2' }
         ])
-        allow(client).to receive(:get_index_settings).with('products-3').and_return({
+        allow(client).to receive(:get_index_settings).with('products').and_return({
           'index' => { 'number_of_shards' => 1 }
         })
-        allow(client).to receive(:get).with('/products-3/_mapping').and_return({
-          'products-3' => { 'mappings' => { 'properties' => { 'id' => { 'type' => 'keyword' } } } }
+        allow(client).to receive(:get).with('/products/_mapping').and_return({
+          'products' => { 'mappings' => { 'properties' => { 'id' => { 'type' => 'keyword' } } } }
         })
         allow(client).to receive(:get_stored_scripts).and_return({})
       end
 
       it 'identifies the latest versioned index' do
         expect { definer.define_schema_for_existing_live_index('products') }
-          .to output(/Index "products-3" is the latest versioned index name found/).to_stdout
+          .to output(/Extracting live settings, mappings, and painless scripts from index "products"/).to_stdout
       end
     end
   end
@@ -270,15 +270,15 @@ RSpec.describe SchemaTools::SchemaDefiner do
 
   describe '#define_schema_for_existing_live_index' do
     before do
-      allow(client).to receive(:index_exists?).with('products').and_return(false)
+      allow(client).to receive(:index_exists?).with('products').and_return(true)
       allow(client).to receive(:get).with('/_cat/indices/products*?format=json').and_return([
         { 'index' => 'products-3' }
       ])
-      allow(client).to receive(:get_index_settings).with('products-3').and_return({
+      allow(client).to receive(:get_index_settings).with('products').and_return({
         'index' => { 'number_of_shards' => 1 }
       })
-      allow(client).to receive(:get).with('/products-3/_mapping').and_return({
-        'products-3' => {
+      allow(client).to receive(:get).with('/products/_mapping').and_return({
+        'products' => {
           'mappings' => {
             'properties' => {
               'id' => { 'type' => 'keyword' }
@@ -291,7 +291,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
 
     it 'handles case when no schema definition exists' do
       expect { definer.define_schema_for_existing_live_index('products') }
-        .to output(/Index "products-3" is the latest versioned index name found/).to_stdout
+        .to output(/Extracting live settings, mappings, and painless scripts from index "products"/).to_stdout
     end
 
     it 'handles case when index not found' do
@@ -299,7 +299,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       allow(client).to receive(:get).with('/_cat/indices/nonexistent*?format=json').and_return([])
       
       expect { definer.define_schema_for_existing_live_index('nonexistent') }
-        .to output(/No live indexes found starting with "nonexistent"/).to_stdout
+        .to output(/Could not find a live index named nonexistent for which to define a schema revision/).to_stdout
     end
   end
 

@@ -26,7 +26,16 @@ RSpec.describe 'Schema Define Integration' do
     context 'when index exists and no schema definition' do
       before do
         stub_request(:get, 'http://localhost:9200/products')
-          .to_return(status: 404)
+          .to_return(status: 200, body: {
+            'products' => {
+              'settings' => {
+                'index' => {
+                  'number_of_shards' => 1,
+                  'number_of_replicas' => 0
+                }
+              }
+            }
+          }.to_json)
         
         stub_request(:get, 'http://localhost:9200/_cat/indices/products*?format=json')
           .to_return(status: 200, body: [
@@ -45,9 +54,9 @@ RSpec.describe 'Schema Define Integration' do
             }
           }.to_json)
         
-        stub_request(:get, 'http://localhost:9200/products-3/_mapping')
+        stub_request(:get, 'http://localhost:9200/products/_mapping')
           .to_return(status: 200, body: {
-            'products-3' => {
+            'products' => {
               'mappings' => {
                 'properties' => {
                   'id' => { 'type' => 'keyword' },
@@ -63,7 +72,7 @@ RSpec.describe 'Schema Define Integration' do
 
       it 'generates schema files for existing index' do
         expect { definer.define_schema_for_existing_live_index('products') }
-          .to output(/Index "products-3" is the latest versioned index name found/).to_stdout
+          .to output(/Extracting live settings, mappings, and painless scripts from index "products"/).to_stdout
 
         index_path = File.join(schemas_path, 'products')
         expect(File.exist?(File.join(index_path, 'index.json'))).to be true
@@ -84,7 +93,7 @@ RSpec.describe 'Schema Define Integration' do
 
       it 'reports index not found' do
         expect { definer.define_schema_for_existing_live_index('nonexistent') }
-          .to output(/No live indexes found starting with "nonexistent"/).to_stdout
+          .to output(/Could not find a live index named nonexistent for which to define a schema revision/).to_stdout
       end
     end
 
@@ -119,8 +128,12 @@ RSpec.describe 'Schema Define Integration' do
           File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'painless_scripts', "#{script_name}.painless"), script_content)
         end
         
-        stub_request(:get, 'http://localhost:9200/products')
-          .to_return(status: 404)
+        stub_request(:get, 'http://localhost:9200/products-3')
+          .to_return(status: 200, body: {
+            'products-3' => {
+              'settings' => settings
+            }
+          }.to_json)
         
         stub_request(:get, 'http://localhost:9200/_cat/indices/products*?format=json')
           .to_return(status: 200, body: [
@@ -156,7 +169,7 @@ RSpec.describe 'Schema Define Integration' do
       end
 
       it 'reports schemas and painless scripts match' do
-        expect { definer.define_schema_for_existing_live_index('products') }
+        expect { definer.define_schema_for_existing_live_index('products-3') }
           .to output(/Latest schema definition and any painless scripts already match the live index/).to_stdout
       end
     end
@@ -199,8 +212,12 @@ RSpec.describe 'Schema Define Integration' do
           File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'painless_scripts', "#{script_name}.painless"), script_content)
         end
         
-        stub_request(:get, 'http://localhost:9200/products')
-          .to_return(status: 404)
+        stub_request(:get, 'http://localhost:9200/products-3')
+          .to_return(status: 200, body: {
+            'products-3' => {
+              'settings' => settings
+            }
+          }.to_json)
         
         stub_request(:get, 'http://localhost:9200/_cat/indices/products*?format=json')
           .to_return(status: 200, body: [
@@ -236,7 +253,7 @@ RSpec.describe 'Schema Define Integration' do
       end
 
       it 'detects painless scripts difference and creates new revision' do
-        expect { definer.define_schema_for_existing_live_index('products') }
+        expect { definer.define_schema_for_existing_live_index('products-3') }
           .to output(/Index settings and mappings constitute a non-breaking change/).to_stdout
 
         # Should create a new revision
@@ -272,8 +289,12 @@ RSpec.describe 'Schema Define Integration' do
         File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'settings.json'), settings.to_json)
         File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'mappings.json'), mappings.to_json)
         
-        stub_request(:get, 'http://localhost:9200/products')
-          .to_return(status: 404)
+        stub_request(:get, 'http://localhost:9200/products-3')
+          .to_return(status: 200, body: {
+            'products-3' => {
+              'settings' => settings
+            }
+          }.to_json)
         
         stub_request(:get, 'http://localhost:9200/_cat/indices/products*?format=json')
           .to_return(status: 200, body: [
@@ -303,7 +324,7 @@ RSpec.describe 'Schema Define Integration' do
       end
 
       it 'generates new index for breaking change' do
-        expect { definer.define_schema_for_existing_live_index('products') }
+        expect { definer.define_schema_for_existing_live_index('products-3') }
           .to output(/Index settings and mappings constitute a breaking change/).to_stdout
 
         index_path = File.join(schemas_path, 'products-4')

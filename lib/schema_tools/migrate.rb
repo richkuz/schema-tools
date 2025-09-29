@@ -33,8 +33,6 @@ module SchemaTools
       end
       puts
     end
-    
-    puts "All migrations completed!"
   end
 
   def self.migrate_one_schema(index_name:, client:)

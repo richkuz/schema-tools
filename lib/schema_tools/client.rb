@@ -180,7 +180,7 @@ module SchemaTools
           
           scripts = {}
           stored_scripts_data.each do |script_id, script_data|
-            scripts[script_id] = script_data.dig('script', 'source')
+            scripts[script_id] = script_data['source']
           end
           
           return scripts

@@ -26,6 +26,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
   describe '#define_schema_for_existing_live_index' do
     context 'when no live indices exist' do
       before do
+        allow(client).to receive(:index_exists?).with('products').and_return(false)
         allow(client).to receive(:get).with('/_cat/indices/products*?format=json').and_return([])
       end
 
@@ -37,6 +38,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
 
     context 'when live indices exist' do
       before do
+        allow(client).to receive(:index_exists?).with('products').and_return(true)
         allow(client).to receive(:get).with('/_cat/indices/products*?format=json').and_return([
           { 'index' => 'products' },
           { 'index' => 'products-1' },

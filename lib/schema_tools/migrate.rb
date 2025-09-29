@@ -112,7 +112,12 @@ module SchemaTools
       latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
       
       if index_config && latest_schema_revision
-        if schema_groups[base_name].nil? || version_number > schema_groups[base_name][:version_number]
+        # Handle nil version_number comparison explicitly
+        should_update = schema_groups[base_name].nil? || 
+                       (version_number && schema_groups[base_name][:version_number] && version_number > schema_groups[base_name][:version_number]) ||
+                       (version_number && schema_groups[base_name][:version_number].nil?)
+        
+        if should_update
           schema_groups[base_name] = {
             index_name: schema_name,
             latest_revision: latest_schema_revision.revision_absolute_path,

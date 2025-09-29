@@ -141,14 +141,10 @@ RSpec.describe SchemaTools::Client do
           'metadata' => {
             'stored_scripts' => {
               'script1' => {
-                'script' => {
-                  'source' => 'ctx._source.test = "value"'
-                }
+                'source' => 'ctx._source.test = "value"'
               },
               'script2' => {
-                'script' => {
-                  'source' => 'ctx._source.another = "test"'
-                }
+                'source' => 'ctx._source.another = "test"'
               }
             }
           }

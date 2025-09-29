@@ -92,7 +92,7 @@ module SchemaTools
       
       new_index_name = latest_file_index.generate_next_index_name
       example_data = generate_example_data
-      generate_example_schema_files(new_index_name, example_data)
+      generate_example_schema_files(new_index_name, example_data, latest_file_index.index_name)
       puts "\nMigrate to this schema definition by running:"
       puts "$ rake schema:migrate"
     end

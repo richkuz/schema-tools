@@ -234,6 +234,18 @@ RSpec.describe SchemaTools::SchemaDefiner do
         # Should create a new index with next version number
         expect(File.exist?(File.join(schemas_path, 'products-4', 'index.json'))).to be true
       end
+
+      it 'sets from_index_name to the previous index name' do
+        expect { definer.define_breaking_change_schema('products') }
+          .to output(/Latest schema definition found/).to_stdout
+
+        # Read the generated index.json and verify from_index_name is set
+        index_json_path = File.join(schemas_path, 'products-4', 'index.json')
+        index_config = JSON.parse(File.read(index_json_path))
+        
+        expect(index_config['index_name']).to eq('products-4')
+        expect(index_config['from_index_name']).to eq('products-3')
+      end
     end
 
     context 'when no schema definition exists' do

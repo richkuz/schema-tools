@@ -96,8 +96,8 @@ module SchemaTools
       base_name = Utils.extract_base_name(index_name)
       current_version = Utils.extract_version_number(index_name)
       
-      # Can't go to previous index if we're at version 1
-      return nil if current_version <= 1
+      # Can't go to previous index if we're at version 1 or have no version number
+      return nil if current_version.nil? || current_version <= 1
       
       # Try the previous versioned index first (e.g., products-2 -> products-1)
       previous_index_name = "#{base_name}-#{current_version - 1}"

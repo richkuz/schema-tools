@@ -110,29 +110,7 @@ module SchemaTools
   end
 
   def self.discover_available_schemas
-    return [] unless Dir.exist?(Config.schemas_path)
-    
-    schemas = []
-    
-    # Get all directories in the schemas path
-    Dir.glob(File.join(Config.schemas_path, '*'))
-       .select { |d| File.directory?(d) }
-       .each do |schema_dir|
-      schema_name = File.basename(schema_dir)
-      
-      # Check if this schema has an index.json and revisions
-      index_config = SchemaFiles.get_index_config(schema_name)
-      latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
-      
-      if index_config && latest_schema_revision
-        schemas << {
-          index_name: schema_name,
-          latest_revision: latest_schema_revision.revision_absolute_path,
-          revision_number: latest_schema_revision.revision_number
-        }
-      end
-    end
-    
-    schemas
+    # Use the same logic as migrate to get only the latest version of each schema family
+    Index.discover_latest_schema_versions_only
   end
 end

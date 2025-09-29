@@ -1,6 +1,8 @@
 require 'fileutils'
 require_relative 'config'
 require_relative 'utils'
+require_relative 'schema_files'
+require_relative 'schema_revision'
 
 module SchemaTools
   # Describes a live index or index on disk
@@ -87,6 +89,49 @@ module SchemaTools
         end
         comparison_value.call(a.version_number) <=> comparison_value.call(b.version_number)
       end
+    end
+
+    # Find all latest schema versions across all schema families
+    # Returns array of { index_name, latest_revision, revision_number, version_number }
+    def self.discover_latest_schema_versions_only
+      schemas_path = Config.schemas_path
+      return [] unless Dir.exist?(schemas_path)
+      
+      # Get all schema directories
+      schema_dirs = Dir.glob(File.join(schemas_path, '*'))
+                        .select { |d| File.directory?(d) }
+      
+      # Group schemas by base name and find the latest version of each
+      schema_groups = {}
+      
+      schema_dirs.each do |schema_dir|
+        schema_name = File.basename(schema_dir)
+        base_name = Utils.extract_base_name(schema_name)
+        version_number = Utils.extract_version_number(schema_name)
+        
+        # Check if this schema has an index.json and revisions
+        index_config = SchemaFiles.get_index_config(schema_name)
+        latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
+        
+        if index_config && latest_schema_revision
+          # Handle nil version_number comparison explicitly
+          should_update = schema_groups[base_name].nil? || 
+                         (version_number && schema_groups[base_name][:version_number] && version_number > schema_groups[base_name][:version_number]) ||
+                         (version_number && schema_groups[base_name][:version_number].nil?)
+          
+          if should_update
+            schema_groups[base_name] = {
+              index_name: schema_name,
+              latest_revision: latest_schema_revision.revision_absolute_path,
+              revision_number: latest_schema_revision.revision_number,
+              version_number: version_number
+            }
+          end
+        end
+      end
+      
+      # Return only the latest version of each schema family
+      schema_groups.values
     end
   end
 end

@@ -32,7 +32,7 @@ RSpec.describe SchemaTools do
 
       it 'discovers and migrates all schemas successfully' do
         # Mock the schema discovery to return our test schemas
-        allow(SchemaTools).to receive(:discover_latest_schema_versions_only).and_return([
+        allow(SchemaTools).to receive(:find_latest_file_indexes).and_return([
           { index_name: 'products', revision_number: 1 },
           { index_name: 'users', revision_number: 1 }
         ])
@@ -46,7 +46,7 @@ RSpec.describe SchemaTools do
 
       it 'continues migration even if one schema fails' do
         # Mock the schema discovery to return our test schemas
-        allow(SchemaTools).to receive(:discover_latest_schema_versions_only).and_return([
+        allow(SchemaTools).to receive(:find_latest_file_indexes).and_return([
           { index_name: 'products', revision_number: 1 },
           { index_name: 'users', revision_number: 1 }
         ])
@@ -166,11 +166,11 @@ RSpec.describe SchemaTools do
     end
   end
 
-  describe '.discover_latest_schema_versions_only' do
+  describe '.find_latest_file_indexes' do
     context 'when schemas directory does not exist' do
       it 'returns empty array' do
         FileUtils.rm_rf(schemas_path)
-        result = SchemaTools::Index.discover_latest_schema_versions_only
+        result = SchemaTools::Index.find_latest_file_indexes
         expect(result).to eq([])
       end
     end
@@ -191,7 +191,7 @@ RSpec.describe SchemaTools do
       end
 
       it 'returns only the latest version of each schema family' do
-        result = SchemaTools::Index.discover_latest_schema_versions_only
+        result = SchemaTools::Index.find_latest_file_indexes
         
         expect(result.length).to eq(2)
         
@@ -206,7 +206,7 @@ RSpec.describe SchemaTools do
       end
 
       it 'includes correct revision information' do
-        result = SchemaTools::Index.discover_latest_schema_versions_only
+        result = SchemaTools::Index.find_latest_file_indexes
         
         products_schema = result.find { |s| s[:index_name] == 'products-2' }
         expect(products_schema[:revision_number]).to eq("1")
@@ -225,7 +225,7 @@ RSpec.describe SchemaTools do
       end
 
       it 'excludes invalid schemas' do
-        result = SchemaTools::Index.discover_latest_schema_versions_only
+        result = SchemaTools::Index.find_latest_file_indexes
         expect(result).to eq([])
       end
     end

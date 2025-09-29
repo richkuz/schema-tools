@@ -93,7 +93,7 @@ module SchemaTools
 
     # Find all latest schema versions across all schema families
     # Returns array of { index_name, latest_revision, revision_number, version_number }
-    def self.discover_latest_schema_versions_only
+    def self.find_latest_file_indexes
       schemas_path = Config.schemas_path
       return [] unless Dir.exist?(schemas_path)
       

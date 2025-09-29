@@ -7,7 +7,7 @@ module SchemaTools
   def self.migrate_all(client:)
     puts "Discovering all schemas and migrating each to their latest revisions..."
     
-    schemas = Index.discover_latest_schema_versions_only
+    schemas = Index.find_latest_file_indexes
     
     if schemas.empty?
       puts "No schemas found in #{Config.schemas_path}"

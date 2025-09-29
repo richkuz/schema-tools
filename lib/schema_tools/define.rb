@@ -78,7 +78,7 @@ module SchemaTools
   end
 
   def self.select_existing_schema
-    schemas = discover_available_schemas
+    schemas = Index.find_latest_file_indexes
     
     if schemas.empty?
       puts "No existing schemas found in #{Config.schemas_path}"
@@ -86,7 +86,7 @@ module SchemaTools
       exit 0
     end
     
-    puts "Available schemas:"
+    puts "Available schemas (showing only latest versions of each index):"
     schemas.each_with_index do |schema, index|
       puts "#{index + 1}. #{schema[:index_name]} (latest revision: #{schema[:revision_number]})"
     end
@@ -107,10 +107,5 @@ module SchemaTools
     selected_schema = schemas[selection - 1]
     puts "Selected schema: #{selected_schema[:index_name]}"
     selected_schema[:index_name]
-  end
-
-  def self.discover_available_schemas
-    # Use the same logic as migrate to get only the latest version of each schema family
-    Index.discover_latest_schema_versions_only
   end
 end

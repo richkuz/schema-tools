@@ -23,14 +23,14 @@ RSpec.describe SchemaTools::SchemaDefiner do
     FileUtils.rm_rf(temp_dir)
   end
 
-  describe '#define_schema_for_existing_index' do
+  describe '#define_schema_for_existing_live_index' do
     context 'when no live indices exist' do
       before do
         allow(client).to receive(:get).with('/_cat/indices/products*?format=json').and_return([])
       end
 
       it 'reports no live indexes found' do
-        expect { definer.define_schema_for_existing_index('products') }
+        expect { definer.define_schema_for_existing_live_index('products') }
           .to output(/No live indexes found starting with "products"/).to_stdout
       end
     end
@@ -53,7 +53,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       end
 
       it 'identifies the latest versioned index' do
-        expect { definer.define_schema_for_existing_index('products') }
+        expect { definer.define_schema_for_existing_live_index('products') }
           .to output(/Index "products-3" is the latest versioned index name found/).to_stdout
       end
     end
@@ -266,7 +266,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
   end
 
 
-  describe '#define_schema_for_existing_index' do
+  describe '#define_schema_for_existing_live_index' do
     before do
       allow(client).to receive(:index_exists?).with('products').and_return(false)
       allow(client).to receive(:get).with('/_cat/indices/products*?format=json').and_return([
@@ -288,7 +288,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
     end
 
     it 'handles case when no schema definition exists' do
-      expect { definer.define_schema_for_existing_index('products') }
+      expect { definer.define_schema_for_existing_live_index('products') }
         .to output(/Index "products-3" is the latest versioned index name found/).to_stdout
     end
 
@@ -296,7 +296,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       allow(client).to receive(:index_exists?).with('nonexistent').and_return(false)
       allow(client).to receive(:get).with('/_cat/indices/nonexistent*?format=json').and_return([])
       
-      expect { definer.define_schema_for_existing_index('nonexistent') }
+      expect { definer.define_schema_for_existing_live_index('nonexistent') }
         .to output(/No live indexes found starting with "nonexistent"/).to_stdout
     end
   end

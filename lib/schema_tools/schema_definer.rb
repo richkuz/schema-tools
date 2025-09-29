@@ -15,35 +15,33 @@ module SchemaTools
       @breaking_change_detector = BreakingChangeDetector.new()
     end
 
-    # index_name_pattern: e.g. "products" or "products-3"
-    def define_schema_for_existing_index(index_name_pattern)
-      base_name = Utils.extract_base_name(index_name_pattern) # "products"
-      latest_live_index = Index.find_matching_live_indexes(base_name, @client).last # "products-5"
-      unless latest_live_index
-        puts "No live indexes found starting with \"#{base_name}\" at #{@client.url}"
+    # index_name: Exact name of an existing live index, e.g. "products-3"
+    def define_schema_for_existing_live_index(index_name)
+      existing_live_index = Index.find_live_index(index_name, @client)
+      unless existing_live_index
+        puts "Could not find a live index named #{index_name} for which to define a schema revision."
         return
       end
-      puts "Index \"#{latest_live_index.index_name}\" is the latest versioned index name found at #{@client.url}"
+      
+      puts "Extracting live settings, mappings, and painless scripts from index \"#{existing_live_index.index_name}\""
+      live_data = extract_live_index_data(existing_live_index.index_name)
 
-      puts "Extracting live settings, mappings, and painless scripts from index \"#{latest_live_index.index_name}\""
-      live_data = extract_live_index_data(latest_live_index.index_name)
-
-      puts "Searching for index folders on disk that start with #{base_name}"
-      latest_file_index = Index.find_matching_file_indexes(base_name).last
-      unless latest_file_index
-        puts "No index folder exists starting with \"#{index_name_pattern}\" in \"#{Config.schemas_path}\""
-        puts "Creating a new example index revision folder."
-        generate_example_schema_files(base_name, live_data)
+      puts "Searching for a schema index folder on disk named #{index_name}"
+      existing_file_index = Index.find_file_index(index_name)
+      unless existing_file_index
+        puts "No index folder exists named \"#{index_name}\" in \"#{Config.schemas_path}\""
+        puts "Creating a new index revision folder to store the live schema definition"
+        generate_example_schema_files(index_name, live_data)
         puts "\nCreate a live index for this example by running:"
         puts "$ rake schema:migrate"
         return
       end
 
-      latest_schema_revision = SchemaRevision.find_latest_revision(latest_file_index.index_name)
+      latest_schema_revision = SchemaRevision.find_latest_revision(index_name)
       unless latest_schema_revision
-        puts "No revision folders exist in #{Config.schemas_path} for \"#{latest_file_index.index_name}\""
-        puts "Creating a new example index revision folder."
-        generate_example_schema_files(base_name, live_data)
+        puts "No revision folders exist in #{Config.schemas_path} for \"#{index_name}\""
+        puts "Creating a new index revision folder to store the live schema definition"
+        generate_example_schema_files(index_name, live_data)
         puts "\nCreate a live index for this example by running:"
         puts "$ rake schema:migrate"
         return
@@ -57,12 +55,14 @@ module SchemaTools
         puts "Latest schema definition and any painless scripts already match the live index."
       elsif @breaking_change_detector.breaking_change?(live_data, schema_data)
         puts "Index settings and mappings constitute a breaking change from the latest schema definition."
+        puts "Creating a new index folder with an increased version number."
         new_index_name = latest_file_index.generate_next_index_name
         generate_example_schema_files(new_index_name, live_data, latest_file_index.index_name)
         puts "\nMigrate to this schema definition by running:"
         puts "$ rake schema:migrate"
       else
         puts "Index settings and mappings constitute a non-breaking change from the latest schema definition."
+        puts "Creating a new revision in the existing index folder"
         generate_next_revision_files(
           latest_file_index.index_name,
           latest_schema_revision.generate_next_revision_absolute_path,

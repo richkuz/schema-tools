@@ -76,7 +76,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
         }
       })
 
-      expect { definer.define_schema_for_existing_index('products') }
+      expect { definer.define_schema_for_existing_live_index('products') }
         .to output(/Index settings and mappings constitute a breaking change/).to_stdout
 
       # Should generate new index for breaking change
@@ -103,7 +103,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
         }
       })
 
-      expect { definer.define_schema_for_existing_index('products') }
+      expect { definer.define_schema_for_existing_live_index('products') }
         .to output(/Index settings and mappings constitute a breaking change/).to_stdout
 
       # Should generate new index for breaking change
@@ -130,7 +130,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
         }
       })
 
-      expect { definer.define_schema_for_existing_index('products') }
+      expect { definer.define_schema_for_existing_live_index('products') }
         .to output(/Index settings and mappings constitute a breaking change/).to_stdout
 
       # Should generate new index for breaking change
@@ -157,7 +157,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
         }
       })
 
-      expect { definer.define_schema_for_existing_index('products') }
+      expect { definer.define_schema_for_existing_live_index('products') }
         .to output(/Index settings and mappings constitute a non-breaking change/).to_stdout
 
       # Should generate new revision for non-breaking change
@@ -184,7 +184,7 @@ RSpec.describe 'Breaking Change Detection Integration' do
         }
       })
 
-      expect { definer.define_schema_for_existing_index('products') }
+      expect { definer.define_schema_for_existing_live_index('products') }
         .to output(/Index settings and mappings constitute a non-breaking change/).to_stdout
 
       # Should generate new revision for non-breaking change

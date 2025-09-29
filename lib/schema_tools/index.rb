@@ -25,6 +25,25 @@ module SchemaTools
       "#{@base_name}-#{next_version_number}"
     end
 
+    # index_name: Exact name of the index to find, e.g. "products-3"
+    # client: Client instance to query OpenSearch/Elasticsearch
+    # Returns: Index object if found, nil if not found
+    def self.find_live_index(index_name, client)
+      return nil unless client.index_exists?(index_name)
+      Index.new(index_name)
+    rescue => e
+      # If client raises an error, return nil
+      nil
+    end
+
+    # index_name: Exact name of the index folder to find, e.g. "products-3"
+    # Returns: Index object if folder exists, nil if not found
+    def self.find_file_index(index_name)
+      schema_dir = File.join(Config.schemas_path, index_name)
+      return nil unless Dir.exist?(schema_dir)
+      Index.new(index_name)
+    end
+
     # base_name: The base name of an index to search for, e.g., "products" NOT "products-2".
     # Returns: An array of matching Index objects found live in OpenSearch/Elasticsearch,
     #          sorted by version_number (nil first), or [].

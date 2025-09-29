@@ -10,10 +10,10 @@ module SchemaTools
     end
 
     # Extract the version number from an index name
-    # Example: "products-3" -> 3, "products" -> 1
+    # Example: "products-3" -> 3, "products" -> nil
     def self.extract_version_number(index_name)
       match = index_name.match(/-(\d+)$/)
-      match ? match[1].to_i : 1
+      match ? match[1].to_i : nil
     end
   end
 end

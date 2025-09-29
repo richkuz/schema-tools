@@ -56,15 +56,15 @@ module SchemaTools
       elsif @breaking_change_detector.breaking_change?(live_data, schema_data)
         puts "Index settings and mappings constitute a breaking change from the latest schema definition."
         puts "Creating a new index folder with an increased version number."
-        new_index_name = latest_file_index.generate_next_index_name
-        generate_example_schema_files(new_index_name, live_data, latest_file_index.index_name)
+        new_index_name = existing_file_index.generate_next_index_name
+        generate_example_schema_files(new_index_name, live_data, existing_file_index.index_name)
         puts "\nMigrate to this schema definition by running:"
         puts "$ rake schema:migrate"
       else
         puts "Index settings and mappings constitute a non-breaking change from the latest schema definition."
         puts "Creating a new revision in the existing index folder"
         generate_next_revision_files(
-          latest_file_index.index_name,
+          existing_file_index.index_name,
           latest_schema_revision.generate_next_revision_absolute_path,
           live_data
         )

@@ -20,13 +20,8 @@ module SchemaTools
     puts
     
     schemas.each do |schema|
-      puts "=" * 60
-      puts "Migrating #{schema[:index_name]} to revision #{schema[:revision_number]}"
-      puts "=" * 60
-      
       begin
         migrate_one_schema(index_name: schema[:index_name], client: client)
-        puts "✓ Migration completed successfully for #{schema[:index_name]}"
       rescue => e
         puts "✗ Migration failed for #{schema[:index_name]}: #{e.message}"
         puts "Continuing with next schema..."
@@ -38,6 +33,7 @@ module SchemaTools
   def self.migrate_one_schema(index_name:, client:)
     puts "=" * 60
     puts "Migrating to index #{index_name}"
+    puts "=" * 60
     
     index_config = SchemaFiles.get_index_config(index_name)
     raise "Index configuration not found for #{index_name}" unless index_config
@@ -79,11 +75,7 @@ module SchemaTools
       SchemaTools.catchup(index_name:, client:)
     end
     
-
-    puts "=" * 60
-    
-    puts "Migration completed successfully"
-    puts "=" * 60
+    puts "✓ Migration completed successfully for #{index_name}"
   end
 
   private

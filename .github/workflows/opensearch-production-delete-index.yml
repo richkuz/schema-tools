@@ -1,15 +1,15 @@
-name: OpenSearch Production Hard Delete
+name: OpenSearch Production Delete Index
 
 on:
   workflow_dispatch:
     inputs:
       index_name:
-        description: 'Index name to hard delete (must start with deleted-)'
+        description: 'Index name to hard delete (index must be closed)'
         required: true
         type: string
 
 jobs:
-  hard-delete:
+  delete-index:
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -21,7 +21,7 @@ jobs:
           ruby-version: '3.0'
           bundler-cache: true
       
-      - name: Run hard delete
+      - name: Run delete
         run: |
           rake opensearch:delete[${{ github.event.inputs.index_name }}]
         env:

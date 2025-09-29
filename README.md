@@ -234,10 +234,10 @@ Run `rake 'schema:close[indexname]'` to close an index. This will prevent reads 
 Run `rake 'schema:delete[indexname]'` to hard-delete an index. For safety, this task only hard-deletes indexes that are closed.
 
 GitHub Actions:
-- OpenSearch Staging Soft Delete
-- OpenSearch Staging Hard Delete
-- OpenSearch Production Soft Delete
-- OpenSearch Production Hard Delete
+- OpenSearch Staging Close Index
+- OpenSearch Production Close Index
+- OpenSearch Staging Delete Index
+- OpenSearch Production Delete Index
 
 
 ## FAQ

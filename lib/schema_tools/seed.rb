@@ -59,6 +59,6 @@ module SchemaTools
     puts "Seeding #{num_docs} documents from #{selected_index}..."
     
     # Call the seeding function
-    Seed.seed_data(num_docs, mappings)
+    Seed.seed_data(num_docs, mappings, client, selected_index)
   end
 end

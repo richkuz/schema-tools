@@ -219,6 +219,37 @@ module SchemaTools
       post("/#{index_name}/_close", {})
     end
 
+    def bulk_index(documents, index_name)
+      if @dryrun
+        print_curl_command('POST', '/_bulk', documents)
+        return { 'items' => documents.map { |doc| { 'index' => { 'status' => 201 } } } }
+      end
+
+      bulk_body = documents.map do |doc|
+        [
+          { index: { _index: index_name } },
+          doc
+        ]
+      end.flatten
+
+      ndjson = bulk_body.map(&:to_json).join("\n") + "\n"
+
+      uri = URI("#{@url}/_bulk")
+      request = Net::HTTP::Post.new(uri)
+      request['Content-Type'] = 'application/x-ndjson'
+      request.body = ndjson
+      add_auth_header(request)
+      
+      response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+      
+      case response.code.to_i
+      when 200
+        JSON.parse(response.body)
+      else
+        raise "HTTP #{response.code}: #{response.body}"
+      end
+    end
+
     def index_closed?(index_name)
       response = get("/#{index_name}")
       return false unless response

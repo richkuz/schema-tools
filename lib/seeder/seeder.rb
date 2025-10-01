@@ -50,7 +50,8 @@ module Seed
     puts "Parsed schema with #{schema.keys.length} top-level fields"
     
     # Generate documents in batches for efficiency
-    batch_size = 100
+    # Reduced batch size to avoid circuit breaker issues with large documents
+    batch_size = 25  # Reduced from 100 to 25 for large documents
     total_batches = (num_docs.to_f / batch_size).ceil
     
     (1..total_batches).each do |batch_num|
@@ -89,9 +90,24 @@ module Seed
         
         puts "Successfully indexed batch #{batch_num}"
       rescue => e
-        puts "Error indexing batch #{batch_num}: #{e.message}"
-        raise e
+        if e.message.include?('circuit_breaking_exception') || e.message.include?('HTTP 429')
+          puts "ERROR: Circuit breaker triggered - OpenSearch cluster is out of memory"
+          puts "Consider:"
+          puts "  1. Reducing batch size further (currently #{batch_size})"
+          puts "  2. Increasing OpenSearch heap size"
+          puts "  3. Reducing document size/complexity"
+          puts "  4. Adding delays between batches"
+          puts ""
+          puts "Batch #{batch_num} failed: #{e.message}"
+          raise StandardError.new("Circuit breaker triggered - OpenSearch cluster is out of memory")
+        else
+          puts "Error indexing batch #{batch_num}: #{e.message}"
+          raise e
+        end
       end
+      
+      # Add a small delay between batches to help with memory pressure
+      sleep(0.1) if batch_num < total_batches
     end
     
     puts "Successfully seeded #{num_docs} documents to #{index_name}"
@@ -349,9 +365,13 @@ module Seed
     
     feature_count.times do
       feature_name = "#{WORD_LIST.sample}_#{rand(100..999)}"
-      # Generate values between 1.17549435E-38 and 1.0 to ensure positive normal floats
-      min_value = 1.17549435e-38
-      features[feature_name] = rand(min_value..1.0).round(4)
+      # Generate values between 1.0e-30 and 1.0 to ensure positive normal floats
+      # Use a higher minimum to avoid floating-point precision issues
+      min_value = 1.0e-30  # Much higher than the OpenSearch minimum
+      value = rand(min_value..1.0).round(4)
+      # Ensure we never get exactly 0.0 due to floating-point precision
+      value = [value, 1.0e-30].max
+      features[feature_name] = value
     end
     
     features

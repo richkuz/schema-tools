@@ -88,14 +88,22 @@ RSpec.describe Seed do
         .to raise_error(StandardError, 'Connection failed')
     end
 
+    it 'handles circuit breaker exceptions with helpful error message' do
+      circuit_breaker_error = StandardError.new('HTTP 429: {"error":{"type":"circuit_breaking_exception"}}')
+      allow(mock_client).to receive(:bulk_index).and_raise(circuit_breaker_error)
+
+      expect { Seed.seed_data(num_docs, sample_mappings, mock_client, index_name) }
+        .to raise_error(StandardError, /Circuit breaker triggered/)
+    end
+
     it 'processes documents in batches' do
-      expect(mock_client).to receive(:bulk_index).exactly(1).times
+      expect(mock_client).to receive(:bulk_index).exactly(2).times  # 50 docs / 25 batch_size = 2 batches
 
       Seed.seed_data(50, sample_mappings, mock_client, index_name)
     end
 
     it 'handles large document counts with multiple batches' do
-      expect(mock_client).to receive(:bulk_index).exactly(3).times
+      expect(mock_client).to receive(:bulk_index).exactly(10).times  # 250 docs / 25 batch_size = 10 batches
 
       Seed.seed_data(250, sample_mappings, mock_client, index_name)
     end
@@ -330,7 +338,8 @@ RSpec.describe Seed do
           expect(feature_name).to be_a(String)
           expect(score).to be_a(Float)
           # OpenSearch requires positive normal floats with minimum value of 1.17549435E-38
-          expect(score).to be_between(1.17549435e-38, 1.0)
+          # We use 1.0e-30 to avoid floating-point precision issues
+          expect(score).to be_between(1.0e-30, 1.0)
         end
       end
     end

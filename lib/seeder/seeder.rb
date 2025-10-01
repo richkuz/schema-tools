@@ -222,7 +222,12 @@ module Seed
     
     object = {}
     properties.each do |nested_field_name, nested_field_config|
-      object[nested_field_name] = generate_field_value(nested_field_config)
+      parsed_config = {
+        type: nested_field_config['type'],
+        properties: nested_field_config['properties'],
+        format: nested_field_config['format']
+      }
+      object[nested_field_name] = generate_field_value(parsed_config)
     end
     object
   end

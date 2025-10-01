@@ -3,6 +3,7 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
+    base64 (0.3.0)
     bigdecimal (3.2.3)
     crack (1.0.0)
       bigdecimal
@@ -43,6 +44,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  base64 (~> 0.1)
   json (~> 2.6)
   logger (~> 1.5)
   net-http (~> 0.3)

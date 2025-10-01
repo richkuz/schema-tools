@@ -213,4 +213,100 @@ RSpec.describe SchemaTools::Client do
       end
     end
   end
+
+  describe '#bulk_index' do
+    let(:documents) do
+      [
+        { 'title' => 'Document 1', 'content' => 'This is the first document' },
+        { 'title' => 'Document 2', 'content' => 'This is the second document' }
+      ]
+    end
+
+    let(:index_name) { 'test-index' }
+
+    it 'formats documents correctly for bulk API' do
+      expected_body = [
+        { index: { _index: index_name } },
+        documents[0],
+        { index: { _index: index_name } },
+        documents[1]
+      ].map(&:to_json).join("\n") + "\n"
+
+      response_body = {
+        'took' => 5,
+        'errors' => false,
+        'items' => [
+          { 'index' => { '_index' => index_name, '_id' => '1', 'status' => 201 } },
+          { 'index' => { '_index' => index_name, '_id' => '2', 'status' => 201 } }
+        ]
+      }.to_json
+
+      stub_request(:post, 'http://localhost:9200/_bulk')
+        .with(
+          body: expected_body,
+          headers: { 'Content-Type' => 'application/x-ndjson' }
+        )
+        .to_return(status: 200, body: response_body)
+
+      result = client.bulk_index(documents, index_name)
+      expect(result['errors']).to be false
+      expect(result['items'].length).to eq(2)
+    end
+
+    it 'handles bulk indexing errors' do
+      response_body = {
+        'took' => 5,
+        'errors' => true,
+        'items' => [
+          { 'index' => { '_index' => index_name, '_id' => '1', 'status' => 201 } },
+          { 'index' => { '_index' => index_name, '_id' => '2', 'status' => 400, 'error' => { 'type' => 'mapper_parsing_exception' } } }
+        ]
+      }.to_json
+
+      stub_request(:post, 'http://localhost:9200/_bulk')
+        .to_return(status: 200, body: response_body)
+
+      result = client.bulk_index(documents, index_name)
+      expect(result['errors']).to be true
+      expect(result['items'].length).to eq(2)
+    end
+
+    it 'raises error for non-200 responses' do
+      stub_request(:post, 'http://localhost:9200/_bulk')
+        .to_return(status: 500, body: 'Internal Server Error')
+
+      expect { client.bulk_index(documents, index_name) }
+        .to raise_error(/HTTP 500/)
+    end
+
+    it 'handles empty document array' do
+      response_body = {
+        'took' => 0,
+        'errors' => false,
+        'items' => []
+      }.to_json
+
+      stub_request(:post, 'http://localhost:9200/_bulk')
+        .to_return(status: 200, body: response_body)
+
+      result = client.bulk_index([], index_name)
+      expect(result['errors']).to be false
+      expect(result['items']).to be_empty
+    end
+
+    context 'in dry run mode' do
+      let(:dry_run_client) { SchemaTools::Client.new('http://localhost:9200', dryrun: true) }
+
+      it 'prints curl command instead of making request' do
+        expect { dry_run_client.bulk_index(documents, index_name) }
+          .to output(/🔍 DRY RUN - Would execute: curl -X POST/).to_stdout_from_any_process
+      end
+
+      it 'returns mock response in dry run mode' do
+        result = dry_run_client.bulk_index(documents, index_name)
+        expect(result['items'].length).to eq(2)
+        expect(result['items'].all? { |item| item.dig('index', 'status') == 201 }).to be true
+      end
+    end
+  end
 end

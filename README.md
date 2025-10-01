@@ -73,6 +73,18 @@ To migrate your OpenSearch/Elasticsearch indexes to the latest versions defined 
 rake schema:migrate
 ```
 
+To seed data from a live index for development or testing:
+
+```sh
+rake schema:seed
+```
+
+This task will:
+- List available live indexes for you to choose from
+- Fetch the mappings from the selected index
+- Prompt you for the number of documents to seed
+- Call the seeding function with the mappings and document count
+
 Use `rake schema:define` to create new schema versions and `rake schema:migrate` to migrate to them.
 
 Index names follow the pattern `indexname-$number`, where `$number` increments by 1 for every breaking schema change. The first version of an index does not require a number in the name.

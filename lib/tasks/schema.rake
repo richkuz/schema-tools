@@ -14,6 +14,8 @@ require 'schema_tools/define'
 require 'schema_tools/diff'
 require 'schema_tools/update_metadata'
 require 'schema_tools/schema_revision'
+require 'schema_tools/seed'
+require 'seeder/seeder'
 require 'json'
 require 'time'
 
@@ -135,6 +137,15 @@ namespace :schema do
     client = create_client!
 
     SchemaTools.define(
+      client: client
+    )
+  end
+
+  desc "Seed data from a live index"
+  task :seed do |t, args|
+    client = create_client!
+
+    SchemaTools.seed(
       client: client
     )
   end

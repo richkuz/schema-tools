@@ -32,7 +32,7 @@ module SchemaTools
         return false
       end
 
-      puts "Reindex task started at #{Time.now}. task_id is #{task_id}. Fetch task status with GET /tasks/#{task_id}"
+      puts "Reindex task started at #{Time.now}. task_id is #{task_id}. Fetch task status with GET #{client.url}/_tasks/#{task_id}"
       
       loop do
         sleep 5

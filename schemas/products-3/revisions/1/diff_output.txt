@@ -24,14 +24,14 @@ Diff between current revision products-3/revisions/1 and previous revision produ
 
 🔄 MODIFIED: _meta.schemurai_revision.reindex_completed_at
   Old value:
-    "2025-09-28T13:15:12-04:00"
+    "2025-09-30T22:09:34-04:00"
   New value:
-    "2025-09-28T13:51:01-04:00"
+    "2025-09-28T13:52:32-04:00"
 🔄 MODIFIED: _meta.schemurai_revision.reindex_started_at
   Old value:
-    "2025-09-28T13:14:57-04:00"
+    "2025-09-30T22:09:29-04:00"
   New value:
-    "2025-09-28T13:51:01-04:00"
+    "2025-09-28T13:52:22-04:00"
 🔄 MODIFIED: _meta.schemurai_revision.revision
   Old value:
     "products-2/revisions/1"
@@ -39,9 +39,9 @@ Diff between current revision products-3/revisions/1 and previous revision produ
     "products-3/revisions/1"
 🔄 MODIFIED: _meta.schemurai_revision.revision_applied_at
   Old value:
-    "2025-09-28T13:15:12-04:00"
+    "2025-09-30T22:09:34-04:00"
   New value:
-    "2025-09-28T13:51:01-04:00"
+    "2025-09-28T13:52:32-04:00"
 
 === Painless Scripts Diff ===
 No painless scripts found in either version

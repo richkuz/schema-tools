@@ -7,7 +7,6 @@ require_relative '../../lib/schema_tools/schema_files'
 require_relative '../../lib/schema_tools/utils'
 require_relative '../../lib/schema_tools/migrate'
 require_relative '../../lib/schema_tools/create'
-require_relative '../../lib/schema_tools/upload_painless'
 require_relative '../../lib/schema_tools/update_metadata'
 
 describe 'SchemaRevision Integration' do

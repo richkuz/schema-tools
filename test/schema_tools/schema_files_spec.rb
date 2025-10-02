@@ -88,11 +88,6 @@ RSpec.describe SchemaTools::SchemaFiles do
         File.write(File.join(revision_path, 'settings.json'), settings.to_json)
         File.write(File.join(revision_path, 'mappings.json'), mappings.to_json)
         
-        # Create painless scripts directory and files
-        painless_dir = File.join(revision_path, 'painless_scripts')
-        FileUtils.mkdir_p(painless_dir)
-        File.write(File.join(painless_dir, 'script1.painless'), 'ctx._source.field = "value"')
-        File.write(File.join(painless_dir, 'script2.painless'), 'ctx._source.other = "test"')
       end
 
       it 'returns all revision files' do
@@ -100,27 +95,9 @@ RSpec.describe SchemaTools::SchemaFiles do
         
         expect(result[:settings]).to eq(settings)
         expect(result[:mappings]).to eq(mappings)
-        expect(result[:painless_scripts]).to eq({
-          'script1' => 'ctx._source.field = "value"',
-          'script2' => 'ctx._source.other = "test"'
-        })
       end
     end
 
-    context 'when painless_scripts directory does not exist' do
-      before do
-        File.write(File.join(revision_path, 'settings.json'), settings.to_json)
-        File.write(File.join(revision_path, 'mappings.json'), mappings.to_json)
-      end
-
-      it 'returns empty painless_scripts hash' do
-        result = described_class.get_revision_files(schema_revision)
-        
-        expect(result[:settings]).to eq(settings)
-        expect(result[:mappings]).to eq(mappings)
-        expect(result[:painless_scripts]).to eq({})
-      end
-    end
 
     context 'when settings.json is missing' do
       before do
@@ -305,43 +282,5 @@ RSpec.describe SchemaTools::SchemaFiles do
       end
     end
 
-    describe '.load_painless_scripts' do
-      let(:scripts_dir) { File.join(temp_dir, 'scripts') }
-
-      context 'when scripts directory does not exist' do
-        it 'returns empty hash' do
-          result = described_class.send(:load_painless_scripts, scripts_dir)
-          expect(result).to eq({})
-        end
-      end
-
-      context 'when scripts directory exists with painless files' do
-        before do
-          FileUtils.mkdir_p(scripts_dir)
-          File.write(File.join(scripts_dir, 'script1.painless'), 'ctx._source.field = "value"')
-          File.write(File.join(scripts_dir, 'script2.painless'), 'ctx._source.other = "test"')
-          File.write(File.join(scripts_dir, 'not_painless.txt'), 'this should be ignored')
-        end
-
-        it 'returns hash of script names to content' do
-          result = described_class.send(:load_painless_scripts, scripts_dir)
-          expect(result).to eq({
-            'script1' => 'ctx._source.field = "value"',
-            'script2' => 'ctx._source.other = "test"'
-          })
-        end
-      end
-
-      context 'when scripts directory exists but is empty' do
-        before do
-          FileUtils.mkdir_p(scripts_dir)
-        end
-
-        it 'returns empty hash' do
-          result = described_class.send(:load_painless_scripts, scripts_dir)
-          expect(result).to eq({})
-        end
-      end
-    end
   end
 end

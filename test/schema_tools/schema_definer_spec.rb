@@ -51,12 +51,11 @@ RSpec.describe SchemaTools::SchemaDefiner do
         allow(client).to receive(:get).with('/products/_mapping').and_return({
           'products' => { 'mappings' => { 'properties' => { 'id' => { 'type' => 'keyword' } } } }
         })
-        allow(client).to receive(:get_stored_scripts).and_return({})
       end
 
       it 'identifies the latest versioned index' do
         expect { definer.define_schema_for_existing_live_index('products') }
-          .to output(/Extracting live settings, mappings, and painless scripts from index "products"/).to_stdout
+          .to output(/Extracting live settings and mappings from index "products"/).to_stdout
       end
     end
   end
@@ -75,13 +74,9 @@ RSpec.describe SchemaTools::SchemaDefiner do
           }
         }
       })
-      allow(client).to receive(:get_stored_scripts).and_return({
-        'script1' => 'ctx._source.test = "value"',
-        'script2' => 'ctx._source.another = "test"'
-      })
     end
 
-    it 'extracts settings, mappings, and painless scripts from live index' do
+    it 'extracts settings and mappings from live index' do
       result = definer.send(:extract_live_index_data, 'test-index')
       
       expect(result[:settings]).to eq({ 'index' => { 'number_of_shards' => 1 } })
@@ -90,39 +85,27 @@ RSpec.describe SchemaTools::SchemaDefiner do
           'id' => { 'type' => 'keyword' }
         }
       })
-      expect(result[:painless_scripts]).to eq({
-        'script1' => 'ctx._source.test = "value"',
-        'script2' => 'ctx._source.another = "test"'
-      })
     end
   end
 
-  describe '#schemas_and_painless_scripts_match?' do
+  describe '#schemas_match?' do
     let(:live_data) do
       {
         settings: { 'index' => { 'number_of_shards' => 1 } },
-        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } },
-        painless_scripts: {
-          'script1' => 'ctx._source.test = "value"',
-          'script2' => 'ctx._source.another = "test"'
-        }
+        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } }
       }
     end
 
     let(:schema_data) do
       {
         settings: { 'index' => { 'number_of_shards' => 1 } },
-        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } },
-        painless_scripts: {
-          'script1' => 'ctx._source.test = "value"',
-          'script2' => 'ctx._source.another = "test"'
-        }
+        mappings: { 'properties' => { 'id' => { 'type' => 'keyword' } } }
       }
     end
 
     context 'when all components match' do
       it 'returns true' do
-        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be true
+        expect(definer.send(:schemas_match?, live_data, schema_data)).to be true
       end
     end
 
@@ -132,7 +115,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       end
 
       it 'returns false' do
-        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
+        expect(definer.send(:schemas_match?, live_data, schema_data)).to be false
       end
     end
 
@@ -142,54 +125,7 @@ RSpec.describe SchemaTools::SchemaDefiner do
       end
 
       it 'returns false' do
-        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
-      end
-    end
-
-    context 'when painless scripts differ' do
-      before do
-        schema_data[:painless_scripts] = {
-          'script1' => 'ctx._source.test = "different_value"',
-          'script2' => 'ctx._source.another = "test"'
-        }
-      end
-
-      it 'returns false' do
-        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
-      end
-    end
-
-    context 'when painless scripts have different number of scripts' do
-      before do
-        schema_data[:painless_scripts] = {
-          'script1' => 'ctx._source.test = "value"'
-        }
-      end
-
-      it 'returns false' do
-        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be false
-      end
-    end
-
-    context 'when painless scripts are empty in both' do
-      before do
-        live_data[:painless_scripts] = {}
-        schema_data[:painless_scripts] = {}
-      end
-
-      it 'returns true' do
-        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be true
-      end
-    end
-
-    context 'when painless scripts are nil in both' do
-      before do
-        live_data[:painless_scripts] = nil
-        schema_data[:painless_scripts] = nil
-      end
-
-      it 'returns true' do
-        expect(definer.send(:schemas_and_painless_scripts_match?, live_data, schema_data)).to be true
+        expect(definer.send(:schemas_match?, live_data, schema_data)).to be false
       end
     end
   end
@@ -302,12 +238,11 @@ RSpec.describe SchemaTools::SchemaDefiner do
           }
         }
       })
-      allow(client).to receive(:get_stored_scripts).and_return({})
     end
 
     it 'handles case when no schema definition exists' do
       expect { definer.define_schema_for_existing_live_index('products') }
-        .to output(/Extracting live settings, mappings, and painless scripts from index "products"/).to_stdout
+        .to output(/Extracting live settings and mappings from index "products"/).to_stdout
     end
 
     it 'handles case when index not found' do

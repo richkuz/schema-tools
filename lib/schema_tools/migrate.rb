@@ -64,7 +64,6 @@ module SchemaTools
       end
     end
     
-    SchemaTools.upload_painless(index_name:, client:)
 
     SchemaTools.update_metadata(index_name:, metadata: {}, client:)
 

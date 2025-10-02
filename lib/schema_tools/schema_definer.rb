@@ -6,6 +6,7 @@ require_relative 'schema_revision'
 require_relative 'config'
 require_relative 'index'
 require_relative 'schema_files'
+require_relative 'diff'
 
 module SchemaTools
   class SchemaDefiner
@@ -23,7 +24,7 @@ module SchemaTools
         return
       end
       
-      puts "Extracting live settings, mappings, and painless scripts from index \"#{existing_live_index.index_name}\""
+      puts "Extracting live settings and mappings from index \"#{existing_live_index.index_name}\""
       live_data = extract_live_index_data(existing_live_index.index_name)
 
       puts "Searching for a schema index folder on disk named #{index_name}"
@@ -48,11 +49,11 @@ module SchemaTools
       end
       puts "Latest schema definition found at \"#{latest_schema_revision.revision_relative_path}\""
 
-      puts "Comparing live index to the latest schema definition's settings, mappings, and painless scripts..."
+      puts "Comparing live index to the latest schema definition's settings and mappings..."
       schema_data = SchemaFiles.get_revision_files(latest_schema_revision)
       
-      if schemas_and_painless_scripts_match?(live_data, schema_data)
-        puts "Latest schema definition and any painless scripts already match the live index."
+      if schemas_match?(live_data, schema_data)
+        puts "Latest schema definition already matches the live index."
       elsif @breaking_change_detector.breaking_change?(live_data, schema_data)
         puts "Index settings and mappings constitute a breaking change from the latest schema definition."
         puts "Creating a new index folder with an increased version number."
@@ -148,22 +149,19 @@ module SchemaTools
 
     private
 
-    def schemas_and_painless_scripts_match?(live_data, schema_data)
+    def schemas_match?(live_data, schema_data)
       normalize_settings(live_data[:settings]) == normalize_settings(schema_data[:settings]) &&
-      normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings]) &&
-      normalize_painless_scripts(live_data[:painless_scripts]) == normalize_painless_scripts(schema_data[:painless_scripts])
+      normalize_mappings(live_data[:mappings]) == normalize_mappings(schema_data[:mappings])
     end
 
     def extract_live_index_data(index_name)
       settings = @client.get_index_settings(index_name)
       mappings_response = @client.get("/#{index_name}/_mapping")
       mappings = mappings_response ? mappings_response[index_name]['mappings'] : {}
-      painless_scripts = @client.get_stored_scripts
       
       {
         settings: filter_internal_settings(settings || {}),
-        mappings: filter_schemurai_metadata(mappings),
-        painless_scripts: painless_scripts
+        mappings: filter_schemurai_metadata(mappings)
       }
     end
 
@@ -213,7 +211,6 @@ module SchemaTools
       
       FileUtils.mkdir_p(index_path)
       FileUtils.mkdir_p(File.join(index_path, 'revisions', '1'))
-      FileUtils.mkdir_p(File.join(index_path, 'revisions', '1', 'painless_scripts'))
       
       index_config = {
         index_name: index_name,
@@ -226,7 +223,6 @@ module SchemaTools
       File.write(File.join(index_path, 'revisions', '1', 'settings.json'), JSON.pretty_generate(data[:settings]))
       File.write(File.join(index_path, 'revisions', '1', 'mappings.json'), JSON.pretty_generate(data[:mappings]))
       
-      write_painless_scripts(File.join(index_path, 'revisions', '1', 'painless_scripts'), data[:painless_scripts])
       
       this_revision = SchemaRevision.find_latest_revision(index_name)
       SchemaTools.diff(schema_revision: this_revision) # Generate an example diff_output.txt against a null baseline 
@@ -238,21 +234,15 @@ module SchemaTools
       puts "  revisions/1"
       puts "    settings.json"
       puts "    mappings.json"
-      puts "    painless_scripts/"
-      data[:painless_scripts].each do |script_name, _|
-        puts "      #{script_name}.painless"
-      end
       puts "    diff_output.txt"
     end
 
     def generate_next_revision_files(index_name, revision_path, data)
       FileUtils.mkdir_p(revision_path)
-      FileUtils.mkdir_p(File.join(revision_path, 'painless_scripts'))
       
       File.write(File.join(revision_path, 'settings.json'), JSON.pretty_generate(data[:settings]))
       File.write(File.join(revision_path, 'mappings.json'), JSON.pretty_generate(data[:mappings]))
       
-      write_painless_scripts(File.join(revision_path, 'painless_scripts'), data[:painless_scripts])
       
       this_revision = SchemaRevision.find_latest_revision(index_name)
       SchemaTools.diff(schema_revision: this_revision) # Generate a diff_output.txt
@@ -264,10 +254,6 @@ module SchemaTools
       puts "  revisions/#{revision_number}"
       puts "    settings.json"
       puts "    mappings.json"
-      puts "    painless_scripts/"
-      data[:painless_scripts].each do |script_name, _|
-        puts "      #{script_name}.painless"
-      end
       puts "    diff_output.txt"
     end
 
@@ -297,8 +283,7 @@ module SchemaTools
             created_at: { type: "date" },
             updated_at: { type: "date" }
           }
-        },
-        painless_scripts: {}
+        }
       }
     end
 
@@ -316,23 +301,6 @@ module SchemaTools
       "# ctx._source.new_field = 'default_value';\n"
     end
 
-    def generate_example_script
-      "# Example painless script\n" +
-      "# Modify this script for your specific use case\n" +
-      "# ctx._source.example_field = 'example_value';"
-    end
-
-    def generate_painless_scripts_instructions
-      "Add into this folder all painless scripts you want uploaded into the index.\n" +
-      "Painless script files must end with the extension .painless\n" +
-      "\n" +
-      "Example:\n" +
-      "  my_script.painless\n" +
-      "  another_script.painless\n" +
-      "\n" +
-      "Scripts will be uploaded to the index when you run:\n" +
-      "  rake 'schema:migrate[index_name]'"
-    end
 
     def normalize_settings(settings)
       return {} unless settings
@@ -349,23 +317,5 @@ module SchemaTools
       JSON.parse(JSON.generate(mappings))
     end
 
-    def normalize_painless_scripts(painless_scripts)
-      return {} unless painless_scripts
-      JSON.parse(JSON.generate(painless_scripts))
-    end
-
-    def write_painless_scripts(scripts_dir, painless_scripts)
-      FileUtils.mkdir_p(scripts_dir)
-      
-      if painless_scripts.empty?
-        # Write instruction file if no scripts found
-        File.write(File.join(scripts_dir, 'README.txt'), generate_painless_scripts_instructions)
-      else
-        # Write actual scripts from live index
-        painless_scripts.each do |script_name, script_content|
-          File.write(File.join(scripts_dir, "#{script_name}.painless"), script_content)
-        end
-      end
-    end
   end
 end

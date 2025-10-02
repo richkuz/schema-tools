@@ -61,8 +61,6 @@ schemas/users                  # Folder name matches the index name
   revisions/1                  # Index schema definition
     settings.json              # OpenSearch/Elasticsearch index settings and analyzers
     mappings.json              # OpenSearch/Elasticsearch index mappings
-    painless_scripts/          # Any painless scripts stored in the index
-      some_script.painless
     diff_output.txt            # Auto-generated diff since from_index_name
 ```
 
@@ -109,14 +107,10 @@ schemas/users-3
   revisions/1
     settings.json
     mappings.json
-    painless_scripts/
-      some_script.painless
     diff_output.txt            # Auto-generated diff since users-2
   revisions/2                  # Define non-breaking changes as revisions
     settings.json
     mappings.json
-    painless_scripts/
-	  some_script.painless
     diff_output.txt            # Auto-generated diff since revisions/1
 ```
 
@@ -130,7 +124,6 @@ Run `rake 'schema:migrate[index_name]'` to migrate to the latest schema revision
 
 The `schema:migrate` task will:
 - Reindex data as needed
-- Upload any painless scripts
 - Generate a `diff_output.txt` with changes
 - Update index mappings `_meta.schemurai_revision` with applied revision details
 
@@ -170,7 +163,6 @@ Non-breaking changes (dynamic updates):
 - Adding new subfields
 - Adding dynamic mapping settings
 - Mutable field properties (boost, search_analyzer, search_quote_analyzer, ignore_malformed)
-- Changes/additions/removals of Painless scripts
 
 
 ### View which schema revision is applied to an index
@@ -204,11 +196,29 @@ Change the data when migrating to a new schema via the `reindex.painless` script
 
 `reindex.painless` runs one time when reindexing into a new index.
 
-### Store any painless scripts in the index
+### Manage painless scripts
 
-Add into the `painless_scripts` folder all painless scripts that should be `PUT` into the index.
+- Download, edit, and upload centrally managed painless scripts.
+- Version control painless scripts alongside code
+- Manage scripts independently from schema migrations
+- Easily sync scripts between different environments
+- Track changes to scripts over time
 
-Each revision must specify all the painless scripts required, even if they haven't changed.
+#### Download painless scripts from cluster
+
+Download all painless scripts from a cluster and store them in the `painless_scripts/` directory (configurable via `PAINLESS_SCRIPTS_PATH` environment variable):
+
+```sh
+rake painless_scripts:fetch
+```
+
+#### Upload painless scripts to cluster
+
+Upload all `*.painless` script files from the local `painless_scripts` directory into the cluster.
+
+```sh
+rake painless_scripts:push
+```
 
 ### Generate a diff_output.txt for a given index
 

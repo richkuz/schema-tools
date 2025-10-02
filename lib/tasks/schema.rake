@@ -6,7 +6,8 @@ require 'schema_tools/utils'
 require 'schema_tools/reindex'
 require 'schema_tools/migrate'
 require 'schema_tools/create'
-require 'schema_tools/upload_painless'
+require 'schema_tools/painless_scripts_fetch'
+require 'schema_tools/painless_scripts_push'
 require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
@@ -82,15 +83,6 @@ namespace :schema do
     )
   end
 
-  desc "Upload painless scripts to index"
-  task :painless, [:index_name] do |t, args|
-    client = create_client!
-    
-    SchemaTools.upload_painless(
-      index_name: args[:index_name],
-      client: client
-    )
-  end
 
   desc "Reindex from source to destination index"
   task :reindex, [:index_name] do |t, args|
@@ -148,5 +140,21 @@ namespace :schema do
     SchemaTools.seed(
       client: client
     )
+  end
+end
+
+namespace :painless_scripts do
+  desc "Fetch all painless scripts from cluster and store them locally"
+  task :fetch do |t, args|
+    client = create_client!
+    
+    SchemaTools.painless_scripts_fetch(client: client)
+  end
+
+  desc "Push all painless scripts from local directory to cluster"
+  task :push do |t, args|
+    client = create_client!
+    
+    SchemaTools.painless_scripts_push(client: client)
   end
 end

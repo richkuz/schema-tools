@@ -72,7 +72,7 @@ RSpec.describe 'Schema Define Integration' do
 
       it 'generates schema files for existing index' do
         expect { definer.define_schema_for_existing_live_index('products') }
-          .to output(/Extracting live settings, mappings, and painless scripts from index "products"/).to_stdout
+          .to output(/Extracting live settings and mappings from index "products"/).to_stdout
 
         index_path = File.join(schemas_path, 'products')
         expect(File.exist?(File.join(index_path, 'index.json'))).to be true
@@ -170,104 +170,10 @@ RSpec.describe 'Schema Define Integration' do
 
       it 'reports schemas and painless scripts match' do
         expect { definer.define_schema_for_existing_live_index('products-3') }
-          .to output(/Latest schema definition and any painless scripts already match the live index/).to_stdout
+          .to output(/Latest schema definition already matches the live index/).to_stdout
       end
     end
 
-    context 'when painless scripts differ' do
-      before do
-        FileUtils.mkdir_p(File.join(schemas_path, 'products-3', 'revisions', '1', 'painless_scripts'))
-        
-        settings = {
-          'index' => {
-            'number_of_shards' => 1,
-            'number_of_replicas' => 0
-          }
-        }
-        
-        mappings = {
-          'properties' => {
-            'id' => { 'type' => 'keyword' },
-            'name' => { 'type' => 'text' }
-          }
-        }
-        
-        # Schema has different painless scripts
-        schema_painless_scripts = {
-          'script1' => 'ctx._source.test = "old_value"',
-          'script2' => 'ctx._source.another = "test"'
-        }
-        
-        # Live index has different painless scripts
-        live_painless_scripts = {
-          'script1' => 'ctx._source.test = "new_value"',
-          'script2' => 'ctx._source.another = "test"'
-        }
-        
-        File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'settings.json'), settings.to_json)
-        File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'mappings.json'), mappings.to_json)
-        
-        # Write schema painless scripts to files
-        schema_painless_scripts.each do |script_name, script_content|
-          File.write(File.join(schemas_path, 'products-3', 'revisions', '1', 'painless_scripts', "#{script_name}.painless"), script_content)
-        end
-        
-        stub_request(:get, 'http://localhost:9200/products-3')
-          .to_return(status: 200, body: {
-            'products-3' => {
-              'settings' => settings
-            }
-          }.to_json)
-        
-        stub_request(:get, 'http://localhost:9200/_cat/indices/products*?format=json')
-          .to_return(status: 200, body: [
-            { 'index' => 'products-3' }
-          ].to_json)
-        
-        stub_request(:get, 'http://localhost:9200/products-3')
-          .to_return(status: 200, body: {
-            'products-3' => {
-              'settings' => settings
-            }
-          }.to_json)
-        
-        stub_request(:get, 'http://localhost:9200/products-3/_mapping')
-          .to_return(status: 200, body: {
-            'products-3' => {
-              'mappings' => mappings
-            }
-          }.to_json)
-        
-        # Format the live scripts response to match Elasticsearch API structure
-        live_scripts_response = {}
-        live_painless_scripts.each do |script_name, script_content|
-          live_scripts_response[script_name] = {
-            'script' => {
-              'source' => script_content
-            }
-          }
-        end
-        
-        stub_request(:get, 'http://localhost:9200/_scripts')
-          .to_return(status: 200, body: live_scripts_response.to_json)
-      end
-
-      it 'detects painless scripts difference and creates new revision' do
-        expect { definer.define_schema_for_existing_live_index('products-3') }
-          .to output(/Index settings and mappings constitute a non-breaking change/).to_stdout
-
-        # Should create a new revision
-        revision_path = File.join(schemas_path, 'products-3', 'revisions', '2')
-        expect(File.exist?(File.join(revision_path, 'settings.json'))).to be true
-        expect(File.exist?(File.join(revision_path, 'mappings.json'))).to be true
-        expect(File.exist?(File.join(revision_path, 'painless_scripts', 'script1.painless'))).to be true
-        expect(File.exist?(File.join(revision_path, 'painless_scripts', 'script2.painless'))).to be true
-        
-        # Verify the new revision has the updated painless scripts
-        new_script_content = File.read(File.join(revision_path, 'painless_scripts', 'script1.painless'))
-        expect(new_script_content).to eq('ctx._source.test = "new_value"')
-      end
-    end
 
     context 'when breaking change detected' do
       before do

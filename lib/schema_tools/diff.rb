@@ -14,7 +14,7 @@ module SchemaTools
     previous_schema_revision = SchemaRevision.find_previous_revision_across_indexes(schema_revision)
 
     current_files = SchemaFiles.get_revision_files(schema_revision)
-    previous_files = previous_schema_revision ? SchemaFiles.get_revision_files(previous_schema_revision) : { settings: {}, mappings: {}, painless_scripts: {} }
+    previous_files = previous_schema_revision ? SchemaFiles.get_revision_files(previous_schema_revision) : { settings: {}, mappings: {} }
     
     diff_content = []
 
@@ -34,8 +34,6 @@ module SchemaTools
     diff_content << "\n=== Mappings Diff ==="
     diff_content << json_diff.generate_diff(previous_files[:mappings], current_files[:mappings])
     
-    diff_content << "\n=== Painless Scripts Diff ==="
-    diff_content << self.diff_painless_scripts(previous_files[:painless_scripts], current_files[:painless_scripts])
     
     diff_content = diff_content.join("\n")
     diff_output_path = File.join(schema_revision.revision_absolute_path, 'diff_output.txt')
@@ -45,56 +43,5 @@ module SchemaTools
     diff_content
   end
 
-  def self.diff_painless_scripts(old_scripts, new_scripts)
-    all_script_names = (old_scripts.keys + new_scripts.keys).uniq.sort
-    changes = []
-    
-    if all_script_names.empty?
-      return "No painless scripts found in either version"
-    end
-    
-    all_script_names.each do |script_name|
-      old_content = old_scripts[script_name]
-      new_content = new_scripts[script_name]
-      
-      if old_content.nil? && new_content
-        changes << "➕ ADDED SCRIPT: #{script_name}"
-        changes << "  Content:"
-        new_content.split("\n").each_with_index do |line, index|
-          changes << "    #{index + 1}: #{line}"
-        end
-      elsif old_content && new_content.nil?
-        changes << "➖ REMOVED SCRIPT: #{script_name}"
-        changes << "  Previous content:"
-        old_content.split("\n").each_with_index do |line, index|
-          changes << "    #{index + 1}: #{line}"
-        end
-      elsif old_content != new_content
-        changes << "🔄 MODIFIED SCRIPT: #{script_name}"
-        
-        # Show line-by-line differences for modified scripts
-        old_lines = old_content.split("\n")
-        new_lines = new_content.split("\n")
-        
-        changes << "  Changes:"
-        max_lines = [old_lines.length, new_lines.length].max
-        
-        (0...max_lines).each do |line_num|
-          old_line = old_lines[line_num]
-          new_line = new_lines[line_num]
-          
-          if old_line.nil?
-            changes << "    + #{line_num + 1}: #{new_line}"
-          elsif new_line.nil?
-            changes << "    - #{line_num + 1}: #{old_line}"
-          elsif old_line != new_line
-            changes << "    ~ #{line_num + 1}: #{old_line} → #{new_line}"
-          end
-        end
-      end
-    end
-    
-    changes.empty? ? "No script changes" : changes.join("\n")
-  end
 
 end

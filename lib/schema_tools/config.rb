@@ -12,6 +12,9 @@ module SchemaTools
     # Folder on disk where all schema definitions are stored
     SCHEMAS_PATH = ENV['SCHEMAS_PATH'] || 'schemas'
 
+    # Folder on disk where painless scripts are stored
+    PAINLESS_SCRIPTS_PATH = ENV['PAINLESS_SCRIPTS_PATH'] || 'painless_scripts'
+
     # Descriptive name shown when writing revision_applied_by to index metadata
     SCHEMURAI_USER = ENV['SCHEMURAI_USER'] || 'rake task'
 
@@ -33,6 +36,10 @@ module SchemaTools
     
     def self.schemas_path
       SCHEMAS_PATH
+    end
+
+    def self.painless_scripts_path
+      PAINLESS_SCRIPTS_PATH
     end
 
   end

@@ -15,13 +15,12 @@ module SchemaTools
       JSON.parse(File.read(index_json_path))
     end
 
-    # Return a map of settings, mappings, and painless_scripts content
+    # Return a map of settings and mappings content
     # Raises an error if settings or mappings don't exist and are not valid JSON
     def self.get_revision_files(schema_revision)
       {
         settings: load_json_file(File.join(schema_revision.revision_absolute_path, 'settings.json')),
-        mappings: load_json_file(File.join(schema_revision.revision_absolute_path, 'mappings.json')),
-        painless_scripts: load_painless_scripts(File.join(schema_revision.revision_absolute_path, 'painless_scripts'))
+        mappings: load_json_file(File.join(schema_revision.revision_absolute_path, 'mappings.json'))
       }
     end
 
@@ -66,16 +65,5 @@ module SchemaTools
       JSON.parse(File.read(file_path))
     end
 
-    def self.load_painless_scripts(scripts_dir)
-      return {} unless Dir.exist?(scripts_dir)
-      
-      scripts = {}
-      Dir.glob(File.join(scripts_dir, '*.painless')).each do |script_file|
-        script_name = File.basename(script_file, '.painless')
-        scripts[script_name] = File.read(script_file)
-      end
-      
-      scripts
-    end
   end
 end

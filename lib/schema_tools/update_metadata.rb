@@ -48,11 +48,12 @@ module SchemaTools
     
     client.update_index_mappings(index_name, mappings_update)
     
-    overwrite_revision_metadata(
-      index_name,
-      latest_schema_revision.revision_absolute_path,
-      merged_metadata
-    )
+    # Skip writing metadata to local mappings.json file
+    # overwrite_revision_metadata(
+    #   index_name,
+    #   latest_schema_revision.revision_absolute_path,
+    #   merged_metadata
+    # )
   end
 
   def self.overwrite_revision_metadata(index_name, revision_absolute_path, metadata)

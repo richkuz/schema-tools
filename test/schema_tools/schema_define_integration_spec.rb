@@ -362,7 +362,9 @@ RSpec.describe 'Schema Define Integration' do
   describe 'define_breaking_change_schema' do
     context 'when schema definition exists' do
       before do
-        FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
+        revision_dir = FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
+        File.write(File.join(revision_dir, 'settings.json'), { 'settings' => {} }.to_json)
+        File.write(File.join(revision_dir, 'mappings.json'), { 'mappings' => {} }.to_json)
       end
 
       it 'generates breaking change schema' do
@@ -378,7 +380,9 @@ RSpec.describe 'Schema Define Integration' do
   describe 'define_non_breaking_change_schema' do
     context 'when schema definition exists' do
       before do
-        FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
+        revision_dir = FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
+        File.write(File.join(revision_dir, 'settings.json'), { 'settings' => {} }.to_json)
+        File.write(File.join(revision_dir, 'mappings.json'), { 'mappings' => {} }.to_json)
       end
 
       it 'generates non-breaking change schema' do

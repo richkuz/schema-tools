@@ -224,7 +224,9 @@ RSpec.describe SchemaTools::SchemaDefiner do
   describe '#define_breaking_change_schema' do
     context 'when schema definition exists' do
       before do
-        FileUtils.mkdir_p(File.join(schemas_path, 'products-3', 'revisions', '1'))
+        revision_dir = FileUtils.mkdir_p(File.join(schemas_path, 'products-3', 'revisions', '1'))
+        File.write(File.join(revision_dir, 'settings.json'), { 'settings' => {} }.to_json)
+        File.write(File.join(revision_dir, 'mappings.json'), { 'mappings' => {} }.to_json)
       end
 
       it 'generates breaking change schema' do
@@ -259,7 +261,9 @@ RSpec.describe SchemaTools::SchemaDefiner do
   describe '#define_non_breaking_change_schema' do
     context 'when schema definition exists' do
       before do
-        FileUtils.mkdir_p(File.join(schemas_path, 'products-3', 'revisions', '1'))
+        revision_dir = FileUtils.mkdir_p(File.join(schemas_path, 'products-3', 'revisions', '1'))
+        File.write(File.join(revision_dir, 'settings.json'), { 'settings' => {} }.to_json)
+        File.write(File.join(revision_dir, 'mappings.json'), { 'mappings' => {} }.to_json)
       end
 
       it 'generates non-breaking change schema' do
@@ -336,8 +340,10 @@ RSpec.describe SchemaTools::SchemaDefiner do
     end
 
     it 'generates breaking change schema' do
-      FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
-      
+      revision_dir = FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
+      File.write(File.join(revision_dir, 'settings.json'), { 'settings' => {} }.to_json)
+      File.write(File.join(revision_dir, 'mappings.json'), { 'mappings' => {} }.to_json)
+
       expect { definer.define_breaking_change_schema('existing') }
         .to output(/Generated example schema definition files/).to_stdout
     end
@@ -350,10 +356,59 @@ RSpec.describe SchemaTools::SchemaDefiner do
     end
 
     it 'generates non-breaking change schema' do
-      FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
+      revision_dir = FileUtils.mkdir_p(File.join(schemas_path, 'existing-2', 'revisions', '1'))
+      File.write(File.join(revision_dir, 'settings.json'), { 'settings' => {} }.to_json)
+      File.write(File.join(revision_dir, 'mappings.json'), { 'mappings' => {} }.to_json)
       
       expect { definer.define_non_breaking_change_schema('existing') }
         .to output(/Generated example schema definition files/).to_stdout
+    end
+  end
+
+  describe '#filter_schemurai_metadata' do
+    it 'removes schemurai_revision from _meta section' do
+      mappings = {
+        'properties' => { 'id' => { 'type' => 'keyword' } },
+        '_meta' => {
+          'schemurai_revision' => { 'revision' => 'test/revisions/1' },
+          'custom_metadata' => 'value'
+        }
+      }
+      
+      filtered = definer.send(:filter_schemurai_metadata, mappings)
+      
+      expect(filtered['_meta']['schemurai_revision']).to be_nil
+      expect(filtered['_meta']['custom_metadata']).to eq('value')
+    end
+
+    it 'removes entire _meta section when it becomes empty after removing schemurai_revision' do
+      mappings = {
+        'properties' => { 'id' => { 'type' => 'keyword' } },
+        '_meta' => {
+          'schemurai_revision' => { 'revision' => 'test/revisions/1' }
+        }
+      }
+      
+      filtered = definer.send(:filter_schemurai_metadata, mappings)
+      
+      expect(filtered['_meta']).to be_nil
+    end
+
+    it 'preserves other _meta content when removing schemurai_revision' do
+      mappings = {
+        'properties' => { 'id' => { 'type' => 'keyword' } },
+        '_meta' => {
+          'schemurai_revision' => { 'revision' => 'test/revisions/1' },
+          'custom_field' => 'custom_value',
+          'another_field' => 'another_value'
+        }
+      }
+      
+      filtered = definer.send(:filter_schemurai_metadata, mappings)
+      
+      expect(filtered['_meta']['schemurai_revision']).to be_nil
+      expect(filtered['_meta']['custom_field']).to eq('custom_value')
+      expect(filtered['_meta']['another_field']).to eq('another_value')
     end
   end
 

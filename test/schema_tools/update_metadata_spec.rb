@@ -107,7 +107,7 @@ RSpec.describe SchemaTools do
         expect(client).to have_received(:update_index_mappings).with(index_name, anything)
       end
 
-      it 'updates the mappings.json file on disk' do
+      it 'does not update the mappings.json file on disk' do
         SchemaTools.update_metadata(
           index_name: index_name,
           metadata: new_metadata,
@@ -115,18 +115,9 @@ RSpec.describe SchemaTools do
         )
 
         updated_mappings = JSON.parse(File.read(mappings_path))
-        metadata = updated_mappings['_meta']['schemurai_revision']
         
-        expect(metadata).to include(
-          'reindex_started_at' => '2023-01-01T10:00:00Z',
-          'custom_field' => 'new_value', # new metadata takes precedence
-          'reindex_completed_at' => '2023-01-01T11:00:00Z',
-          'revision' => 'products-2/revisions/1',
-          'revision_applied_by' => 'test_user'
-        )
-        
-        # Check that revision_applied_at is a valid ISO8601 timestamp
-        expect(metadata['revision_applied_at']).to match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+        # The local mappings.json file should not contain _meta.schemurai_revision
+        expect(updated_mappings['_meta']).to be_nil
       end
     end
 
@@ -161,7 +152,7 @@ RSpec.describe SchemaTools do
         expect(client).to have_received(:update_index_mappings).with(index_name, anything)
       end
 
-      it 'creates _meta structure in mappings.json file' do
+      it 'does not create _meta structure in mappings.json file' do
         SchemaTools.update_metadata(
           index_name: index_name,
           metadata: new_metadata,
@@ -169,16 +160,9 @@ RSpec.describe SchemaTools do
         )
 
         updated_mappings = JSON.parse(File.read(mappings_path))
-        metadata = updated_mappings['_meta']['schemurai_revision']
         
-        expect(metadata).to include(
-          'reindex_started_at' => '2023-01-01T10:00:00Z',
-          'revision' => 'products-2/revisions/1',
-          'revision_applied_by' => 'test_user'
-        )
-        
-        # Check that revision_applied_at is a valid ISO8601 timestamp
-        expect(metadata['revision_applied_at']).to match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+        # The local mappings.json file should not contain _meta.schemurai_revision
+        expect(updated_mappings['_meta']).to be_nil
       end
     end
 
@@ -189,7 +173,7 @@ RSpec.describe SchemaTools do
         allow(client).to receive(:update_index_mappings).with(index_name, anything)
       end
 
-      it 'raises an error when mappings.json file does not exist' do
+      it 'does not raise an error when mappings.json file does not exist' do
         new_metadata = { 'custom_field' => 'value' }
         
         expect {
@@ -198,7 +182,7 @@ RSpec.describe SchemaTools do
             metadata: new_metadata,
             client: client
           )
-        }.to raise_error(Errno::ENOENT, /No such file or directory/)
+        }.not_to raise_error
       end
     end
 
@@ -208,7 +192,7 @@ RSpec.describe SchemaTools do
         allow(client).to receive(:update_index_mappings).with(index_name, anything)
       end
 
-      it 'always sets revision, revision_applied_at, and revision_applied_by' do
+      it 'does not write persistent metadata to local mappings.json file' do
         SchemaTools.update_metadata(
           index_name: index_name,
           metadata: { 'custom_field' => 'value' },
@@ -216,19 +200,12 @@ RSpec.describe SchemaTools do
         )
 
         updated_mappings = JSON.parse(File.read(mappings_path))
-        metadata = updated_mappings['_meta']['schemurai_revision']
         
-        expect(metadata).to include(
-          'custom_field' => 'value',
-          'revision' => 'products-2/revisions/1',
-          'revision_applied_by' => 'test_user'
-        )
-        
-        # Check that revision_applied_at is a valid ISO8601 timestamp
-        expect(metadata['revision_applied_at']).to match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+        # The local mappings.json file should not contain _meta.schemurai_revision
+        expect(updated_mappings['_meta']).to be_nil
       end
 
-      it 'overwrites persistent metadata if provided in input metadata' do
+      it 'does not write overwritten persistent metadata to local mappings.json file' do
         input_metadata = {
           'revision' => 'custom_revision',
           'revision_applied_at' => '2023-01-01T12:00:00Z',
@@ -242,15 +219,9 @@ RSpec.describe SchemaTools do
         )
 
         updated_mappings = JSON.parse(File.read(mappings_path))
-        metadata = updated_mappings['_meta']['schemurai_revision']
         
-        expect(metadata).to include(
-          'revision' => 'products-2/revisions/1', # persistent metadata takes precedence
-          'revision_applied_by' => 'test_user'
-        )
-        
-        # Check that revision_applied_at is a valid ISO8601 timestamp
-        expect(metadata['revision_applied_at']).to match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+        # The local mappings.json file should not contain _meta.schemurai_revision
+        expect(updated_mappings['_meta']).to be_nil
       end
     end
 
@@ -268,25 +239,19 @@ RSpec.describe SchemaTools do
         allow(client).to receive(:update_index_mappings).with(index_name, anything)
       end
 
-      it 'updates the latest revision (revision 2)' do
+      it 'does not update any revision mappings.json files' do
         SchemaTools.update_metadata(
           index_name: index_name,
           metadata: { 'custom_field' => 'value' },
           client: client
         )
 
-        # Should update revision 2, not revision 1
-        updated_mappings = JSON.parse(File.read(mappings_2_path))
-        metadata = updated_mappings['_meta']['schemurai_revision']
+        # Should not update any local mappings.json files
+        updated_mappings_1 = JSON.parse(File.read(mappings_path))
+        updated_mappings_2 = JSON.parse(File.read(mappings_2_path))
         
-        expect(metadata).to include(
-          'custom_field' => 'value',
-          'revision' => 'products-2/revisions/2',
-          'revision_applied_by' => 'test_user'
-        )
-        
-        # Check that revision_applied_at is a valid ISO8601 timestamp
-        expect(metadata['revision_applied_at']).to match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+        expect(updated_mappings_1['_meta']).to be_nil
+        expect(updated_mappings_2['_meta']).to be_nil
       end
     end
 

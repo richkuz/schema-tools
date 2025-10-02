@@ -187,9 +187,9 @@
   },
   "_meta": {
     "schemurai_revision": {
-      "revision": "comprehensive_test_index/revisions/1",
-      "revision_applied_at": "2025-10-01T04:17:27-04:00",
-      "revision_applied_by": "rake task"
+      "revision_applied_by": "rake task",
+      "revision_applied_at": "2025-10-02T05:23:46-04:00",
+      "revision": "comprehensive_test_index/revisions/1"
     }
   }
 }

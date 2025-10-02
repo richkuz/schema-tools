@@ -162,7 +162,7 @@ module SchemaTools
       
       {
         settings: filter_internal_settings(settings || {}),
-        mappings: mappings,
+        mappings: filter_schemurai_metadata(mappings),
         painless_scripts: painless_scripts
       }
     end
@@ -190,6 +190,24 @@ module SchemaTools
       filtered_settings
     end
 
+    # Don't add any _meta.schemurai_revision section into the local mappings.json file
+    # because it's noisy and the timestamps change often.
+    # Leave _meta.schemurai_revision only in the live index.
+    def filter_schemurai_metadata(mappings)
+      return mappings unless mappings.is_a?(Hash)
+      
+      filtered_mappings = JSON.parse(JSON.generate(mappings))
+      
+      if filtered_mappings['_meta'] && filtered_mappings['_meta']['schemurai_revision']
+        filtered_mappings['_meta'].delete('schemurai_revision')
+        if filtered_mappings['_meta'] && filtered_mappings['_meta'].empty?
+          filtered_mappings.delete('_meta')
+        end
+      end
+      
+      filtered_mappings
+    end
+
     def generate_example_schema_files(index_name, data, from_index_name = nil)
       index_path = File.join(Config.schemas_path, index_name)
       
@@ -210,7 +228,8 @@ module SchemaTools
       
       write_painless_scripts(File.join(index_path, 'revisions', '1', 'painless_scripts'), data[:painless_scripts])
       
-      File.write(File.join(index_path, 'revisions', '1', 'diff_output.txt'), 'Initial schema definition')
+      this_revision = SchemaRevision.find_latest_revision(index_name)
+      SchemaTools.diff(schema_revision: this_revision) # Generate an example diff_output.txt against a null baseline 
       
       puts "\nGenerated example schema definition files:"
       puts "schemas/#{index_name}"
@@ -235,7 +254,8 @@ module SchemaTools
       
       write_painless_scripts(File.join(revision_path, 'painless_scripts'), data[:painless_scripts])
       
-      File.write(File.join(revision_path, 'diff_output.txt'), 'Schema revision')
+      this_revision = SchemaRevision.find_latest_revision(index_name)
+      SchemaTools.diff(schema_revision: this_revision) # Generate a diff_output.txt
       
       revision_number = File.basename(revision_path)
       

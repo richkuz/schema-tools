@@ -5,13 +5,25 @@ module SchemaTools
     def initialize()      
     end
 
+    # Keys to ignore in diff comparisons (noisy metadata)
+    IGNORED_KEYS = [
+      '_meta.schemurai_revision.reindex_completed_at',
+      '_meta.schemurai_revision.reindex_started_at', 
+      '_meta.schemurai_revision.revision',
+      '_meta.schemurai_revision.revision_applied_at'
+    ].freeze
+
     # Generate a detailed diff between two JSON objects
     # Returns a formatted string showing additions, removals, and modifications
     def generate_diff(old_json, new_json, context: {})
       old_normalized = normalize_json(old_json)
       new_normalized = normalize_json(new_json)
       
-      if old_normalized == new_normalized
+      # Filter out ignored keys
+      old_filtered = filter_ignored_keys(old_normalized)
+      new_filtered = filter_ignored_keys(new_normalized)
+      
+      if old_filtered == new_filtered
         return "No changes detected"
       end
 
@@ -20,7 +32,7 @@ module SchemaTools
       diff_lines << ""
       
       # Generate detailed diff
-      changes = compare_objects(old_normalized, new_normalized, "")
+      changes = compare_objects(old_filtered, new_filtered, "")
       
       if changes.empty?
         diff_lines << "No changes detected"
@@ -36,6 +48,27 @@ module SchemaTools
     def normalize_json(json_obj)
       return {} unless json_obj
       JSON.parse(JSON.generate(json_obj))
+    end
+
+    def filter_ignored_keys(obj, path_prefix = "")
+      return obj unless obj.is_a?(Hash)
+      
+      filtered = {}
+      obj.each do |key, value|
+        current_path = path_prefix.empty? ? key : "#{path_prefix}.#{key}"
+        
+        # Skip ignored keys
+        next if IGNORED_KEYS.any? { |ignored_key| current_path == ignored_key }
+        
+        # Recursively filter nested objects
+        if value.is_a?(Hash)
+          filtered[key] = filter_ignored_keys(value, current_path)
+        else
+          filtered[key] = value
+        end
+      end
+      
+      filtered
     end
 
     def compare_objects(old_obj, new_obj, path_prefix)
@@ -59,6 +92,10 @@ module SchemaTools
       
       all_keys.each do |key|
         current_path = path_prefix.empty? ? key : "#{path_prefix}.#{key}"
+        
+        # Skip ignored keys
+        next if IGNORED_KEYS.any? { |ignored_key| current_path == ignored_key }
+        
         old_value = old_hash[key]
         new_value = new_hash[key]
         

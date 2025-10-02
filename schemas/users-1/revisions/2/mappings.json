@@ -27,9 +27,9 @@
   },
   "_meta": {
     "schemurai_revision": {
-      "revision": "users-1/revisions/2",
-      "revision_applied_at": "2025-09-27T07:44:48-04:00",
-      "revision_applied_by": "rake task"
+      "revision_applied_by": "rake task",
+      "revision_applied_at": "2025-10-01T04:17:27-04:00",
+      "revision": "users-1/revisions/2"
     }
   }
 }

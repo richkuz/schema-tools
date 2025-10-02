@@ -1,0 +1,3 @@
+// Example painless script for illustrative purposes
+// ctx._source.full_name = ctx._source.first_name + " " + ctx._source.last_name;
+// ctx._source.updated_at = Instant.now().toString();

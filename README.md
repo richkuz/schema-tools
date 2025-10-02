@@ -206,7 +206,7 @@ Change the data when migrating to a new schema via the `reindex.painless` script
 
 #### Download painless scripts from cluster
 
-Download all painless scripts from a cluster and store them in the `painless_scripts/` directory (configurable via `PAINLESS_SCRIPTS_PATH` environment variable):
+To download all painless scripts from a cluster and store them in the `painless_scripts/` directory (configurable via `PAINLESS_SCRIPTS_PATH` environment variable):
 
 ```sh
 rake painless_scripts:download
@@ -214,11 +214,24 @@ rake painless_scripts:download
 
 #### Upload painless scripts to cluster
 
-Upload all `*.painless` script files from the local `painless_scripts` directory into the cluster.
+To upload all `*.painless` script files from the local `painless_scripts` directory into the cluster.
 
 ```sh
 rake painless_scripts:upload
 ```
+
+#### Delete a painless script from cluster
+
+To delete a specific painless script from the cluster:
+
+```sh
+rake 'painless_scripts:delete[script_name]'
+```
+
+This will:
+- Delete the specified script from the cluster
+- Accept script names with or without the `.painless` extension
+- Handle cases where the script doesn't exist gracefully
 
 ### Generate a diff_output.txt for a given index
 

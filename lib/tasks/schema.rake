@@ -8,6 +8,7 @@ require 'schema_tools/migrate'
 require 'schema_tools/create'
 require 'schema_tools/painless_scripts_download'
 require 'schema_tools/painless_scripts_upload'
+require 'schema_tools/painless_scripts_delete'
 require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
@@ -156,5 +157,12 @@ namespace :painless_scripts do
     client = create_client!
     
     SchemaTools.painless_scripts_upload(client: client)
+  end
+
+  desc "Delete a specific painless script from cluster"
+  task :delete, [:script_name] do |t, args|
+    client = create_client!
+    
+    SchemaTools.painless_scripts_delete(script_name: args[:script_name], client: client)
   end
 end

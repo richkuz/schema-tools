@@ -157,6 +157,28 @@ module SchemaTools
       put("/_scripts/#{script_name}", body)
     end
 
+    def delete_script(script_name)
+      if @dryrun
+        print_curl_command('DELETE', "/_scripts/#{script_name}")
+        return { 'acknowledged' => true } # Return mock response for dry run
+      end
+
+      uri = URI("#{@url}/_scripts/#{script_name}")
+      request = Net::HTTP::Delete.new(uri)
+      add_auth_header(request)
+      
+      response = make_http_request(uri) { |http| http.request(request) }
+      
+      case response.code.to_i
+      when 200
+        JSON.parse(response.body) if response.body && !response.body.empty?
+      when 404
+        raise "HTTP 404: Script '#{script_name}' not found"
+      else
+        raise "HTTP #{response.code}: #{response.body}"
+      end
+    end
+
     def get_stored_scripts
       # Try the legacy Elasticsearch API first (works for Elasticsearch and older OpenSearch)
       begin

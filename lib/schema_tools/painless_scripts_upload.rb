@@ -1,7 +1,7 @@
 require 'fileutils'
 
 module SchemaTools
-  def self.painless_scripts_push(client:)
+  def self.painless_scripts_upload(client:)
     painless_scripts_path = Config.painless_scripts_path
     
     unless Dir.exist?(painless_scripts_path)
@@ -9,7 +9,7 @@ module SchemaTools
       return
     end
     
-    puts "Pushing all painless scripts from #{painless_scripts_path} to cluster..."
+    puts "Uploading all painless scripts from #{painless_scripts_path} to cluster..."
     
     script_files = Dir.glob(File.join(painless_scripts_path, '*.painless'))
     
@@ -23,9 +23,9 @@ module SchemaTools
       script_content = File.read(script_file_path)
       
       client.put_script(script_name, script_content)
-      puts "Pushed script: #{script_name}"
+      puts "Uploaded script: #{script_name}"
     end
     
-    puts "Successfully pushed #{script_files.length} painless script(s) to cluster"
+    puts "Successfully uploaded #{script_files.length} painless script(s) to cluster"
   end
 end

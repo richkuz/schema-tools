@@ -6,8 +6,8 @@ require 'schema_tools/utils'
 require 'schema_tools/reindex'
 require 'schema_tools/migrate'
 require 'schema_tools/create'
-require 'schema_tools/painless_scripts_fetch'
-require 'schema_tools/painless_scripts_push'
+require 'schema_tools/painless_scripts_download'
+require 'schema_tools/painless_scripts_upload'
 require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
@@ -144,17 +144,17 @@ namespace :schema do
 end
 
 namespace :painless_scripts do
-  desc "Fetch all painless scripts from cluster and store them locally"
-  task :fetch do |t, args|
+  desc "Download all painless scripts from cluster and store them locally"
+  task :download do |t, args|
     client = create_client!
     
-    SchemaTools.painless_scripts_fetch(client: client)
+    SchemaTools.painless_scripts_download(client: client)
   end
 
-  desc "Push all painless scripts from local directory to cluster"
-  task :push do |t, args|
+  desc "Upload all painless scripts from local directory to cluster"
+  task :upload do |t, args|
     client = create_client!
     
-    SchemaTools.painless_scripts_push(client: client)
+    SchemaTools.painless_scripts_upload(client: client)
   end
 end

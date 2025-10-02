@@ -1,10 +1,10 @@
 require_relative '../spec_helper'
-require 'schema_tools/painless_scripts_fetch'
+require 'schema_tools/painless_scripts_download'
 require 'schema_tools/config'
 require 'tempfile'
 
 RSpec.describe SchemaTools do
-  describe '.painless_scripts_fetch' do
+  describe '.painless_scripts_download' do
     let(:temp_dir) { Dir.mktmpdir }
     let(:painless_scripts_path) { File.join(temp_dir, 'painless_scripts') }
     let(:original_painless_scripts_path) { SchemaTools::Config.painless_scripts_path }
@@ -25,12 +25,12 @@ RSpec.describe SchemaTools do
       end
 
       it 'prints no scripts message and returns early' do
-        expect { SchemaTools.painless_scripts_fetch(client: client) }
+        expect { SchemaTools.painless_scripts_download(client: client) }
           .to output(/No painless scripts found in cluster/).to_stdout
       end
 
       it 'does not create painless_scripts directory' do
-        SchemaTools.painless_scripts_fetch(client: client)
+        SchemaTools.painless_scripts_download(client: client)
         expect(Dir.exist?(painless_scripts_path)).to be false
       end
     end
@@ -48,17 +48,17 @@ RSpec.describe SchemaTools do
       end
 
       it 'fetches and stores all scripts' do
-        expect { SchemaTools.painless_scripts_fetch(client: client) }
-          .to output(/Fetching all painless scripts from cluster.*Fetched script: script1.*Fetched script: script2.*Successfully fetched 2 painless script\(s\) to #{Regexp.escape(painless_scripts_path)}/m).to_stdout
+        expect { SchemaTools.painless_scripts_download(client: client) }
+          .to output(/Downloading all painless scripts from cluster.*Downloaded script: script1.*Downloaded script: script2.*Successfully downloaded 2 painless script\(s\) to #{Regexp.escape(painless_scripts_path)}/m).to_stdout
       end
 
       it 'creates painless_scripts directory' do
-        SchemaTools.painless_scripts_fetch(client: client)
+        SchemaTools.painless_scripts_download(client: client)
         expect(Dir.exist?(painless_scripts_path)).to be true
       end
 
       it 'writes script files with correct content' do
-        SchemaTools.painless_scripts_fetch(client: client)
+        SchemaTools.painless_scripts_download(client: client)
         
         script1_path = File.join(painless_scripts_path, 'script1.painless')
         script2_path = File.join(painless_scripts_path, 'script2.painless')
@@ -74,7 +74,7 @@ RSpec.describe SchemaTools do
         empty_scripts = { 'empty_script' => '' }
         allow(client).to receive(:get_stored_scripts).and_return(empty_scripts)
         
-        SchemaTools.painless_scripts_fetch(client: client)
+        SchemaTools.painless_scripts_download(client: client)
         
         empty_script_path = File.join(painless_scripts_path, 'empty_script.painless')
         expect(File.exist?(empty_script_path)).to be true
@@ -92,7 +92,7 @@ RSpec.describe SchemaTools do
       end
 
       it 'overwrites existing files' do
-        SchemaTools.painless_scripts_fetch(client: client)
+        SchemaTools.painless_scripts_download(client: client)
         
         script1_path = File.join(painless_scripts_path, 'script1.painless')
         old_script_path = File.join(painless_scripts_path, 'old_script.painless')

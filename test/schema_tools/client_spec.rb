@@ -309,4 +309,31 @@ RSpec.describe SchemaTools::Client do
       end
     end
   end
+
+  describe 'HTTPS support' do
+    let(:https_client) { SchemaTools::Client.new('https://example.com:9200') }
+    
+    it 'creates HTTPS client successfully' do
+      expect(https_client.url).to eq('https://example.com:9200')
+    end
+    
+    it 'uses HTTPS for requests' do
+      response_body = { 'test' => 'data' }.to_json
+      stub_request(:get, 'https://example.com:9200/test')
+        .to_return(status: 200, body: response_body)
+      
+      result = https_client.get('/test')
+      expect(result).to eq({ 'test' => 'data' })
+    end
+    
+    it 'handles default HTTPS port' do
+      client_default_port = SchemaTools::Client.new('https://example.com')
+      expect(client_default_port.url).to eq('https://example.com')
+    end
+    
+    it 'handles custom HTTPS port' do
+      client_custom_port = SchemaTools::Client.new('https://example.com:9443')
+      expect(client_custom_port.url).to eq('https://example.com:9443')
+    end
+  end
 end

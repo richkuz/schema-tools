@@ -20,7 +20,7 @@ module SchemaTools
       uri = URI("#{@url}#{path}")
       request = Net::HTTP::Get.new(uri)
       add_auth_header(request)
-      response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+      response = make_http_request(uri) { |http| http.request(request) }
       
       case response.code.to_i
       when 200
@@ -44,7 +44,7 @@ module SchemaTools
       request.body = body.to_json
       add_auth_header(request)
       
-      response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+      response = make_http_request(uri) { |http| http.request(request) }
       
       case response.code.to_i
       when 200, 201
@@ -66,7 +66,7 @@ module SchemaTools
       request.body = body.to_json
       add_auth_header(request)
       
-      response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+      response = make_http_request(uri) { |http| http.request(request) }
       
       case response.code.to_i
       when 200, 201
@@ -86,7 +86,7 @@ module SchemaTools
       request = Net::HTTP::Delete.new(uri)
       add_auth_header(request)
       
-      response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+      response = make_http_request(uri) { |http| http.request(request) }
       
       case response.code.to_i
       when 200, 404
@@ -240,7 +240,7 @@ module SchemaTools
       request.body = ndjson
       add_auth_header(request)
       
-      response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+      response = make_http_request(uri) { |http| http.request(request) }
       
       case response.code.to_i
       when 200
@@ -268,6 +268,15 @@ module SchemaTools
     end
 
     private
+
+    def make_http_request(uri)
+      use_ssl = uri.scheme == 'https'
+      port = uri.port || (use_ssl ? 443 : 80)
+      
+      Net::HTTP.start(uri.hostname, port, use_ssl: use_ssl) do |http|
+        yield(http)
+      end
+    end
 
     def add_auth_header(request)
       if @username && @password

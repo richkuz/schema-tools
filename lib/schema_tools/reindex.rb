@@ -17,7 +17,6 @@ module SchemaTools
     
     puts "Starting reindex from #{from_index} to #{index_name}"
     begin
-      SchemaTools.update_metadata(index_name:, metadata: { reindex_started_at: Time.now.iso8601 }, client:)
       response = client.reindex(from_index, index_name, reindex_script)
       puts response
 
@@ -45,8 +44,6 @@ module SchemaTools
           puts "Task #{task_id} is still running..."
         end
       end
-    ensure
-      SchemaTools.update_metadata(index_name:, metadata: { reindex_completed_at: Time.now.iso8601 }, client:)
     end
   end
 end

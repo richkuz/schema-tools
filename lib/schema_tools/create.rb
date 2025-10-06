@@ -16,6 +16,5 @@ module SchemaTools
       puts "Creating index #{index_name}"
       client.create_index(index_name, revision_files[:settings], revision_files[:mappings])
     end
-    SchemaTools.update_metadata(index_name:, metadata: { }, client:)
   end
 end

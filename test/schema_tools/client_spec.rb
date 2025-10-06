@@ -59,41 +59,6 @@ RSpec.describe SchemaTools::Client do
     end
   end
   
-  describe '#get_schema_revision' do
-    it 'returns revision when present' do
-      response_body = {
-        'test-index' => {
-          'mappings' => {
-            '_meta' => {
-              'schemurai_revision' => {
-                'revision' => 'test-index/revisions/1'
-              }
-            }
-          }
-        }
-      }.to_json
-      
-      stub_request(:get, 'http://localhost:9200/test-index')
-        .to_return(status: 200, body: response_body)
-      
-      expect(client.get_schema_revision('test-index')).to eq('test-index/revisions/1')
-    end
-    
-    it 'returns nil when revision not present' do
-      response_body = {
-        'test-index' => {
-          'settings' => {
-            'index' => {}
-          }
-        }
-      }.to_json
-      
-      stub_request(:get, 'http://localhost:9200/test-index')
-        .to_return(status: 200, body: response_body)
-      
-      expect(client.get_schema_revision('test-index')).to be_nil
-    end
-  end
 
   describe '#get_stored_scripts' do
     context 'when legacy API works (Elasticsearch/older OpenSearch)' do

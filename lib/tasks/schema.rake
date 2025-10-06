@@ -1,8 +1,6 @@
 require 'schema_tools/client'
 require 'schema_tools/schema_files'
-require 'schema_tools/schema_definer'
 require 'schema_tools/config'
-require 'schema_tools/utils'
 require 'schema_tools/reindex'
 require 'schema_tools/migrate'
 require 'schema_tools/create'
@@ -12,10 +10,8 @@ require 'schema_tools/painless_scripts_delete'
 require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
-require 'schema_tools/define'
-require 'schema_tools/diff'
-require 'schema_tools/update_metadata'
-require 'schema_tools/schema_revision'
+require 'schema_tools/download'
+require 'schema_tools/new_alias'
 require 'schema_tools/seed'
 require 'seeder/seeder'
 require 'json'
@@ -54,25 +50,17 @@ def create_client!
 end
 
 namespace :schema do
-  desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
-  task :migrate, [:to_index] do |t, args|
+  desc "Migrate to a specific alias schema or migrate all schemas to their latest revisions"
+  task :migrate, [:alias_name] do |t, args|
     client = create_client!
     
-    if args[:to_index]
-      SchemaTools.migrate_one_schema(index_name: args[:to_index], client: client)
+    if args[:alias_name]
+      SchemaTools.migrate_one_schema(alias_name: args[:alias_name], client: client)
     else
       SchemaTools.migrate_all(client: client)
     end
   end
 
-  desc "Generate diff output file for a given schema revision path, e.g. products-3/revisions/5"
-  task :diff, [:revision_path] do |t, args|
-    diff = SchemaTools.diff(
-      schema_revision: SchemaRevision.new(revision_path)
-    )
-    
-    puts diff
-  end
 
   desc "Create index with schema definition"
   task :create, [:index_name] do |t, args|
@@ -125,11 +113,20 @@ namespace :schema do
     )
   end
 
-  desc "Define schema files for a new or existing index"
-  task :define do |t, args|
+  desc "Download schema from an existing alias or index"
+  task :download do |t, args|
     client = create_client!
 
-    SchemaTools.define(
+    SchemaTools.download(
+      client: client
+    )
+  end
+
+  desc "Create a new alias with sample schema"
+  task :new do |t, args|
+    client = create_client!
+
+    SchemaTools.new_alias(
       client: client
     )
   end

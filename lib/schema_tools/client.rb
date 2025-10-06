@@ -112,13 +112,6 @@ module SchemaTools
       response[index_name]['mappings']
     end
 
-    def get_schema_revision(index_name)
-      mappings = get_index_mappings(index_name)
-      return nil unless mappings
-      
-      meta = mappings.dig('_meta', 'schemurai_revision')
-      meta ? meta['revision'] : nil
-    end
 
     def create_index(index_name, settings, mappings)
       body = {
@@ -132,9 +125,6 @@ module SchemaTools
       put("/#{index_name}/_settings", settings)
     end
 
-    def update_index_mappings(index_name, mappings)
-      put("/#{index_name}/_mapping", mappings)
-    end
 
     def reindex(source_index, dest_index, script = nil)
       body = {
@@ -225,6 +215,50 @@ module SchemaTools
       response.map { |index| index['index'] }
               .reject { |name| name.start_with?('.') || name.start_with?('top_queries-') } # Exclude system indices
               .sort
+    end
+
+    def list_aliases
+      response = get("/_aliases")
+      return {} unless response
+      
+      aliases = {}
+      response.each do |index_name, index_data|
+        index_aliases = index_data['aliases']
+        next unless index_aliases && !index_aliases.empty?
+        
+        index_aliases.each do |alias_name, alias_data|
+          aliases[alias_name] ||= []
+          aliases[alias_name] << index_name
+        end
+      end
+      
+      aliases
+    end
+
+    def get_alias_indices(alias_name)
+      response = get("/_alias/#{alias_name}")
+      return [] unless response
+      
+      response.keys
+    end
+
+    def create_alias(alias_name, index_name)
+      body = {
+        actions: [
+          {
+            add: {
+              index: index_name,
+              alias: alias_name
+            }
+          }
+        ]
+      }
+      post("/_aliases", body)
+    end
+
+    def alias_exists?(alias_name)
+      response = get("/_alias/#{alias_name}")
+      response && !response.empty?
     end
 
     def test_connection

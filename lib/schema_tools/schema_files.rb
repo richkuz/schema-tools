@@ -1,57 +1,40 @@
 require 'json'
 require 'fileutils'
-require 'time'
-require_relative 'schema_revision'
 
 module SchemaTools
   class SchemaFiles
-    def self.get_index_config(index_name)
-      index_path = File.join(Config.schemas_path, index_name)
-      return nil unless Dir.exist?(index_path)
+    def self.get_settings(alias_name)
+      settings_path = File.join(Config.schemas_path, alias_name, 'settings.json')
+      return nil unless File.exist?(settings_path)
       
-      index_json_path = File.join(index_path, 'index.json')
-      return nil unless File.exist?(index_json_path)
-      
-      JSON.parse(File.read(index_json_path))
+      JSON.parse(File.read(settings_path))
     end
 
-    # Return a map of settings and mappings content
-    # Raises an error if settings or mappings don't exist and are not valid JSON
-    def self.get_revision_files(schema_revision)
-      {
-        settings: load_json_file(File.join(schema_revision.revision_absolute_path, 'settings.json')),
-        mappings: load_json_file(File.join(schema_revision.revision_absolute_path, 'mappings.json'))
-      }
+    def self.get_mappings(alias_name)
+      mappings_path = File.join(Config.schemas_path, alias_name, 'mappings.json')
+      return nil unless File.exist?(mappings_path)
+      
+      JSON.parse(File.read(mappings_path))
     end
 
-    def self.get_reindex_script(index_name)
-      index_path = File.join(Config.schemas_path, index_name)
-      script_path = File.join(index_path, 'reindex.painless')
+    def self.get_reindex_script(alias_name)
+      script_path = File.join(Config.schemas_path, alias_name, 'reindex.painless')
       
       File.exist?(script_path) ? File.read(script_path) : nil
     end
 
-    def self.discover_all_schemas_with_latest_revisions
+    def self.discover_all_schemas
       return [] unless Dir.exist?(Config.schemas_path)
       
       schemas = []
       
-      # Get all directories in the schemas path
       Dir.glob(File.join(Config.schemas_path, '*'))
          .select { |d| File.directory?(d) }
          .each do |schema_dir|
-        schema_name = File.basename(schema_dir)
+        alias_name = File.basename(schema_dir)
         
-        # Check if this schema has an index.json and revisions
-        index_config = get_index_config(schema_name)
-        latest_schema_revision = SchemaRevision.find_latest_revision(schema_name)
-        
-        if index_config && latest_schema_revision
-          schemas << {
-            index_name: schema_name,
-            latest_revision: latest_schema_revision.revision_absolute_path,
-            revision_number: latest_schema_revision.revision_number
-          }
+        if has_schema_files?(alias_name)
+          schemas << alias_name
         end
       end
       
@@ -60,10 +43,11 @@ module SchemaTools
 
     private
 
-    def self.load_json_file(file_path)
-      raise "#{file_path} not found" unless File.exist?(file_path)
-      JSON.parse(File.read(file_path))
+    def self.has_schema_files?(alias_name)
+      settings_path = File.join(Config.schemas_path, alias_name, 'settings.json')
+      mappings_path = File.join(Config.schemas_path, alias_name, 'mappings.json')
+      
+      File.exist?(settings_path) && File.exist?(mappings_path)
     end
-
   end
 end

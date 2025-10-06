@@ -25,7 +25,8 @@ module SchemaTools
       
       if in_progress_migration_exists?(alias_name, client)
         puts "ERROR: An in-progress migration already exists for #{alias_name}"
-        puts "Run 'rake schema:migrate_resume_from_failure' to resume the migration"
+        puts "If the migration has failed, retry it from the last successful step by running:"
+        puts "rake 'schema:migrate_retry[#{alias_name}]'"
         raise "In-progress migration exists for #{alias_name}"
       end
       
@@ -76,7 +77,7 @@ module SchemaTools
       end
     end
 
-    def self.resume_from_failure(alias_name:, client:)
+    def self.retry(alias_name:, client:)
       puts "=" * 60
       puts "Resuming Breaking Change Migration for #{alias_name}"
       puts "=" * 60
@@ -202,29 +203,18 @@ module SchemaTools
 
     def self.step5_configure_alias_write_catchup2_read_all(alias_name, current_index, new_index, catchup1_index, catchup2_index, client)
       actions = [
-        {
-          remove: {
-            index: catchup1_index,
-            alias: alias_name
-          }
-        },
+        # keep reading from current_index and catchup1_index, add a new catchup2_index
         {
           add: {
             index: catchup2_index,
             alias: alias_name,
             is_write_index: true
           }
-        },
-        {
-          add: {
-            index: new_index,
-            alias: alias_name
-          }
         }
       ]
       
       client.update_aliases(actions)
-      puts "Configured alias #{alias_name} to write to #{catchup2_index} and read from all indexes"
+      puts "Configured alias #{alias_name} to write to #{catchup2_index} and continue reading from current and catchup1 indexes"
     end
 
     def self.step6_merge_catchup1_to_new(catchup1_index, new_index, client)

@@ -63,25 +63,10 @@ $ rake schema:download
 The task will generate schema definition files in a folder layout like this:
 
 ```
-schemas/products                  # Folder name matches the alias name
-  settings.json                  # OpenSearch/Elasticsearch index settings
-  mappings.json                  # OpenSearch/Elasticsearch index mappings
-  reindex.painless              # Optional reindexing data transformation logic
-```
-
-### Create a new alias
-
-Run `rake schema:new` to create a new alias with a sample schema:
-
-```sh
-$ rake schema:new
-
-# Enter a new alias name:
-# products
-# ✓ Created index 'products-20241201120000' with alias 'products'
-# ✓ Sample schema created at schemas/products
-#   - settings.json
-#   - mappings.json
+schemas/products         # Folder name matches the alias name
+  settings.json          # OpenSearch/Elasticsearch index settings
+  mappings.json          # OpenSearch/Elasticsearch index mappings
+  reindex.painless       # Optional reindexing data transformation logic
 ```
 
 ### Migrate schemas
@@ -98,6 +83,21 @@ To migrate a specific alias:
 rake 'schema:migrate[products]'
 ```
 
+### Create a new alias
+
+Run `rake schema:new` to create a new alias with an index and a sample schema:
+
+```sh
+$ rake schema:new
+
+# Enter a new alias name:
+# products
+# ✓ Created index 'products-20241201120000' with alias 'products'
+# ✓ Sample schema created at schemas/products
+#   - settings.json
+#   - mappings.json
+```
+
 ## Directory structure reference
 
 Example directory structure with multiple aliases:
@@ -106,48 +106,127 @@ Example directory structure with multiple aliases:
 schemas/products
   settings.json
   mappings.json
-  reindex.painless              # Optional reindexing data transformation logic
+  reindex.painless    # Optional reindexing data transformation logic
 schemas/users
   settings.json
   mappings.json
 ```
 
-Each schema folder name matches the name of an alias. The `schema:migrate` task will:
+Each schema folder name matches the name of an alias.
 
-- Check if the folder name is an alias (not an index)
-- Verify the alias points to exactly one index
-- Migrate the alias to a new index with updated schema
-- Update the alias to point to the new index
 
-### Handle breaking versus non-breaking schema changes
+## How migrations work
 
-For non-breaking schema changes, the system creates a new index and updates the alias. This ensures zero downtime for all changes.
+When possible, `rake schema:migrate` will update settings and mappings in-place on an aliased index, without reindexing. Only breaking changes require a reindex.
 
-For breaking schema changes that require data transformation, the system uses a sophisticated 10-step migration process that handles heavy read/write workloads with 100M+ documents:
+Migrating breaking changes requires careful orchestration of reads and writes to ensure documents that are created/updated/deleted during the migration are not lost.
 
-1. **Create migration log** - Tracks migration progress and enables resumption from failures
-2. **Create catchup-1 index** - Temporary index to capture writes during reindexing
-3. **Configure alias** - Write to catchup-1, read from both old and catchup-1 indexes
-4. **Reindex data** - Copy all data from old index to new index with schema changes
-5. **Create catchup-2 index** - Second temporary index for ongoing writes
-6. **Update alias** - Write to catchup-2, read from all indexes
-7. **Merge catchup-1** - Sync first catchup index into new canonical index
-8. **Disable writes** - Temporarily disable all writes to prevent data loss
-9. **Merge catchup-2** - Sync second catchup index into new canonical index
-10. **Finalize** - Configure alias to use only the new index and close old indexes
+Use case:
+- I have an alias `products` pointing at index `products-20250301000000`.
+- I have heavy reads and writes with 100M+ documents in the index
+- I want to reindex `products-20250301000000` into a new index and update the `products` alias to reference it, without losing any creates/updates/deletes during the process.
 
-#### Breaking Change Migration Caveats
+Rake `schema:migrate` solves this use case through the following procedure.
 
-**Client Requirements:**
-- Clients MUST retry failed creates/updates/deletes for up to a minute
-- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss
-- Clients MUST use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes during reindexing
-- If using `DELETE` to delete a single document from an alias, you might delete from the wrong index and receive a successful response containing "result: not_found". The new index will not reflect the deletion.
+First, some terms:
+- `alias_name`: Alias containing the index to migrate
+	- `products`
+- `current_index`: First and only index in the alias
+	- `products-20250301000000`
+- `new_index`: Final canonical index into which to migrate `current_index`
+	- `products-20250601000000`
+- `catchup1_index`: Temp index to preserve writes during reindex
+	- `products-20250601000000-catchup-1`
+- `catchup2_index`: Temp index to preserve writes while flushing `catchup1_index`
+	- `products-20250601000000-catchup-2`
+- `log_index`: Index to log the migration state, not stored with `alias_name`
+	- `products-migration-log-202506010000000`
 
-**Resume from Failure:**
-If a migration fails, you can resume it using:
+SETUP
+
+Create `log_index` to log the migration state.
+- The migration logs when it starts a new step along with a description.
+- The migration logs when it completes a step.
+- If the migration starts and there is already an in-progress migration log, the migration will abort and suggest running `rake 'schema:migrate_retry[products]'` to retry a failed migration.
+
+STEP 1
+
+Create `catchup1_index` using the new schema.
+- This index will preserve writes during the reindex.
+
+STEP 2
+
+Configure `alias_name` to only write to `catchup1_index` and read from `current_index` and `catchup1_index`.
+
+STEP 3
+
+Reindex `current_index` into `new_index` using the new schema.
+```
+POST _reindex
+{
+  "source": { "index": "#{current_index}" },
+  "dest": { "index": "#{new_index}" },
+  "conflicts": "proceed",
+  "refresh": false
+}
+```
+
+STEP 4
+
+Create `catchup2_index` using the new schema.
+- This index ensures a place for ongoing writes while flushing `catchup1_index`.
+
+STEP 5
+
+Configure `alias_name` to only write to `catchup2_index` and continue reading from `current_index` and `catchup1_index`.
+
+STEP 6
+
+Run `update_by_query` to copy `catchup1_index` into `new_index`.
+- Merge the first catchup index into the new canonical index.
+
+STEP 7
+
+Configure `alias_name` so there are NO write indexes
+- This guarantees that no writes can sneak into an obsolete catchup index during the second (quick) merge.
+- Any write operations will fail during this time with: `"reason": "Alias [FOO] has more than one index associated with it [...], can't execute a single index op"`
+- Clients must retry any failed writes.
+
+STEP 8
+
+Run `update_by_query` to copy `catchup2_index` into `new_index`
+- Final sync to merge the second catchup index into the new canonical index.
+
+STEP 9
+
+Configure `alias_name` to write to and read from `new_index` only.
+- Writes resume to the single new index. All data and deletes are consistent.
+
+STEP 10
+
+Close unused indexes to avoid accidental writes.
+- Close `catchup1_index`
+- Close `catchup2_index`
+- Close `current_index`
+Operation complete.
+
+Users can safely delete closed indexes anytime after they are closed.
+
+Caveats for clients that perform writes during the migration:
+- Clients MUST retry failed creates/updates/deletes for up to a minute.
+	- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss.
+- Clients MUST use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing.
+	- If using `DELETE` to delete a single document from an alias, clients might delete from the wrong index and receive a successful response containing "result: not_found". The new index will _not_ reflect such a deletion.
+- Clients MUST read and write to an alias, not directly to an index.
+	- To prevent downtime, the migration procedure only operates on aliased indexes.
+	- Run `rake schema:alias` to create a new alias pointed at an index.
+	- Client applications must read and write to alias_name instead of index_name.
+
+### Retry a failed or aborted migration
+
+If a migration fails or aborts, retry it from where it last succeeded by running:
 ```sh
-rake 'schema:migrate_resume_from_failure[alias_name]'
+rake 'schema:migrate_retry[alias_name]'
 ```
 
 ### Transform data during migration
@@ -195,38 +274,24 @@ This will:
 
 ### Apply a schema change to Staging and Production 
 
-Run GitHub Actions for your branch to prepare a given environment. The actions use the  `migrate` task underneath.
+Run GitHub Actions for your branch to prepare a given environment. The actions use the  `schema:migrate` task underneath.
 
 GitHub Actions:
 - OpenSearch Staging Migrate
 - OpenSearch Production Migrate
 
-#### Migrate with zero downtime
-
-To migrate with zero downtime:
-- Run the migration action to reindex data to the new index
-- Update your applications to use the new index
-- Run `rake schema:catchup` to migrate any new data that came in since the migration last ran
-
-GitHub Actions:
-- OpenSearch Staging Catchup
-- OpenSearch Production Catchup
-
 ### Delete an index
 
-Run `rake 'schema:close[indexname]'` to close an index. This will prevent reads and writes to the index. Verify that the application can operate with the index in a closed state before deleting it.
+Run `rake 'schema:close[index_name]'` to close an index. This will prevent reads and writes to the index. Verify that the application can operate with the index in a closed state before deleting it.
 
-Run `rake 'schema:delete[indexname]'` to hard-delete an index. For safety, this task only hard-deletes indexes that are closed.
+Run `rake 'schema:delete[index_name]'` to hard-delete an index. For safety, this task only hard-deletes indexes that are closed.
+
+Run `rake 'schema:close[alias_name]'` to close all indexes in an alias.
+
+Run `rake 'schema:delete[alias_name]'` to delete an alias and leave its indexes untouched.
 
 GitHub Actions:
 - OpenSearch Staging Close Index
 - OpenSearch Production Close Index
 - OpenSearch Staging Delete Index
 - OpenSearch Production Delete Index
-
-## FAQ
-
-Why does this use index aliases?
-- Using aliases enables zero-downtime migrations by allowing applications to continue using the same alias name while the underlying index is updated.
-- When migrating to a new index, applications don't need to change their code - they continue using the same alias.
-- Aliases can be atomically updated to point to a new index, ensuring no downtime during migrations.

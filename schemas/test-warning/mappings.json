@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "created_at": {
+      "type": "date"
+    },
+    "id": {
+      "type": "keyword"
+    },
+    "updated_at": {
+      "type": "date"
+    }
+  }
+}

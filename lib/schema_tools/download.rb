@@ -1,22 +1,28 @@
 require 'json'
 require 'fileutils'
 require_relative 'config'
+require_relative 'settings_filter'
 
 module SchemaTools
   def self.download(client:)
     aliases = client.list_aliases
     indices = client.list_indices
     
-    single_aliases = aliases.select { |_, indices| indices.length == 1 }
-    multi_aliases = aliases.select { |_, indices| indices.length > 1 }
-    unaliased_indices = indices.reject { |index| aliases.values.flatten.include?(index) }
+    single_aliases = aliases.select { |alias_name, indices| indices.length == 1 && !alias_name.start_with?('.') }
+    multi_aliases = aliases.select { |alias_name, indices| indices.length > 1 && !alias_name.start_with?('.') }
+    unaliased_indices = indices.reject { |index| aliases.values.flatten.include?(index) || index.start_with?('.') }
+    
+    # Create a combined list with sequential numbering
+    options = []
     
     puts "\nAliases pointing to 1 index:"
     if single_aliases.empty?
       puts "  (none)"
     else
       single_aliases.each_with_index do |(alias_name, indices), index|
-        puts "  #{index + 1}. #{alias_name} -> #{indices.first}"
+        option_number = options.length + 1
+        options << { type: :alias, name: alias_name, index: indices.first }
+        puts "  #{option_number}. #{alias_name} -> #{indices.first}"
       end
     end
     
@@ -25,7 +31,9 @@ module SchemaTools
       puts "  (none)"
     else
       unaliased_indices.each_with_index do |index_name, index|
-        puts "  #{index + 1}. #{index_name}"
+        option_number = options.length + 1
+        options << { type: :index, name: index_name, index: index_name }
+        puts "  #{option_number}. #{index_name}"
       end
     end
     
@@ -36,8 +44,13 @@ module SchemaTools
       end
     end
     
+    if options.empty?
+      puts "\nNo aliases or indices available to download."
+      return
+    end
+    
     puts "\nPlease choose an alias or index to download:"
-    puts "Enter 'alias:<name>' for an alias or 'index:<name>' for an index:"
+    puts "Enter the number (1-#{options.length}):"
     
     choice = STDIN.gets&.chomp
     if choice.nil?
@@ -45,46 +58,18 @@ module SchemaTools
       exit 1
     end
     
-    if choice.start_with?('alias:')
-      alias_name = choice[6..-1]
-      if single_aliases[alias_name]
-        download_alias(alias_name, single_aliases[alias_name].first, client)
-      else
-        puts "Alias '#{alias_name}' not found or points to multiple indices."
-        exit 1
-      end
-    elsif choice.start_with?('index:')
-      index_name = choice[6..-1]
-      if unaliased_indices.include?(index_name)
-        puts "Warning: This tool only supports migrating aliases."
-        puts "Create an alias for this index first:"
-        puts "```"
-        puts "POST /_aliases"
-        puts "{"
-        puts "  \"actions\": ["
-        puts "    {"
-        puts "      \"add\": {"
-        puts "        \"index\": \"#{index_name}\","
-        puts "        \"alias\": \"new_alias_name\""
-        puts "      }"
-        puts "    }"
-        puts "  ]"
-        puts "}"
-        puts "```"
-        puts "\nDo you want to download it anyway? (y/N)"
-        confirm = STDIN.gets&.chomp&.downcase
-        if confirm == 'y'
-          download_index(index_name, client)
-        else
-          puts "Download cancelled."
-        end
-      else
-        puts "Index '#{index_name}' not found or is already aliased."
-        exit 1
-      end
-    else
-      puts "Invalid choice. Please use 'alias:<name>' or 'index:<name>' format."
+    choice_num = choice.to_i
+    if choice_num < 1 || choice_num > options.length
+      puts "Invalid choice. Please enter a number between 1 and #{options.length}."
       exit 1
+    end
+    
+    selected_option = options[choice_num - 1]
+    
+    if selected_option[:type] == :alias
+      download_alias(selected_option[:name], selected_option[:index], client)
+    else
+      download_index(selected_option[:name], client)
     end
   end
 
@@ -109,17 +94,21 @@ module SchemaTools
       exit 1
     end
     
+    # Filter out internal settings
+    filtered_settings = SettingsFilter.filter_internal_settings(settings)
+    
     schema_path = File.join(Config.schemas_path, folder_name)
     FileUtils.mkdir_p(schema_path)
     
     settings_file = File.join(schema_path, 'settings.json')
     mappings_file = File.join(schema_path, 'mappings.json')
     
-    File.write(settings_file, JSON.pretty_generate(settings))
+    File.write(settings_file, JSON.pretty_generate(filtered_settings))
     File.write(mappings_file, JSON.pretty_generate(mappings))
     
     puts "✓ Schema downloaded to #{schema_path}"
     puts "  - settings.json"
     puts "  - mappings.json"
   end
+
 end

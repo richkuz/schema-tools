@@ -3,7 +3,6 @@ require 'schema_tools/schema_files'
 require 'schema_tools/config'
 require 'schema_tools/reindex'
 require 'schema_tools/migrate'
-require 'schema_tools/create'
 require 'schema_tools/painless_scripts_download'
 require 'schema_tools/painless_scripts_upload'
 require 'schema_tools/painless_scripts_delete'
@@ -63,11 +62,10 @@ namespace :schema do
 
 
   desc "Create index with schema definition"
-  task :create, [:index_name] do |t, args|
+  task :create, [:alias_name] do |t, args|
     client = create_client!
     
-    SchemaTools.create(
-      index_name: args[:index_name],
+    SchemaTools.new_alias(
       client: client
     )
   end
@@ -127,6 +125,15 @@ namespace :schema do
     client = create_client!
 
     SchemaTools.new_alias(
+      client: client
+    )
+  end
+
+  desc "Create an alias for an existing index"
+  task :alias do |t, args|
+    client = create_client!
+
+    SchemaTools.create_alias_for_index(
       client: client
     )
   end

@@ -1,0 +1,29 @@
+{
+  "index": {
+    "replication": {
+      "type": "DOCUMENT"
+    },
+    "verified_before_close": "true",
+    "refresh_interval": "1s",
+    "number_of_shards": "1",
+    "provided_name": "products-1",
+    "creation_date": "1759284388819",
+    "analysis": {
+      "analyzer": {
+        "product_analyzer": {
+          "filter": [
+            "lowercase",
+            "stop"
+          ],
+          "type": "custom",
+          "tokenizer": "standard"
+        }
+      }
+    },
+    "number_of_replicas": "0",
+    "uuid": "AWjKe6c6S3mYqg3Z3S7Eyw",
+    "version": {
+      "created": "136407827"
+    }
+  }
+}

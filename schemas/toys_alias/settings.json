@@ -1,0 +1,28 @@
+{
+  "index": {
+    "replication": {
+      "type": "DOCUMENT"
+    },
+    "refresh_interval": "1s",
+    "number_of_shards": "1",
+    "provided_name": "toys",
+    "creation_date": "1759306647460",
+    "analysis": {
+      "analyzer": {
+        "example_analyzer": {
+          "filter": [
+            "lowercase",
+            "stop"
+          ],
+          "type": "custom",
+          "tokenizer": "standard"
+        }
+      }
+    },
+    "number_of_replicas": "0",
+    "uuid": "OUDrlRphQAKy6JS7rzRYjQ",
+    "version": {
+      "created": "136407827"
+    }
+  }
+}

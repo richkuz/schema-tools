@@ -1,0 +1,184 @@
+{
+  "dynamic": "strict",
+  "_meta": {
+    "schemurai_revision": {
+      "revision_applied_by": "rake task",
+      "revision_applied_at": "2025-09-28T21:12:29-04:00",
+      "revision": "unity-search-metadata-10/revisions/1"
+    }
+  },
+  "properties": {
+    "access_controls": {
+      "type": "keyword"
+    },
+    "chunks": {
+      "type": "nested",
+      "properties": {
+        "chunk_id": {
+          "type": "keyword"
+        },
+        "chunked_content": {
+          "type": "text",
+          "fields": {
+            "forward": {
+              "type": "text",
+              "analyzer": "wildcard_exact_forward_analyzer",
+              "similarity": "tf_only_similarity"
+            },
+            "fuzzy": {
+              "type": "text",
+              "analyzer": "fuzzy_analyzer"
+            },
+            "reverse": {
+              "type": "text",
+              "analyzer": "wildcard_exact_reverse_analyzer",
+              "similarity": "tf_only_similarity"
+            }
+          }
+        },
+        "chunked_content_embedding": {
+          "type": "rank_features"
+        },
+        "offset_tuple_end": {
+          "type": "integer"
+        },
+        "offset_tuple_start": {
+          "type": "integer"
+        },
+        "sentence_range": {
+          "type": "integer"
+        }
+      }
+    },
+    "created_at": {
+      "type": "date"
+    },
+    "created_by_user_id": {
+      "type": "keyword"
+    },
+    "deleted_at": {
+      "type": "date"
+    },
+    "metadata": {
+      "type": "nested",
+      "dynamic": "strict",
+      "properties": {
+        "field_name": {
+          "type": "keyword"
+        },
+        "ls_boolean": {
+          "type": "boolean"
+        },
+        "ls_date": {
+          "type": "date"
+        },
+        "ls_duration": {
+          "properties": {
+            "normalized_seconds": {
+              "type": "float"
+            },
+            "units": {
+              "type": "keyword"
+            },
+            "value": {
+              "type": "float"
+            }
+          }
+        },
+        "ls_integer": {
+          "type": "integer"
+        },
+        "ls_keyword": {
+          "type": "keyword"
+        },
+        "ls_text": {
+          "type": "text",
+          "similarity": "custom_similarity"
+        },
+        "ls_text_list": {
+          "type": "text",
+          "similarity": "custom_similarity"
+        },
+        "ls_text_ngram": {
+          "type": "text",
+          "fields": {
+            "exact": {
+              "type": "text",
+              "analyzer": "standard",
+              "similarity": "tf_only_similarity"
+            },
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer"
+            }
+          }
+        },
+        "ls_text_ngram_list": {
+          "type": "text",
+          "fields": {
+            "exact": {
+              "type": "text",
+              "analyzer": "standard",
+              "similarity": "tf_only_similarity"
+            },
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer"
+            }
+          }
+        },
+        "present": {
+          "type": "boolean"
+        }
+      }
+    },
+    "organization_id": {
+      "type": "keyword"
+    },
+    "resource_id": {
+      "type": "keyword"
+    },
+    "resource_type": {
+      "type": "keyword"
+    },
+    "tags": {
+      "type": "nested",
+      "properties": {
+        "color": {
+          "type": "text",
+          "fields": {
+            "exact": {
+              "type": "text",
+              "analyzer": "standard",
+              "similarity": "tf_only_similarity"
+            },
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer"
+            }
+          }
+        },
+        "id": {
+          "type": "keyword"
+        },
+        "name": {
+          "type": "text",
+          "fields": {
+            "exact": {
+              "type": "text",
+              "analyzer": "standard",
+              "similarity": "tf_only_similarity"
+            },
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer"
+            }
+          }
+        }
+      }
+    },
+    "updated_at": {
+      "type": "date"
+    }
+  }
+}

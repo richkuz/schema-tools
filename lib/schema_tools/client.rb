@@ -2,6 +2,7 @@ require 'net/http'
 require 'json'
 require 'uri'
 require 'logger'
+require_relative 'settings_filter'
 
 module SchemaTools
   class Client
@@ -278,6 +279,19 @@ module SchemaTools
       
       body = { actions: actions }
       post("/_aliases", body)
+    end
+
+    def update_index_settings(index_name, settings)
+      # Filter out internal settings that can't be updated
+      filtered_settings = SettingsFilter.filter_internal_settings(settings)
+      
+      body = { index: filtered_settings['index'] || {} }
+      put("/#{index_name}/_settings", body)
+    end
+
+    def update_index_mappings(index_name, mappings)
+      body = { properties: mappings['properties'] || {} }
+      put("/#{index_name}/_mapping", body)
     end
 
     def test_connection

@@ -57,7 +57,33 @@ module SchemaTools
     
     # Check if it's an alias
     unless client.alias_exists?(alias_name)
-      puts "Alias '#{alias_name}' not found."
+      puts "Alias '#{alias_name}' not found. Creating new index and alias..."
+      
+      # Create new index with timestamp
+      timestamp = Time.now.strftime("%Y%m%d%H%M%S")
+      new_index_name = "#{alias_name}-#{timestamp}"
+      
+      # Get schema files
+      settings = SchemaFiles.get_settings(alias_name)
+      mappings = SchemaFiles.get_mappings(alias_name)
+      
+      if settings.nil? || mappings.nil?
+        puts "ERROR: Could not load schema files for #{alias_name}"
+        puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
+        return
+      end
+      
+      # Create the new index
+      puts "Creating new index '#{new_index_name}' with provided schema..."
+      client.create_index(new_index_name, settings, mappings)
+      puts "✓ Index '#{new_index_name}' created"
+      
+      # Create the alias
+      puts "Creating alias '#{alias_name}' pointing to '#{new_index_name}'..."
+      client.create_alias(alias_name, new_index_name)
+      puts "✓ Alias '#{alias_name}' created and configured"
+      
+      puts "Migration completed successfully!"
       return
     end
     
@@ -76,7 +102,38 @@ module SchemaTools
     
     index_name = indices.first
     puts "Alias '#{alias_name}' points to index '#{index_name}'"
-    puts "Migration implementation will be added later."
+    
+    # Get schema files
+    settings = SchemaFiles.get_settings(alias_name)
+    mappings = SchemaFiles.get_mappings(alias_name)
+    
+    if settings.nil? || mappings.nil?
+      puts "ERROR: Could not load schema files for #{alias_name}"
+      puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
+      return
+    end
+    
+    # Try to update the existing index
+    puts "Attempting to update index '#{index_name}' with new schema..."
+    begin
+      client.update_index_settings(index_name, settings)
+      client.update_index_mappings(index_name, mappings)
+      puts "✓ Index '#{index_name}' updated successfully"
+      puts "Migration completed successfully!"
+    rescue => e
+      # Check if it's a "no settings to update" error - this is actually successful
+      if e.message.include?("no settings to update")
+        puts "✓ No settings changes needed - index is already up to date"
+        puts "Migration completed successfully!"
+      else
+        puts "✗ Failed to update index '#{index_name}': #{e.message}"
+        puts "This appears to be a breaking change. Starting breaking change migration..."
+        
+        # Call breaking change migration
+        require_relative 'breaking_change_migration'
+        BreakingChangeMigration.migrate(alias_name: alias_name, client: client)
+      end
+    end
   end
 
   private

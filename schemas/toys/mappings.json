@@ -1,4 +1,11 @@
 {
+  "_meta": {
+    "schemurai_revision": {
+      "revision_applied_by": "rake task",
+      "revision_applied_at": "2025-10-01T04:17:27-04:00",
+      "revision": "toys/revisions/1"
+    }
+  },
   "properties": {
     "created_at": {
       "type": "date"

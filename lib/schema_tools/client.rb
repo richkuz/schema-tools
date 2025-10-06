@@ -261,6 +261,25 @@ module SchemaTools
       response && !response.empty?
     end
 
+    def delete_alias(alias_name, indices = nil)
+      # If no indices specified, get all indices for this alias
+      if indices.nil?
+        indices = get_alias_indices(alias_name)
+      end
+      
+      actions = indices.map do |index_name|
+        {
+          remove: {
+            index: index_name,
+            alias: alias_name
+          }
+        }
+      end
+      
+      body = { actions: actions }
+      post("/_aliases", body)
+    end
+
     def test_connection
       path = "/_cluster/health"
       puts "Testing connection to #{@url}#{path}"

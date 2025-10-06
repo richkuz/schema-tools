@@ -1,24 +1,28 @@
 module SchemaTools
-  def self.delete(index_name:, client:)
-    raise "index_name parameter is required" unless index_name
+  def self.delete(name:, client:)
+    raise "name parameter is required" unless name
     
-    unless client.index_exists?(index_name)
-      raise "Index does not exist: #{index_name}"
-    end
-
-    puts "Checking that index #{index_name} is closed before proceeding"
-    unless client.index_closed?(index_name)
-      raise "Hard delete only allowed on closed indexes. Please run rake 'schema:close[#{index_name}]' first."
-    end
-    puts "Index #{index_name} is closed"
-    
-    puts "Hard deleting index #{index_name}"
-    
-    if client.index_exists?(index_name)
-      client.delete_index(index_name)
-      puts "Index #{index_name} hard deleted"
+    # Check if it's an alias
+    if client.alias_exists?(name)
+      indices = client.get_alias_indices(name)
+      puts "Deleting alias '#{name}' (points to: #{indices.join(', ')})"
+      puts "The underlying index(es) will remain intact."
+      
+      client.delete_alias(name)
+      puts "✓ Alias '#{name}' deleted"
+      puts "Index(es) #{indices.join(', ')} remain(s) intact"
+    elsif client.index_exists?(name)
+      puts "Checking that index #{name} is closed before proceeding"
+      unless client.index_closed?(name)
+        raise "Hard delete only allowed on closed indexes. Please run rake 'schema:close[#{name}]' first."
+      end
+      puts "Index #{name} is closed"
+      
+      puts "Hard deleting index #{name}"
+      client.delete_index(name)
+      puts "✓ Index #{name} hard deleted"
     else
-      puts "Index #{index_name} does not exist"
+      raise "Neither alias nor index exists: #{name}"
     end
   end
 end

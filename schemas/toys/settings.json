@@ -3,10 +3,9 @@
     "replication": {
       "type": "DOCUMENT"
     },
+    "verified_before_close": "true",
     "refresh_interval": "1s",
     "number_of_shards": "1",
-    "provided_name": "toys",
-    "creation_date": "1759306647460",
     "analysis": {
       "analyzer": {
         "example_analyzer": {
@@ -19,10 +18,6 @@
         }
       }
     },
-    "number_of_replicas": "0",
-    "uuid": "OUDrlRphQAKy6JS7rzRYjQ",
-    "version": {
-      "created": "136407827"
-    }
+    "number_of_replicas": "0"
   }
 }

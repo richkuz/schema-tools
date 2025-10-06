@@ -42,22 +42,16 @@ module SchemaTools
     
     # Check if it's an index name (not an alias)
     if !client.alias_exists?(alias_name) && client.index_exists?(alias_name)
-      puts "To prevent downtime, this tool only migrates aliased indexes."
-      puts "Create a new alias with a new name and point it at your index:"
-      puts "```"
-      puts "POST /_aliases"
-      puts "{"
-      puts "  \"actions\": ["
-      puts "    {"
-      puts "      \"add\": {"
-      puts "        \"index\": \"#{alias_name}\","
-      puts "        \"alias\": \"new_alias_name\""
-      puts "      }"
-      puts "    }"
-      puts "  ]"
-      puts "}"
-      puts "```"
-      puts "Change your application to read and write to `new_alias_name` instead of `#{alias_name}`."
+      puts "ERROR: Migration not run for index \"#{alias_name}\""
+      puts "  To prevent downtime, this tool only migrates aliased indexes."
+      puts ""
+      puts "  Create a new alias for your index by running:"
+      puts "  rake schema:alias"
+      puts ""
+      puts "  Then rename the schema folder to the alias name and re-run:"
+      puts "  rake schema:migrate"
+      puts ""
+      puts "  Then change your application to read and write to the alias name instead of the index name `#{alias_name}`."
       return
     end
     

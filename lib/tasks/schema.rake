@@ -91,22 +91,22 @@ namespace :schema do
     )
   end
 
-  desc "Close an index"
-  task :close, [:index_name] do |t, args|
+  desc "Close an index or alias"
+  task :close, [:name] do |t, args|
     client = create_client!
 
     SchemaTools.close(
-      index_name: args[:index_name],
+      name: args[:name],
       client: client
     )
   end
 
-  desc "Hard delete an index (only works on closed indexes)"
-  task :delete, [:index_name] do |t, args|
+  desc "Hard delete an index (only works on closed indexes) or delete an alias"
+  task :delete, [:name] do |t, args|
     client = create_client!
 
     SchemaTools.delete(
-      index_name: args[:index_name],
+      name: args[:name],
       client: client
     )
   end

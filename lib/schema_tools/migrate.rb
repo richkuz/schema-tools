@@ -57,7 +57,7 @@ module SchemaTools
     
     unless client.alias_exists?(alias_name)
       puts "Alias '#{alias_name}' not found. Creating new index and alias..."
-      migrate_to_new_alias(alias_name)
+      migrate_to_new_alias(alias_name, client)
       return
     end
     
@@ -89,7 +89,7 @@ module SchemaTools
     SchemaFiles.discover_all_schemas
   end
 
-  def self.migrate_to_new_alias(alias_name)
+  def self.migrate_to_new_alias(alias_name, client)
     timestamp = Time.now.strftime("%Y%m%d%H%M%S")
     new_index_name = "#{alias_name}-#{timestamp}"
     
@@ -97,6 +97,7 @@ module SchemaTools
     mappings = SchemaFiles.get_mappings(alias_name)
     
     if settings.nil? || mappings.nil?
+      schema_path = File.join(Config.schemas_path, alias_name)
       puts "ERROR: Could not load schema files for #{alias_name}"
       puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
       raise "Could not load schema files for #{alias_name}"
@@ -120,6 +121,7 @@ module SchemaTools
     mappings = SchemaFiles.get_mappings(alias_name)
     
     if settings.nil? || mappings.nil?
+      schema_path = File.join(Config.schemas_path, alias_name)
       puts "ERROR: Could not load schema files for #{alias_name}"
       puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
       raise "Could not load schema files for #{alias_name}"

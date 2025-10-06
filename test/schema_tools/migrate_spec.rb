@@ -59,19 +59,19 @@ RSpec.describe SchemaTools do
     end
 
     context 'when schema folder does not exist' do
-      it 'prints error message and returns' do
+      it 'raises error' do
         FileUtils.rm_rf(File.join(schemas_path, alias_name))
         
-        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to output(/Schema folder not found/).to_stdout
+        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to raise_error(/Schema folder not found/)
       end
     end
 
     context 'when it is an index name (not an alias)' do
-      it 'prints instructions and returns' do
+      it 'prints instructions and raises error' do
         expect(client).to receive(:alias_exists?).with(alias_name).and_return(false)
         expect(client).to receive(:index_exists?).with(alias_name).and_return(true)
         
-        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to output(/To prevent downtime, this tool only migrates aliased indexes/).to_stdout
+        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to raise_error(/Migration not run for alias test-alias because test-alias is an index, not an alias/)
       end
     end
 
@@ -93,20 +93,20 @@ RSpec.describe SchemaTools do
     end
 
     context 'when alias points to multiple indices' do
-      it 'prints error message and returns' do
+      it 'prints error message and raises error' do
         expect(client).to receive(:alias_exists?).with(alias_name).twice.and_return(true)
         expect(client).to receive(:get_alias_indices).with(alias_name).and_return(['index1', 'index2'])
         
-        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to output(/This tool can only migrate aliases that point at one index/).to_stdout
+        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to raise_error(/Alias 'test-alias' points to multiple indices: index1, index2/)
       end
     end
 
     context 'when alias points to no indices' do
-      it 'prints error message and returns' do
+      it 'prints error message and raises error' do
         expect(client).to receive(:alias_exists?).with(alias_name).twice.and_return(true)
         expect(client).to receive(:get_alias_indices).with(alias_name).and_return([])
         
-        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to output(/Alias '#{alias_name}' points to no indices/).to_stdout
+        expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to raise_error(/Alias 'test-alias' points to no indices/)
       end
     end
 

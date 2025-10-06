@@ -1,4 +1,5 @@
 require_relative 'schema_files'
+require_relative 'migrate_breaking_change'
 
 module SchemaTools
   def self.migrate_all(client:)
@@ -36,8 +37,7 @@ module SchemaTools
     # Check if the folder exists
     schema_path = File.join(Config.schemas_path, alias_name)
     unless Dir.exist?(schema_path)
-      puts "Schema folder not found: #{schema_path}"
-      return
+      raise "Schema folder not found: #{schema_path}"
     end
     
     # Check if it's an index name (not an alias)
@@ -52,68 +52,79 @@ module SchemaTools
       puts "  rake schema:migrate"
       puts ""
       puts "  Then change your application to read and write to the alias name instead of the index name `#{alias_name}`."
-      return
+      raise "Migration not run for alias #{alias_name} because #{alias_name} is an index, not an alias"
     end
     
-    # Check if it's an alias
     unless client.alias_exists?(alias_name)
       puts "Alias '#{alias_name}' not found. Creating new index and alias..."
-      
-      # Create new index with timestamp
-      timestamp = Time.now.strftime("%Y%m%d%H%M%S")
-      new_index_name = "#{alias_name}-#{timestamp}"
-      
-      # Get schema files
-      settings = SchemaFiles.get_settings(alias_name)
-      mappings = SchemaFiles.get_mappings(alias_name)
-      
-      if settings.nil? || mappings.nil?
-        puts "ERROR: Could not load schema files for #{alias_name}"
-        puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
-        return
-      end
-      
-      # Create the new index
-      puts "Creating new index '#{new_index_name}' with provided schema..."
-      client.create_index(new_index_name, settings, mappings)
-      puts "✓ Index '#{new_index_name}' created"
-      
-      # Create the alias
-      puts "Creating alias '#{alias_name}' pointing to '#{new_index_name}'..."
-      client.create_alias(alias_name, new_index_name)
-      puts "✓ Alias '#{alias_name}' created and configured"
-      
-      puts "Migration completed successfully!"
+      migrate_to_new_alias(alias_name)
       return
     end
     
-    # Check if alias points to multiple indices
     indices = client.get_alias_indices(alias_name)
     if indices.length > 1
       puts "This tool can only migrate aliases that point at one index."
-      puts "Alias '#{alias_name}' points to: #{indices.join(', ')}"
-      return
+      raise "Alias '#{alias_name}' points to multiple indices: #{indices.join(', ')}"
     end
     
     if indices.length == 0
-      puts "Alias '#{alias_name}' points to no indices."
-      return
+      raise "Alias '#{alias_name}' points to no indices."
     end
     
     index_name = indices.first
     puts "Alias '#{alias_name}' points to index '#{index_name}'"
+    begin
+      attempt_non_breaking_migration(alias_name:, index_name:, client:)
+    rescue => e
+      puts "✗ Failed to update index '#{index_name}': #{e.message}"
+      puts "This appears to be a breaking change. Starting breaking change migration..."
+      
+      MigrateBreakingChange.migrate(alias_name:, client:)
+    end    
+  end
+
+  private
+
+  def self.find_all_schemas
+    SchemaFiles.discover_all_schemas
+  end
+
+  def self.migrate_to_new_alias(alias_name)
+    timestamp = Time.now.strftime("%Y%m%d%H%M%S")
+    new_index_name = "#{alias_name}-#{timestamp}"
     
-    # Get schema files
     settings = SchemaFiles.get_settings(alias_name)
     mappings = SchemaFiles.get_mappings(alias_name)
     
     if settings.nil? || mappings.nil?
       puts "ERROR: Could not load schema files for #{alias_name}"
       puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
-      return
+      raise "Could not load schema files for #{alias_name}"
     end
     
-    # Try to update the existing index
+    # Create the new index
+    puts "Creating new index '#{new_index_name}' with provided schema..."
+    client.create_index(new_index_name, settings, mappings)
+    puts "✓ Index '#{new_index_name}' created"
+    
+    # Create the alias
+    puts "Creating alias '#{alias_name}' pointing to '#{new_index_name}'..."
+    client.create_alias(alias_name, new_index_name)
+    puts "✓ Alias '#{alias_name}' created and configured"
+    
+    puts "Migration completed successfully!"
+  end
+
+  def self.attempt_non_breaking_migration(alias_name:, index_name:, client:)
+    settings = SchemaFiles.get_settings(alias_name)
+    mappings = SchemaFiles.get_mappings(alias_name)
+    
+    if settings.nil? || mappings.nil?
+      puts "ERROR: Could not load schema files for #{alias_name}"
+      puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
+      raise "Could not load schema files for #{alias_name}"
+    end
+    
     puts "Attempting to update index '#{index_name}' with new schema..."
     begin
       client.update_index_settings(index_name, settings)
@@ -126,19 +137,8 @@ module SchemaTools
         puts "✓ No settings changes needed - index is already up to date"
         puts "Migration completed successfully!"
       else
-        puts "✗ Failed to update index '#{index_name}': #{e.message}"
-        puts "This appears to be a breaking change. Starting breaking change migration..."
-        
-        # Call breaking change migration
-        require_relative 'breaking_change_migration'
-        BreakingChangeMigration.migrate(alias_name: alias_name, client: client)
+        raise e
       end
     end
-  end
-
-  private
-
-  def self.find_all_schemas
-    SchemaFiles.discover_all_schemas
   end
 end

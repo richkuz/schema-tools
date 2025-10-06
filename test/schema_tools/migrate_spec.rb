@@ -2,7 +2,7 @@ require_relative '../spec_helper'
 require 'schema_tools/migrate'
 require 'schema_tools/schema_files'
 require 'schema_tools/config'
-require 'schema_tools/breaking_change_migration'
+require 'schema_tools/migrate_breaking_change'
 require 'tempfile'
 require 'fileutils'
 
@@ -152,7 +152,7 @@ RSpec.describe SchemaTools do
         expect(client).to receive(:update_index_settings).with('test-index-123', {"number_of_replicas" => 1}).and_raise(StandardError.new("Breaking change error"))
         
         # Mock breaking change migration
-        expect(SchemaTools::BreakingChangeMigration).to receive(:migrate).with(alias_name: alias_name, client: client)
+        expect(SchemaTools::MigrateBreakingChange).to receive(:migrate).with(alias_name: alias_name, client: client)
         
         expect { SchemaTools.migrate_one_schema(alias_name: alias_name, client: client) }.to output(/This appears to be a breaking change/).to_stdout
       end

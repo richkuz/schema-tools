@@ -308,6 +308,41 @@ module SchemaTools
       post("/#{index_name}/_close", {})
     end
 
+    def update_by_query(source_index, dest_index, script = nil)
+      body = {
+        source: { index: source_index },
+        dest: { index: dest_index }
+      }
+      body[:script] = { source: script } if script
+      
+      url = "/_update_by_query?wait_for_completion=false"
+      
+      post(url, body)
+    end
+
+    def update_aliases(actions)
+      body = { actions: actions }
+      post("/_aliases", body)
+    end
+
+    def wait_for_task(task_id, timeout = 3600)
+      start_time = Time.now
+      
+      loop do
+        task_status = get_task_status(task_id)
+        
+        if task_status['completed']
+          return task_status
+        end
+        
+        if Time.now - start_time > timeout
+          raise "Task #{task_id} timed out after #{timeout} seconds"
+        end
+        
+        sleep 5
+      end
+    end
+
     def bulk_index(documents, index_name)
       if @dryrun
         print_curl_command('POST', '/_bulk', documents)

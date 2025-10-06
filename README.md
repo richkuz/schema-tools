@@ -121,7 +121,34 @@ Each schema folder name matches the name of an alias. The `schema:migrate` task 
 
 ### Handle breaking versus non-breaking schema changes
 
-All schema changes are handled the same way - by creating a new index and updating the alias. This ensures zero downtime for all changes, whether breaking or non-breaking.
+For non-breaking schema changes, the system creates a new index and updates the alias. This ensures zero downtime for all changes.
+
+For breaking schema changes that require data transformation, the system uses a sophisticated 10-step migration process that handles heavy read/write workloads with 100M+ documents:
+
+1. **Create migration log** - Tracks migration progress and enables resumption from failures
+2. **Create catchup-1 index** - Temporary index to capture writes during reindexing
+3. **Configure alias** - Write to catchup-1, read from both old and catchup-1 indexes
+4. **Reindex data** - Copy all data from old index to new index with schema changes
+5. **Create catchup-2 index** - Second temporary index for ongoing writes
+6. **Update alias** - Write to catchup-2, read from all indexes
+7. **Merge catchup-1** - Sync first catchup index into new canonical index
+8. **Disable writes** - Temporarily disable all writes to prevent data loss
+9. **Merge catchup-2** - Sync second catchup index into new canonical index
+10. **Finalize** - Configure alias to use only the new index and close old indexes
+
+#### Breaking Change Migration Caveats
+
+**Client Requirements:**
+- Clients MUST retry failed creates/updates/deletes for up to a minute
+- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss
+- Clients MUST use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes during reindexing
+- If using `DELETE` to delete a single document from an alias, you might delete from the wrong index and receive a successful response containing "result: not_found". The new index will not reflect the deletion.
+
+**Resume from Failure:**
+If a migration fails, you can resume it using:
+```sh
+rake 'schema:migrate_resume_from_failure[alias_name]'
+```
 
 ### Transform data during migration
 

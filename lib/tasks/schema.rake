@@ -146,6 +146,18 @@ namespace :schema do
       client: client
     )
   end
+
+  desc "Resume breaking change migration from failure"
+  task :migrate_resume_from_failure, [:alias_name] do |t, args|
+    client = create_client!
+    
+    if args[:alias_name]
+      SchemaTools::MigrateBreakingChange.resume_from_failure(alias_name: args[:alias_name], client: client)
+    else
+      puts "ERROR: alias_name parameter is required"
+      puts "Usage: rake 'schema:migrate_resume_from_failure[alias_name]'"
+    end
+  end
 end
 
 namespace :painless_scripts do

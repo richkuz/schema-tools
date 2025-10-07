@@ -145,9 +145,7 @@ First, some terms:
 SETUP
 
 Create `log_index` to log the migration state.
-- The migration logs when it starts a new step along with a description.
-- The migration logs when it completes a step.
-- If the migration starts and there is already an in-progress migration log, the migration will abort and suggest running `rake 'schema:migrate_retry[products]'` to retry a failed migration.
+- The migration logs when it starts and completes a step along with a description.
 
 STEP 1
 
@@ -222,12 +220,9 @@ Caveats for clients that perform writes during the migration:
 	- Run `rake schema:alias` to create a new alias pointed at an index.
 	- Client applications must read and write to alias_name instead of index_name.
 
-### Retry a failed or aborted migration
+### Diagnosing a failed or aborted migration
 
-If a migration fails or aborts, retry it from where it last succeeded by running:
-```sh
-rake 'schema:migrate_retry[alias_name]'
-```
+If a migration fails or aborts, check status logs in the index named `#{alias_name}-migration-log-#{timestamp}`
 
 ### Transform data during migration
 

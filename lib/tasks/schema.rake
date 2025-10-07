@@ -1,12 +1,10 @@
 require 'schema_tools/client'
 require 'schema_tools/schema_files'
 require 'schema_tools/config'
-require 'schema_tools/reindex'
 require 'schema_tools/migrate'
 require 'schema_tools/painless_scripts_download'
 require 'schema_tools/painless_scripts_upload'
 require 'schema_tools/painless_scripts_delete'
-require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
 require 'schema_tools/download'
@@ -60,37 +58,18 @@ namespace :schema do
     end
   end
 
-
-  desc "Create index with schema definition"
-  task :create, [:alias_name] do |t, args|
+  desc "Create a new alias with sample schema"
+  task :new do |t, args|
     client = create_client!
-    
+
     SchemaTools.new_alias(
       client: client
     )
   end
 
-
-  desc "Reindex from source to destination index"
-  task :reindex, [:index_name] do |t, args|
-    client = create_client!
-
-    SchemaTools.reindex(
-      index_name: args[:index_name],
-      client: client
-    )
-  end
-
-  desc "Catchup reindex for new documents"
-  task :catchup, [:index_name] do |t, args|
-    client = create_client!
-    
-    SchemaTools.catchup(
-      index_name: args[:index_name],
-      client: client
-    )
-  end
-
+  desc "schema:new"
+  task :create => :new
+  
   desc "Close an index or alias"
   task :close, [:name] do |t, args|
     client = create_client!
@@ -120,15 +99,6 @@ namespace :schema do
     )
   end
 
-  desc "Create a new alias with sample schema"
-  task :new do |t, args|
-    client = create_client!
-
-    SchemaTools.new_alias(
-      client: client
-    )
-  end
-
   desc "Create an alias for an existing index"
   task :alias do |t, args|
     client = create_client!
@@ -138,25 +108,13 @@ namespace :schema do
     )
   end
 
-  desc "Seed data from a live index"
+  desc "Seed data to a live index"
   task :seed do |t, args|
     client = create_client!
 
     SchemaTools.seed(
       client: client
     )
-  end
-
-  desc "Resume breaking change migration from failure"
-  task :migrate_resume_from_failure, [:alias_name] do |t, args|
-    client = create_client!
-    
-    if args[:alias_name]
-      SchemaTools::MigrateBreakingChange.resume_from_failure(alias_name: args[:alias_name], client: client)
-    else
-      puts "ERROR: alias_name parameter is required"
-      puts "Usage: rake 'schema:migrate_resume_from_failure[alias_name]'"
-    end
   end
 end
 

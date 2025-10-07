@@ -127,7 +127,7 @@ module SchemaTools
       raise "Could not load schema files for #{alias_name}"
     end
     
-    puts "Attempting to update index '#{index_name}' with new schema..."
+    puts "Attempting to update index '#{index_name}' in place with new schema as a non-breaking change..."
     begin
       client.update_index_settings(index_name, settings)
       client.update_index_mappings(index_name, mappings)

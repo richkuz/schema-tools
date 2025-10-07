@@ -130,11 +130,12 @@ module SchemaTools
     def reindex(source_index, dest_index, script = nil)
       body = {
         source: { index: source_index },
-        dest: { index: dest_index }
+        dest: { index: dest_index },
+        conflicts: "proceed"
       }
       body[:script] = { source: script } if script
       
-      url = "/_reindex?wait_for_completion=false"
+      url = "/_reindex?wait_for_completion=false&refresh=false"
       
       post(url, body)
     end

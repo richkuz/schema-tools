@@ -1,7 +1,7 @@
 require 'schema_tools/client'
 require 'schema_tools/schema_files'
 require 'schema_tools/config'
-require 'schema_tools/migrate'
+require 'schema_tools/migrate/migrate'
 require 'schema_tools/painless_scripts_download'
 require 'schema_tools/painless_scripts_upload'
 require 'schema_tools/painless_scripts_delete'

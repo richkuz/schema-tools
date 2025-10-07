@@ -3,7 +3,6 @@
     "replication": {
       "type": "DOCUMENT"
     },
-    "verified_before_close": "true",
     "refresh_interval": "1s",
     "number_of_shards": "1",
     "analysis": {

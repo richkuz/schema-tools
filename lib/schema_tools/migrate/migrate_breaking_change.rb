@@ -1,4 +1,5 @@
 require_relative '../schema_files'
+require_relative 'migration_step'
 require 'json'
 
 module SchemaTools
@@ -68,61 +69,20 @@ module SchemaTools
       end
       
       begin
-        log("STEP 1 started: Create catchup-1 index")
-        step1_create_catchup1
-        log("STEP 1 completed")
-        
-        log("STEP 2 started: Configure alias for write to catchup-1")
-        step2_configure_alias_write_catchup1_read_both
-        log("STEP 2 completed")
-        
-        log("STEP 3 started: Reindex to new index")
-        step3_reindex_to_new_index
-        log("STEP 3 completed")
-        
-        log("STEP 4 started: Create catchup-2 index")
-        step4_create_catchup2
-        log("STEP 4 completed")
-        
-        log("STEP 5 started: Configure alias for write to catchup-2")
-        step5_configure_alias_write_catchup2_read_all
-        log("STEP 5 completed")
-        
-        log("STEP 6 started: Merge catchup-1 to new index")
-        step6_merge_catchup1_to_new
-        log("STEP 6 completed")
-        
-        log("STEP 7 started: Configure alias with no write indexes")
-        step7_configure_alias_no_write
-        log("STEP 7 completed")
-        
-        log("STEP 8 started: Merge catchup-2 to new index")
-        step8_merge_catchup2_to_new
-        log("STEP 8 completed")
-        
-        log("STEP 9 started: Configure alias to new index only")
-        step9_configure_alias_final
-        log("STEP 9 completed")
-        
-        log("STEP 10 started: Close unused indexes")
-        step10_close_unused_indexes
-        log("STEP 10 completed")
-        
-        log("Migration completed successfully")
+        execute_migration_steps
         log "Breaking change migration completed successfully!"
-        
       rescue => e
         log("Migration failed: #{e.message}")
         raise e
       end
     end
 
-    private
-
     def log(message)
       puts message
       log_to_log_index(message)
     end
+
+    private
 
     def log_to_log_index(message)
       return unless @migration_log_index
@@ -131,6 +91,57 @@ module SchemaTools
         message: message.is_a?(String) ? message : message.to_json
       }
       @client.post("/#{@migration_log_index}/_doc", doc)
+    end
+
+    def migration_steps
+      [
+        MigrationStep.new(
+          name: "STEP 1: Create catchup-1 index",
+          run: ->(logger) { step1_create_catchup1 }
+        ),
+        MigrationStep.new(
+          name: "STEP 2: Configure alias for write to catchup-1",
+          run: ->(logger) { step2_configure_alias_write_catchup1_read_both }
+        ),
+        MigrationStep.new(
+          name: "STEP 3: Reindex to new index",
+          run: ->(logger) { step3_reindex_to_new_index }
+        ),
+        MigrationStep.new(
+          name: "STEP 4: Create catchup-2 index",
+          run: ->(logger) { step4_create_catchup2 }
+        ),
+        MigrationStep.new(
+          name: "STEP 5: Configure alias for write to catchup-2",
+          run: ->(logger) { step5_configure_alias_write_catchup2_read_all }
+        ),
+        MigrationStep.new(
+          name: "STEP 6: Merge catchup-1 to new index",
+          run: ->(logger) { step6_merge_catchup1_to_new }
+        ),
+        MigrationStep.new(
+          name: "STEP 7: Configure alias with no write indexes",
+          run: ->(logger) { step7_configure_alias_no_write }
+        ),
+        MigrationStep.new(
+          name: "STEP 8: Merge catchup-2 to new index",
+          run: ->(logger) { step8_merge_catchup2_to_new }
+        ),
+        MigrationStep.new(
+          name: "STEP 9: Configure alias to new index only",
+          run: ->(logger) { step9_configure_alias_final }
+        ),
+        MigrationStep.new(
+          name: "STEP 10: Close unused indexes",
+          run: ->(logger) { step10_close_unused_indexes }
+        )
+      ]
+    end
+
+    def execute_migration_steps
+      migration_steps.each do |step|
+        step.execute(self)
+      end
     end
 
     def step1_create_catchup1

@@ -1,4 +1,5 @@
 require_relative 'schema_files'
+require 'json'
 
 module SchemaTools
   class MigrateBreakingChange
@@ -36,22 +37,35 @@ module SchemaTools
       
       new_timestamp = Time.now.strftime('%Y%m%d%H%M%S')
       @new_index = "#{@alias_name}-#{new_timestamp}"
-      @catchup1_index = "#{@new_index}-catchup-1"
-      @catchup2_index = "#{@new_index}-catchup-2"
       log "new_index: #{@new_index}"
+
+      @catchup1_index = "#{@new_index}-catchup-1"
       log "catchup1_index: #{@catchup1_index}"
+
+      @catchup2_index = "#{@new_index}-catchup-2"
       log "catchup2_index: #{@catchup2_index}"
 
-      # TODO Get current_settings and use for catchup_indexes
-      @current_settings = SchemaFiles.get_settings(@alias_name)
-      @current_mappings = SchemaFiles.get_mappings(@alias_name)
+      # Use current index settings and mappings when creating catchup indexes
+      # so that any reindex painless script logic will apply correctly to them.
+      @current_settings = @client.get_index_settings(@current_index)
+      @current_mappings = @client.get_index_mappings(@current_index)
+      raise "Schema files not found for #{@current_index}" unless @current_settings && @current_mappings
+      # Filter read-only settings
+      @current_settings = SettingsFilter.filter_internal_settings(@current_settings)
+      log "Current settings: #{JSON.generate(@current_settings)}"
+      log "Current mappings: #{JSON.generate(@current_mappings)}"
 
       @new_settings = SchemaFiles.get_settings(@alias_name)
       @new_mappings = SchemaFiles.get_mappings(@alias_name)
-      raise "Schema files not found for #{@alias_name}" unless settings && mappings
+      raise "Schema files not found for #{@alias_name}" unless @new_settings && @new_mappings
+      log "New settings: #{JSON.generate(@new_settings)}"
+      log "New mappings: #{JSON.generate(@new_mappings)}"
 
       @reindex_script = SchemaFiles.get_reindex_script(@alias_name)
-      log "Using reindex script defined for #{@alias_name}" if @reindex_script
+      if @reindex_script
+        log "Using reindex painless script defined for #{@alias_name}"
+        log "reindex.painless script: #{@reindex_script}"
+      end
       
       begin
         log("STEP 1 started: Create catchup-1 index")
@@ -147,7 +161,7 @@ module SchemaTools
 
     def update_aliases(actions)
       response = @client.update_aliases(actions)
-      if response.errors
+      if response['errors']
         log "ERROR: Failed to update aliases"
         log actions
         log response

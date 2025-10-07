@@ -19,6 +19,19 @@ module SchemaTools
       log "Breaking Change Migration for #{@alias_name}"
       log "=" * 60
       
+      begin
+        setup
+        migration_steps.each do |step|
+          step.execute(self)
+        end
+        log "Breaking change migration completed successfully!"
+      rescue => e
+        log("Migration failed: #{e.message}")
+        raise e
+      end
+    end
+
+    def setup
       unless @client.alias_exists?(@alias_name)
         raise "Alias '#{@alias_name}' does not exist"
       end
@@ -67,22 +80,12 @@ module SchemaTools
         log "Using reindex painless script defined for #{@alias_name}"
         log "reindex.painless script: #{@reindex_script}"
       end
-      
-      begin
-        execute_migration_steps
-        log "Breaking change migration completed successfully!"
-      rescue => e
-        log("Migration failed: #{e.message}")
-        raise e
-      end
     end
 
     def log(message)
       puts message
       log_to_log_index(message)
     end
-
-    private
 
     def log_to_log_index(message)
       return unless @migration_log_index
@@ -136,12 +139,6 @@ module SchemaTools
           run: ->(logger) { step10_close_unused_indexes }
         )
       ]
-    end
-
-    def execute_migration_steps
-      migration_steps.each do |step|
-        step.execute(self)
-      end
     end
 
     def step1_create_catchup1

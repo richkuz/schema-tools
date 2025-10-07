@@ -76,8 +76,6 @@ module SchemaTools
         step2_configure_alias_write_catchup1_read_both
         log("STEP 2 completed")
         
-        # TODO Implement a way to roll back everything in case reindex fails
-
         log("STEP 3 started: Reindex to new index")
         step3_reindex_to_new_index
         log("STEP 3 completed")

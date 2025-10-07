@@ -23,7 +23,7 @@ module SchemaTools
         migrate_one_schema(alias_name: alias_name, client: client)
       rescue => e
         puts "✗ Migration failed for #{alias_name}: #{e.message}"
-        puts "Continuing with next schema..."
+        raise e
       end
       puts
     end

@@ -15,11 +15,11 @@ module SchemaTools
     # Folder on disk where painless scripts are stored
     PAINLESS_SCRIPTS_PATH = ENV['PAINLESS_SCRIPTS_PATH'] || 'painless_scripts'
 
-    # Descriptive name shown when writing revision_applied_by to index metadata
-    SCHEMURAI_USER = ENV['SCHEMURAI_USER'] || 'rake task'
+    # Descriptive name for operations (kept for backward compatibility)
+    SCHEMA_TOOLS_USER = ENV['SCHEMA_TOOLS_USER'] || 'rake task'
 
-    def self.schemurai_user
-      SCHEMURAI_USER
+    def self.schema_tools_user
+      SCHEMA_TOOLS_USER
     end
 
     def self.connection_url

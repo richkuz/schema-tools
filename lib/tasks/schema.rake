@@ -1,22 +1,16 @@
 require 'schema_tools/client'
 require 'schema_tools/schema_files'
-require 'schema_tools/schema_definer'
 require 'schema_tools/config'
-require 'schema_tools/utils'
-require 'schema_tools/reindex'
-require 'schema_tools/migrate'
-require 'schema_tools/create'
+require 'schema_tools/migrate/migrate'
 require 'schema_tools/painless_scripts_download'
 require 'schema_tools/painless_scripts_upload'
 require 'schema_tools/painless_scripts_delete'
-require 'schema_tools/catchup'
 require 'schema_tools/close'
 require 'schema_tools/delete'
-require 'schema_tools/define'
-require 'schema_tools/diff'
-require 'schema_tools/update_metadata'
-require 'schema_tools/schema_revision'
+require 'schema_tools/download'
+require 'schema_tools/new_alias'
 require 'schema_tools/seed'
+require 'schema_tools/diff'
 require 'seeder/seeder'
 require 'json'
 require 'time'
@@ -54,93 +48,82 @@ def create_client!
 end
 
 namespace :schema do
-  desc "Migrate to a specific index schema revision or migrate all schemas to their latest revisions"
-  task :migrate, [:to_index] do |t, args|
+  desc "Migrate to a specific alias schema or migrate all schemas to their latest revisions"
+  task :migrate, [:alias_name] do |t, args|
     client = create_client!
     
-    if args[:to_index]
-      SchemaTools.migrate_one_schema(index_name: args[:to_index], client: client)
+    if args[:alias_name]
+      SchemaTools.migrate_one_schema(alias_name: args[:alias_name], client: client)
     else
       SchemaTools.migrate_all(client: client)
     end
   end
 
-  desc "Generate diff output file for a given schema revision path, e.g. products-3/revisions/5"
-  task :diff, [:revision_path] do |t, args|
-    diff = SchemaTools.diff(
-      schema_revision: SchemaRevision.new(revision_path)
-    )
-    
-    puts diff
-  end
-
-  desc "Create index with schema definition"
-  task :create, [:index_name] do |t, args|
+  desc "Create a new alias with sample schema"
+  task :new do |t, args|
     client = create_client!
-    
-    SchemaTools.create(
-      index_name: args[:index_name],
+
+    SchemaTools.new_alias(
       client: client
     )
   end
 
-
-  desc "Reindex from source to destination index"
-  task :reindex, [:index_name] do |t, args|
-    client = create_client!
-
-    SchemaTools.reindex(
-      index_name: args[:index_name],
-      client: client
-    )
-  end
-
-  desc "Catchup reindex for new documents"
-  task :catchup, [:index_name] do |t, args|
-    client = create_client!
-    
-    SchemaTools.catchup(
-      index_name: args[:index_name],
-      client: client
-    )
-  end
-
-  desc "Close an index"
-  task :close, [:index_name] do |t, args|
+  desc "schema:new"
+  task :create => :new
+  
+  desc "Close an index or alias"
+  task :close, [:name] do |t, args|
     client = create_client!
 
     SchemaTools.close(
-      index_name: args[:index_name],
+      name: args[:name],
       client: client
     )
   end
 
-  desc "Hard delete an index (only works on closed indexes)"
-  task :delete, [:index_name] do |t, args|
+  desc "Hard delete an index (only works on closed indexes) or delete an alias"
+  task :delete, [:name] do |t, args|
     client = create_client!
 
     SchemaTools.delete(
-      index_name: args[:index_name],
+      name: args[:name],
       client: client
     )
   end
 
-  desc "Define schema files for a new or existing index"
-  task :define do |t, args|
+  desc "Download schema from an existing alias or index"
+  task :download do |t, args|
     client = create_client!
 
-    SchemaTools.define(
+    SchemaTools.download(
       client: client
     )
   end
 
-  desc "Seed data from a live index"
+  desc "Create an alias for an existing index"
+  task :alias do |t, args|
+    client = create_client!
+
+    SchemaTools.create_alias_for_index(
+      client: client
+    )
+  end
+
+  desc "Seed data to a live index"
   task :seed do |t, args|
     client = create_client!
 
     SchemaTools.seed(
       client: client
     )
+  end
+
+  desc "Compare all schemas to their corresponding downloaded alias settings and mappings"
+  task :diff do |t, args|
+    client = create_client!
+
+    diff = SchemaTools::Diff.new(client: client)
+    diff.diff_all_schemas
   end
 end
 

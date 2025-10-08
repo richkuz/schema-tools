@@ -1,0 +1,103 @@
+{
+  "index": {
+    "replication": {
+      "type": "DOCUMENT"
+    },
+    "max_ngram_diff": "28",
+    "mapping": {
+      "coerce": "false"
+    },
+    "refresh_interval": "25s",
+    "auto_expand_replicas": "0-all",
+    "max_inner_result_window": "1000",
+    "knn": "true",
+    "analysis": {
+      "analyzer": {
+        "fuzzy_analyzer": {
+          "filter": [
+            "lowercase"
+          ],
+          "char_filter": [
+            "whitespace_normalizer"
+          ],
+          "type": "custom",
+          "tokenizer": "standard"
+        },
+        "wildcard_exact_forward_analyzer": {
+          "filter": [
+            "lowercase"
+          ],
+          "char_filter": [],
+          "type": "custom",
+          "tokenizer": "whitespace"
+        },
+        "default": {
+          "type": "standard"
+        },
+        "ngram_analyzer": {
+          "filter": [
+            "lowercase"
+          ],
+          "char_filter": [
+            "remove_specials_spaces"
+          ],
+          "tokenizer": "ngram_tokenizer"
+        },
+        "wildcard_exact_reverse_analyzer": {
+          "filter": [
+            "lowercase",
+            "reverse"
+          ],
+          "char_filter": [],
+          "type": "custom",
+          "tokenizer": "whitespace"
+        }
+      },
+      "char_filter": {
+        "whitespace_normalizer": {
+          "pattern": "\\s+",
+          "type": "pattern_replace",
+          "replacement": " "
+        },
+        "remove_specials_spaces": {
+          "pattern": "[\\s()*&^%\\$#@!\\-=_.;:'\"']",
+          "type": "pattern_replace",
+          "replacement": ""
+        }
+      },
+      "tokenizer": {
+        "ngram_tokenizer_text": {
+          "token_chars": [],
+          "min_gram": "2",
+          "type": "ngram",
+          "max_gram": "30"
+        },
+        "ngram_tokenizer": {
+          "token_chars": [
+            "letter",
+            "digit"
+          ],
+          "min_gram": "2",
+          "type": "ngram",
+          "max_gram": "7"
+        }
+      }
+    },
+    "number_of_replicas": "0",
+    "number_of_shards": "30",
+    "similarity": {
+      "tf_only_similarity": {
+        "type": "scripted",
+        "script": {
+          "source": "double tf = Math.sqrt(doc.freq);\ndouble norm = 1/Math.sqrt(doc.length);\nreturn query.boost * tf * norm;"
+        }
+      },
+      "custom_similarity": {
+        "discount_overlaps": "true",
+        "b": "0.0",
+        "type": "BM25",
+        "k1": "0.0"
+      }
+    }
+  }
+}

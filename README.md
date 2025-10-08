@@ -1,23 +1,24 @@
-# Schemurai - Schema tools for OpenSearch and Elasticsearch
+# Schema-tools - Schema tools for OpenSearch and Elasticsearch
 
-Ruby Rake tasks to manage Elasticsearch or OpenSearch index schemas and migrations using discplined version controls.
+Ruby Rake tasks to manage Elasticsearch or OpenSearch index schemas and migrations using aliases for zero-downtime deployments.
 
 <p align="center">
-  <img src="schemurai.png" alt="Schemurai Logo" width="250"/>
+  <img src="schema-tools.png" alt="Schema-tools Logo" width="250"/>
 </p>
 
 ## Features
-- Specify index settings, mappings, and analyzers in versioned `.json` files.
-- Migrate and reindex to a new index with zero downtime without modifying schemas by hand on live instances.
-- Audit the trail of index schema changes through index metadata and GitHub Actions.
-- Update your local schemas to the latest revisions with one command.
+- Specify index settings and mappings in simple `.json` files.
+- Migrate and reindex to a new index with zero downtime using aliases.
+- Download schemas from existing aliases or indices.
+- Create new aliases with sample schemas.
+- Manage painless scripts independently from schema migrations.
 
 ## Quick start
 
 Install this Ruby gem.
 
 ```sh
-gem install schemurai
+gem install schema-tools
 ```
 
 ### Configuration
@@ -40,30 +41,35 @@ export OPENSEARCH_USERNAME=your_username
 export OPENSEARCH_PASSWORD=your_password
 ```
 
-Run `rake schema:define` to define your schema as source files. Point at an existing OpenSearch/Elasticsearch index or let the task create examples for you.
+### Download an existing schema
+
+Run `rake schema:download` to download a schema from an existing alias or index:
 
 ```sh
-$ rake schema:define
+$ rake schema:download
 
-# Please choose:
-# 1. Define a schema for an index that exists in OpenSearch or Elasticsearch
-# 2. Define an example schema for an index that doesn't exist
-# 3. Define an example schema for a breaking change to an existing defined schema
-# 4. Define an example schema for a non-breaking change to an existing defined schema
+# Aliases pointing to 1 index:
+#   1. products -> products-20241201120000
+#   2. users -> users-20241201120000
+
+# Indexes not part of any aliases:
+#   1. old-index
+#   2. temp-index
+
+# Please choose an alias or index to download:
+# Enter 'alias:<name>' for an alias or 'index:<name>' for an index:
 ```
 
 The task will generate schema definition files in a folder layout like this:
 
 ```
-schemas/users                  # Folder name matches the index name
-  index.json                   # Specifies index_name and from_index_name
-  reindex.painless.            # Optional reindexing data transformation logic
-  revisions/1                  # Index schema definition
-    settings.json              # OpenSearch/Elasticsearch index settings and analyzers
-    mappings.json              # OpenSearch/Elasticsearch index mappings
-    diff_output.txt            # Auto-generated diff since from_index_name
+schemas/products         # Folder name matches the alias name
+  settings.json          # OpenSearch/Elasticsearch index settings
+  mappings.json          # OpenSearch/Elasticsearch index mappings
+  reindex.painless       # Optional reindexing data transformation logic
 ```
 
+### Migrate schemas
 
 To migrate your OpenSearch/Elasticsearch indexes to the latest versions defined in the `schemas/` folder:
 
@@ -71,128 +77,159 @@ To migrate your OpenSearch/Elasticsearch indexes to the latest versions defined 
 rake schema:migrate
 ```
 
-To seed data from a live index for development or testing:
+To migrate a specific alias:
 
 ```sh
-rake schema:seed
+rake 'schema:migrate[products]'
 ```
 
-This task will:
-- List available live indexes for you to choose from
-- Fetch the mappings from the selected index
-- Prompt you for the number of documents to seed
-- Call the seeding function with the mappings and document count
+### Create a new alias
 
-Use `rake schema:define` to create new schema versions and `rake schema:migrate` to migrate to them.
+Run `rake schema:new` to create a new alias with an index and a sample schema:
 
-Index names follow the pattern `indexname-$number`, where `$number` increments by 1 for every breaking schema change. The first version of an index does not require a number in the name.
+```sh
+$ rake schema:new
 
-Schema tools do not operate on index aliases.
+# Enter a new alias name:
+# products
+# ✓ Created index 'products-20241201120000' with alias 'products'
+# ✓ Sample schema created at schemas/products
+#   - settings.json
+#   - mappings.json
+```
 
+## Directory structure reference
 
-## Documentation
-
-### Directory structure reference
-
-Example directory structure with multiple indexes, breaking revisions, and non-breaking revisions.
+Example directory structure with multiple aliases:
 
 ```
 schemas/products
-schemas/products-2             # Define breaking changes in new version-numbered index names
+  settings.json
+  mappings.json
+  reindex.painless    # Optional reindexing data transformation logic
 schemas/users
-schemas/users-2
-schemas/users-3
-  index.json
-  reindex.painless
-  revisions/1
-    settings.json
-    mappings.json
-    diff_output.txt            # Auto-generated diff since users-2
-  revisions/2                  # Define non-breaking changes as revisions
-    settings.json
-    mappings.json
-    diff_output.txt            # Auto-generated diff since revisions/1
+  settings.json
+  mappings.json
 ```
 
-The schema folder name matches the name of the index.
-
-The `schema:migrate` task will alert and exit if you attempt to add a new revision to an existing index that would require reindexing.
-
-### Migrate a specific index to the latest version
-
-Run `rake 'schema:migrate[index_name]'` to migrate to the latest schema revision of `index_name`.
-
-The `schema:migrate` task will:
-- Reindex data as needed
-- Generate a `diff_output.txt` with changes
-- Update index mappings `_meta.schemurai_revision` with applied revision details
+Each schema folder name matches the name of an alias.
 
 
-### Handle breaking versus non-breaking schema changes
+## How migrations work
 
-Breaking changes are changes that would require a reindex or have a high risk of breaking an application.
+When possible, `rake schema:migrate` will update settings and mappings in-place on an aliased index, without reindexing. Only breaking changes require a reindex.
 
-`schema:define` will always propose that breaking changes be defined in a new index. Non-breaking changes will be defined as revisions on an existing index.
+Migrating breaking changes requires careful orchestration of reads and writes to ensure documents that are created/updated/deleted during the migration are not lost.
 
-When `schema:migrate` updates an existing index, it will try the operation and rely on OpenSearch/Elasticsearch to accept or reject the change. It enforces no judgment of breaking/non-breaking changes on its own.
+Use case:
+- I have an alias `products` pointing at index `products-20250301000000`.
+- I have heavy reads and writes with 100M+ documents in the index
+- I want to reindex `products-20250301000000` into a new index and update the `products` alias to reference it, without losing any creates/updates/deletes during the process.
 
-Breaking changes (reindex required):
-- Immutable index settings (number_of_shards, index.codec, etc.)
-- Analysis settings changes (analyzers, tokenizers, filters, char_filters)
-- Dynamic mapping changes (dynamic: true ↔ dynamic: strict)
-- Field type changes
-- Field analyzer changes (index-time analyzer)
-- Immutable field properties:
-  - index, store, doc_values, fielddata, norms
-  - enabled, format, copy_to, term_vector, index_options
-  - null_value, ignore_z_value, precision
-- Multi-field subfield removal or changes
+Rake `schema:migrate` solves this use case through the following procedure.
 
-Breaking changes (reindex not required, but still considered breaking)
-- Removing fields
-- Narrowing fields
-  - ignore_above (breaking when decreasing, non-breaking when increasing)
-  - Date format (breaking when removing formats, non-breaking when adding formats)
-  - term_vector
-  - Copy from multiple fields to single field
-  - Disabling object fields
+First, some terms:
+- `alias_name`: Alias containing the index to migrate
+	- `products`
+- `current_index`: First and only index in the alias
+	- `products-20250301000000`
+- `new_index`: Final canonical index into which to migrate `current_index`
+	- `products-20250601000000`
+- `catchup1_index`: Temp index to preserve writes during reindex
+	- `products-20250601000000-catchup-1`
+- `catchup2_index`: Temp index to preserve writes while flushing `catchup1_index`
+	- `products-20250601000000-catchup-2`
+- `log_index`: Index to log the migration state, not stored with `alias_name`
+	- `products-migration-log-202506010000000`
 
-Non-breaking changes (dynamic updates):
-- Mutable index settings (number_of_replicas, refresh_interval)
-- Adding new fields
-- Adding new subfields
-- Adding dynamic mapping settings
-- Mutable field properties (boost, search_analyzer, search_quote_analyzer, ignore_malformed)
+SETUP
 
+Create `log_index` to log the migration state.
+- The migration logs when it starts and completes a step along with a description.
 
-### View which schema revision is applied to an index
+STEP 1
 
-The `schema:migrate` task writes metadata into index mappings to denote the revision. Fetch this metadata via `GET /products-2/`:
+Create `catchup1_index` using the new schema.
+- This index will preserve writes during the reindex.
+
+STEP 2
+
+Configure `alias_name` to only write to `catchup1_index` and read from `current_index` and `catchup1_index`.
+
+STEP 3
+
+Create `new_index` using the new schema.
+
+Reindex `current_index` into `new_index`.
 
 ```
+POST _reindex
 {
-  "index_name": {
-    "setting": { ... },
-    "mappings": {
-      "_meta": {
-        "schemurai_revision": {
-          "revision": "products-2/revisions/3",
-          "revision_applied_at": TIMESTAMP,
-          "revision_applied_by": "rake task", # Descriptive name, see Config.SCHEMURAI_USER
-          "reindex_started_at": TIMESTAMP,
-          "reindex_completed_at": TIMESTAMP,
-          "catchup_started_at": TIMESTAMP,
-          "catchup_completed_at": TIMESTAMP,
-        }
-      }
-    }
-  }
+  "source": { "index": "#{current_index}" },
+  "dest": { "index": "#{new_index}" },
+  "conflicts": "proceed",
+  "refresh": false
 }
 ```
 
+STEP 4
+
+Create `catchup2_index` using the new schema.
+- This index ensures a place for ongoing writes while flushing `catchup1_index`.
+
+STEP 5
+
+Configure `alias_name` to only write to `catchup2_index` and continue reading from `current_index` and `catchup1_index`.
+
+STEP 6
+
+Reindex `catchup1_index` into `new_index`.
+- Merge the first catchup index into the new canonical index.
+
+STEP 7
+
+Configure `alias_name` so there are NO write indexes
+- This guarantees that no writes can sneak into an obsolete catchup index during the second (quick) merge.
+- Any write operations will fail during this time with: `"reason": "Alias [FOO] has more than one index associated with it [...], can't execute a single index op"`
+- Clients must retry any failed writes.
+
+STEP 8
+
+Reindex `catchup2_index` into `new_index`
+- Final sync to merge the second catchup index into the new canonical index.
+
+STEP 9
+
+Configure `alias_name` to write to and read from `new_index` only.
+- Writes resume to the single new index. All data and deletes are consistent.
+
+STEP 10
+
+Close unused indexes to avoid accidental writes.
+- Close `catchup1_index`
+- Close `catchup2_index`
+- Close `current_index`
+Operation complete.
+
+Users can safely delete closed indexes anytime after they are closed.
+
+Caveats for clients that perform writes during the migration:
+- Clients MUST retry failed creates/updates/deletes for up to a minute.
+	- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss.
+- Clients MUST use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing.
+	- If using `DELETE` to delete a single document from an alias, clients might delete from the wrong index and receive a successful response containing "result: not_found". The new index will _not_ reflect such a deletion.
+- Clients MUST read and write to an alias, not directly to an index.
+	- To prevent downtime, the migration procedure only operates on aliased indexes.
+	- Run `rake schema:alias` to create a new alias pointed at an index.
+	- Client applications must read and write to alias_name instead of index_name.
+
+### Diagnosing a failed or aborted migration
+
+If a migration fails or aborts, check status logs in the index named `#{alias_name}-migration-log-#{timestamp}`
+
 ### Transform data during migration
 
-Change the data when migrating to a new schema via the `reindex.painless` script. For example, when renaming a field, the `reindex.painless` script can specify how to modify data when migrating. See more examples in the `reindex.painless` script.
+Change the data when migrating to a new schema via the `reindex.painless` script. For example, when renaming a field, the `reindex.painless` script can specify how to modify data when migrating.
 
 `reindex.painless` runs one time when reindexing into a new index.
 
@@ -233,50 +270,26 @@ This will:
 - Accept script names with or without the `.painless` extension
 - Handle cases where the script doesn't exist gracefully
 
-### Generate a diff_output.txt for a given index
-
-The `diff_output.txt` is helpful to see schema change diffs across revisions when opening PRs.
-
-Run `rake 'schema:diff[products-3]'` to generate a new `diff_output.txt` file between the latest revision of `products-3` and the previous revision.
-
-Run `rake 'schema:diff[products-3/revisions/5]'` to generate a new `diff_output.txt` file between revision 5 of `products-3` and the previous revision.
-
-Running `rake schema:migrate` will also generate a `diff_output.txt` for each index it migrates.
-
 ### Apply a schema change to Staging and Production 
 
-Run GitHub Actions for your branch to prepare a given environment. The actions use the  `migrate` task underneath.
+Run GitHub Actions for your branch to prepare a given environment. The actions use the  `schema:migrate` task underneath.
 
 GitHub Actions:
 - OpenSearch Staging Migrate
 - OpenSearch Production Migrate
 
-#### Migrate with zero downtime
-
-To migrate with zero downtime:
-- Run the migration action to reindex data to the new index
-- Update your applications to use the new index
-- Run `rake schema:catchup` to migrate any new data that came in since the migration last ran
-
-GitHub Actions:
-- OpenSearch Staging Catchup
-- OpenSearch Production Catchup
-
 ### Delete an index
 
-Run `rake 'schema:close[indexname]'` to close an index. This will prevent reads and writes to the index. Verify that the application can operate with the index in a closed state before deleting it.
+Run `rake 'schema:close[index_name]'` to close an index. This will prevent reads and writes to the index. Verify that the application can operate with the index in a closed state before deleting it.
 
-Run `rake 'schema:delete[indexname]'` to hard-delete an index. For safety, this task only hard-deletes indexes that are closed.
+Run `rake 'schema:delete[index_name]'` to hard-delete an index. For safety, this task only hard-deletes indexes that are closed.
+
+Run `rake 'schema:close[alias_name]'` to close all indexes in an alias.
+
+Run `rake 'schema:delete[alias_name]'` to delete an alias and leave its indexes untouched.
 
 GitHub Actions:
 - OpenSearch Staging Close Index
 - OpenSearch Production Close Index
 - OpenSearch Staging Delete Index
 - OpenSearch Production Delete Index
-
-
-## FAQ
-
-Why doesn't this use index aliases?
-- Using an alias circumvents pinning applications to a specific index schema version.
-- When migrating to a new index, applications often need to deploy new code to support reading/writing to the new index. Explicit index names enable applications to pin to a specific version of an index and switch to new versions when they are ready.

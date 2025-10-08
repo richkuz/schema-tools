@@ -1,12 +1,12 @@
 Gem::Specification.new do |spec|
-  spec.name          = "schemurai"
+  spec.name          = "schema-tools"
   spec.version       = "1.0.0"
   spec.authors       = ["Rich Kuzsma"]
   spec.email         = ["rkuzsma@gmail.com"]
   
   spec.summary       = "Schema management tools for OpenSearch and Elasticsearch"
   spec.description   = "Manage Elasticsearch or OpenSearch index schemas and migrations using discplined version controls."
-  spec.homepage      = "https://github.com/richkuz/schemurai"
+  spec.homepage      = "https://github.com/richkuz/schema-tools"
   spec.license       = "Apache-2.0"
   
   spec.files         = Dir.glob("{lib,bin}/**/*") + %w[README.md LICENSE GETTING_STARTED.md INTEGRATION_GUIDE.md]

@@ -34,5 +34,5 @@ jobs:
         env:
           OPENSEARCH_URL: ${{ secrets.OPENSEARCH_STAGING_URL }}
           SCHEMAS_PATH: schemas
-          SCHEMURAI_USER: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SCHEMA_TOOLS_USER: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DRYRUN: ${{ github.event.inputs.dryrun }}

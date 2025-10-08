@@ -6,12 +6,7 @@ module SchemaTools
     end
 
     # Keys to ignore in diff comparisons (noisy metadata)
-    IGNORED_KEYS = [
-      '_meta.schemurai_revision.reindex_completed_at',
-      '_meta.schemurai_revision.reindex_started_at', 
-      '_meta.schemurai_revision.revision',
-      '_meta.schemurai_revision.revision_applied_at'
-    ].freeze
+    IGNORED_KEYS = [].freeze
 
     # Generate a detailed diff between two JSON objects
     # Returns a formatted string showing additions, removals, and modifications

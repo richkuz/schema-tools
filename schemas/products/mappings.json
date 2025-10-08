@@ -1,0 +1,45 @@
+{
+  "properties": {
+    "category": {
+      "type": "keyword"
+    },
+    "computed_value": {
+      "type": "long"
+    },
+    "created_at": {
+      "type": "date"
+    },
+    "description": {
+      "type": "text",
+      "analyzer": "product_analyzer"
+    },
+    "id": {
+      "type": "keyword"
+    },
+    "inventory_count": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      },
+      "analyzer": "product_analyzer"
+    },
+    "price": {
+      "type": "double"
+    },
+    "sku": {
+      "type": "keyword"
+    },
+    "tags": {
+      "type": "keyword"
+    },
+    "updated_at": {
+      "type": "date"
+    }
+  }
+}

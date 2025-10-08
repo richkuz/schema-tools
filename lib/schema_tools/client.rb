@@ -2,6 +2,7 @@ require 'net/http'
 require 'json'
 require 'uri'
 require 'logger'
+require_relative 'settings_filter'
 
 module SchemaTools
   class Client
@@ -112,13 +113,6 @@ module SchemaTools
       response[index_name]['mappings']
     end
 
-    def get_schema_revision(index_name)
-      mappings = get_index_mappings(index_name)
-      return nil unless mappings
-      
-      meta = mappings.dig('_meta', 'schemurai_revision')
-      meta ? meta['revision'] : nil
-    end
 
     def create_index(index_name, settings, mappings)
       body = {
@@ -132,18 +126,16 @@ module SchemaTools
       put("/#{index_name}/_settings", settings)
     end
 
-    def update_index_mappings(index_name, mappings)
-      put("/#{index_name}/_mapping", mappings)
-    end
 
     def reindex(source_index, dest_index, script = nil)
       body = {
         source: { index: source_index },
-        dest: { index: dest_index }
+        dest: { index: dest_index },
+        conflicts: "proceed"
       }
       body[:script] = { source: script } if script
       
-      url = "/_reindex?wait_for_completion=false"
+      url = "/_reindex?wait_for_completion=false&refresh=false"
       
       post(url, body)
     end
@@ -227,6 +219,82 @@ module SchemaTools
               .sort
     end
 
+    def list_aliases
+      response = get("/_aliases")
+      return {} unless response
+      
+      aliases = {}
+      response.each do |index_name, index_data|
+        index_aliases = index_data['aliases']
+        next unless index_aliases && !index_aliases.empty?
+        
+        index_aliases.each do |alias_name, alias_data|
+          aliases[alias_name] ||= []
+          aliases[alias_name] << index_name
+        end
+      end
+      
+      aliases
+    end
+
+    def get_alias_indices(alias_name)
+      response = get("/_alias/#{alias_name}")
+      return [] unless response
+      
+      response.keys
+    end
+
+    def create_alias(alias_name, index_name)
+      body = {
+        actions: [
+          {
+            add: {
+              index: index_name,
+              alias: alias_name
+            }
+          }
+        ]
+      }
+      post("/_aliases", body)
+    end
+
+    def alias_exists?(alias_name)
+      response = get("/_alias/#{alias_name}")
+      response && !response.empty?
+    end
+
+    def delete_alias(alias_name, indices = nil)
+      # If no indices specified, get all indices for this alias
+      if indices.nil?
+        indices = get_alias_indices(alias_name)
+      end
+      
+      actions = indices.map do |index_name|
+        {
+          remove: {
+            index: index_name,
+            alias: alias_name
+          }
+        }
+      end
+      
+      body = { actions: actions }
+      post("/_aliases", body)
+    end
+
+    def update_index_settings(index_name, settings)
+      # Filter out internal settings that can't be updated
+      filtered_settings = SettingsFilter.filter_internal_settings(settings)
+      
+      body = { index: filtered_settings['index'] || {} }
+      put("/#{index_name}/_settings", body)
+    end
+
+    def update_index_mappings(index_name, mappings)
+      body = { properties: mappings['properties'] || {} }
+      put("/#{index_name}/_mapping", body)
+    end
+
     def test_connection
       path = "/_cluster/health"
       puts "Testing connection to #{@url}#{path}"
@@ -239,6 +307,41 @@ module SchemaTools
 
     def close_index(index_name)
       post("/#{index_name}/_close", {})
+    end
+
+    def update_by_query(source_index, dest_index, script = nil)
+      body = {
+        source: { index: source_index },
+        dest: { index: dest_index }
+      }
+      body[:script] = { source: script } if script
+      
+      url = "/_update_by_query?wait_for_completion=false"
+      
+      post(url, body)
+    end
+
+    def update_aliases(actions)
+      body = { actions: actions }
+      post("/_aliases", body)
+    end
+
+    def wait_for_task(task_id, timeout = 3600)
+      start_time = Time.now
+      
+      loop do
+        task_status = get_task_status(task_id)
+        
+        if task_status['completed']
+          return task_status
+        end
+        
+        if Time.now - start_time > timeout
+          raise "Task #{task_id} timed out after #{timeout} seconds"
+        end
+        
+        sleep 5
+      end
     end
 
     def bulk_index(documents, index_name)

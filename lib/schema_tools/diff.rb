@@ -92,13 +92,13 @@ module SchemaTools
 
       # Compare settings
       puts "📊 Settings Comparison:"
-      settings_diff = @json_diff.generate_diff(local_settings, filtered_remote_settings)
+      settings_diff = @json_diff.generate_diff(filtered_remote_settings, local_settings)
       puts settings_diff
       puts
 
       # Compare mappings
       puts "🗺️  Mappings Comparison:"
-      mappings_diff = @json_diff.generate_diff(local_mappings, remote_mappings)
+      mappings_diff = @json_diff.generate_diff(remote_mappings, local_mappings)
       puts mappings_diff
     end
 
@@ -156,8 +156,8 @@ module SchemaTools
         filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
 
         # Generate diffs
-        result[:settings_diff] = @json_diff.generate_diff(local_settings, filtered_remote_settings)
-        result[:mappings_diff] = @json_diff.generate_diff(local_mappings, remote_mappings)
+        result[:settings_diff] = @json_diff.generate_diff(filtered_remote_settings, local_settings)
+        result[:mappings_diff] = @json_diff.generate_diff(remote_mappings, local_mappings)
         
         # Determine overall status
         if result[:settings_diff] == "No changes detected" && result[:mappings_diff] == "No changes detected"

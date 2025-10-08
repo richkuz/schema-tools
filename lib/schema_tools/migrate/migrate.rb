@@ -128,10 +128,21 @@ module SchemaTools
       raise "Could not load schema files for #{alias_name}"
     end
     
+    # Check for differences before attempting migration
+    puts "📊 Checking for differences between local schema and live alias..."
+    diff = Diff.new(client: client)
+    diff_result = diff.generate_schema_diff(alias_name)
+    
+    if diff_result[:status] == :no_changes
+      puts "✓ No differences detected between local schema and live alias"
+      puts "✓ Migration skipped - index is already up to date"
+      puts "Migration completed successfully!"
+      return
+    end
+    
     # Show diff between local schema and live alias before migration
     puts "📊 Showing diff between local schema and live alias before migration:"
     puts "-" * 60
-    diff = Diff.new(client: client)
     diff.diff_schema(alias_name)
     puts "-" * 60
     puts

@@ -7,7 +7,7 @@
     "mapping": {
       "coerce": "false"
     },
-    "refresh_interval": "10s",
+    "refresh_interval": "25s",
     "auto_expand_replicas": "0-all",
     "max_inner_result_window": "1000",
     "knn": "true",

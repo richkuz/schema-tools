@@ -2,6 +2,7 @@ require_relative '../schema_files'
 require_relative 'migrate_breaking_change'
 require_relative '../diff'
 require_relative '../settings_diff'
+require_relative '../mappings_diff'
 require 'json'
 
 module SchemaTools
@@ -182,7 +183,21 @@ module SchemaTools
         puts "✓ Settings updated successfully"
       end
       
-      client.update_index_mappings(index_name, mappings)
+      # Calculate minimal mappings changes
+      remote_mappings = client.get_index_mappings(index_name)
+      mappings_diff = MappingsDiff.new(mappings, remote_mappings)
+      minimal_mappings_changes = mappings_diff.generate_minimal_changes
+      
+      # Only update mappings if there are changes
+      if minimal_mappings_changes.empty?
+        puts "✓ No mappings changes needed - mappings are already up to date"
+      else
+        puts "📊 Applying minimal mappings changes:"
+        puts JSON.pretty_generate(minimal_mappings_changes)
+        client.update_index_mappings(index_name, minimal_mappings_changes)
+        puts "✓ Mappings updated successfully"
+      end
+      
       puts "✓ Index '#{index_name}' updated successfully"
       
       # Verify migration by checking for differences after update

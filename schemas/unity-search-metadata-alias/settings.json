@@ -7,7 +7,7 @@
     "mapping": {
       "coerce": "false"
     },
-    "refresh_interval": "10s",
+    "refresh_interval": "45s",
     "auto_expand_replicas": "0-all",
     "max_inner_result_window": "1000",
     "knn": "true",
@@ -84,7 +84,7 @@
       }
     },
     "number_of_replicas": "0",
-    "number_of_shards": "30",
+    "number_of_shards": "31",
     "similarity": {
       "tf_only_similarity": {
         "type": "scripted",

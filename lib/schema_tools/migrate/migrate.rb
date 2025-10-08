@@ -1,6 +1,8 @@
 require_relative '../schema_files'
 require_relative 'migrate_breaking_change'
 require_relative '../diff'
+require_relative '../settings_diff'
+require 'json'
 
 module SchemaTools
   def self.migrate_all(client:)
@@ -162,7 +164,24 @@ module SchemaTools
     
     puts "Attempting to update index '#{index_name}' in place with new schema as a non-breaking change..."
     begin
-      client.update_index_settings(index_name, settings)
+      # Get current remote settings to calculate minimal changes
+      remote_settings = client.get_index_settings(index_name)
+      filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
+      
+      # Calculate minimal settings changes
+      settings_diff = SettingsDiff.new(settings, filtered_remote_settings)
+      minimal_settings_changes = settings_diff.generate_minimal_changes
+      
+      # Only update settings if there are changes
+      if minimal_settings_changes.empty?
+        puts "✓ No settings changes needed - settings are already up to date"
+      else
+        puts "📊 Applying minimal settings changes:"
+        puts JSON.pretty_generate(minimal_settings_changes)
+        client.update_index_settings(index_name, minimal_settings_changes)
+        puts "✓ Settings updated successfully"
+      end
+      
       client.update_index_mappings(index_name, mappings)
       puts "✓ Index '#{index_name}' updated successfully"
       

@@ -1,10 +1,4 @@
-# Schema-tools - Schema tools for OpenSearch and Elasticsearch
-
-Ruby Rake tasks to manage Elasticsearch or OpenSearch index schemas and migrations using aliases for zero-downtime deployments.
-
-<p align="center">
-  <img src="schema-tools.png" alt="Schema-tools Logo" width="250"/>
-</p>
+# Schema Tools for OpenSearch and Elasticsearch
 
 ## Features
 - Specify index settings and mappings in simple `.json` files.

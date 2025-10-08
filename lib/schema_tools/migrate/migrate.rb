@@ -114,7 +114,21 @@ module SchemaTools
     client.create_alias(alias_name, new_index_name)
     puts "✓ Alias '#{alias_name}' created and configured"
     
-    puts "Migration completed successfully!"
+    # Verify migration by checking for differences after creation
+    puts "📊 Verifying migration by comparing local schema with remote index..."
+    diff = Diff.new(client: client)
+    diff_result = diff.generate_schema_diff(alias_name)
+    
+    if diff_result[:status] == :no_changes
+      puts "✓ Migration verification successful - no differences detected"
+      puts "Migration completed successfully!"
+    else
+      puts "⚠️  Migration verification failed - differences detected:"
+      puts "-" * 60
+      diff.diff_schema(alias_name)
+      puts "-" * 60
+      raise "Migration verification failed - local schema does not match remote index after migration"
+    end
   end
 
   def self.attempt_non_breaking_migration(alias_name:, index_name:, client:)
@@ -136,7 +150,6 @@ module SchemaTools
     if diff_result[:status] == :no_changes
       puts "✓ No differences detected between local schema and live alias"
       puts "✓ Migration skipped - index is already up to date"
-      puts "Migration completed successfully!"
       return
     end
     
@@ -152,7 +165,21 @@ module SchemaTools
       client.update_index_settings(index_name, settings)
       client.update_index_mappings(index_name, mappings)
       puts "✓ Index '#{index_name}' updated successfully"
-      puts "Migration completed successfully!"
+      
+      # Verify migration by checking for differences after update
+      puts "📊 Verifying migration by comparing local schema with remote index..."
+      diff_result = diff.generate_schema_diff(alias_name)
+      
+      if diff_result[:status] == :no_changes
+        puts "✓ Migration verification successful - no differences detected"
+        puts "Migration completed successfully!"
+      else
+        puts "⚠️  Migration verification failed - differences detected:"
+        puts "-" * 60
+        diff.diff_schema(alias_name)
+        puts "-" * 60
+        raise "Migration verification failed - local schema does not match remote index after migration"
+      end
     rescue => e
       # Check if it's a "no settings to update" error - this is actually successful
       if e.message.include?("no settings to update")

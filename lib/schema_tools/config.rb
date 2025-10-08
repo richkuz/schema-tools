@@ -16,10 +16,10 @@ module SchemaTools
     PAINLESS_SCRIPTS_PATH = ENV['PAINLESS_SCRIPTS_PATH'] || 'painless_scripts'
 
     # Descriptive name for operations (kept for backward compatibility)
-    SCHEMURAI_USER = ENV['SCHEMURAI_USER'] || 'rake task'
+    SCHEMA_TOOLS_USER = ENV['SCHEMA_TOOLS_USER'] || 'rake task'
 
-    def self.schemurai_user
-      SCHEMURAI_USER
+    def self.schema_tools_user
+      SCHEMA_TOOLS_USER
     end
 
     def self.connection_url

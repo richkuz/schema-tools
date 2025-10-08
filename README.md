@@ -1,9 +1,9 @@
-# Schemurai - Schema tools for OpenSearch and Elasticsearch
+# Schema-tools - Schema tools for OpenSearch and Elasticsearch
 
 Ruby Rake tasks to manage Elasticsearch or OpenSearch index schemas and migrations using aliases for zero-downtime deployments.
 
 <p align="center">
-  <img src="schemurai.png" alt="Schemurai Logo" width="250"/>
+  <img src="schema-tools.png" alt="Schema-tools Logo" width="250"/>
 </p>
 
 ## Features
@@ -18,7 +18,7 @@ Ruby Rake tasks to manage Elasticsearch or OpenSearch index schemas and migratio
 Install this Ruby gem.
 
 ```sh
-gem install schemurai
+gem install schema-tools
 ```
 
 ### Configuration

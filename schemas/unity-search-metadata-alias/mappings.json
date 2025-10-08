@@ -1,12 +1,5 @@
 {
   "dynamic": "strict",
-  "_meta": {
-    "schemurai_revision": {
-      "revision_applied_by": "rake task",
-      "revision_applied_at": "2025-09-28T21:12:29-04:00",
-      "revision": "unity-search-metadata-10/revisions/1"
-    }
-  },
   "properties": {
     "access_controls": {
       "type": "keyword"

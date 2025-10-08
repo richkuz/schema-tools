@@ -10,6 +10,7 @@ require 'schema_tools/delete'
 require 'schema_tools/download'
 require 'schema_tools/new_alias'
 require 'schema_tools/seed'
+require 'schema_tools/diff'
 require 'seeder/seeder'
 require 'json'
 require 'time'
@@ -115,6 +116,14 @@ namespace :schema do
     SchemaTools.seed(
       client: client
     )
+  end
+
+  desc "Compare all schemas to their corresponding downloaded alias settings and mappings"
+  task :diff do |t, args|
+    client = create_client!
+
+    diff = SchemaTools::Diff.new(client: client)
+    diff.diff_all_schemas
   end
 end
 

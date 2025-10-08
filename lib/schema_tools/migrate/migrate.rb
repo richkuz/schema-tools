@@ -1,5 +1,6 @@
 require_relative '../schema_files'
 require_relative 'migrate_breaking_change'
+require_relative '../diff'
 
 module SchemaTools
   def self.migrate_all(client:)
@@ -126,6 +127,14 @@ module SchemaTools
       puts "  Make sure settings.json and mappings.json exist in #{schema_path}"
       raise "Could not load schema files for #{alias_name}"
     end
+    
+    # Show diff between local schema and live alias before migration
+    puts "📊 Showing diff between local schema and live alias before migration:"
+    puts "-" * 60
+    diff = Diff.new(client: client)
+    diff.diff_schema(alias_name)
+    puts "-" * 60
+    puts
     
     puts "Attempting to update index '#{index_name}' in place with new schema as a non-breaking change..."
     begin

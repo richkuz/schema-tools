@@ -158,7 +158,10 @@ Configure `alias_name` to only write to `catchup1_index` and read from `current_
 
 STEP 3
 
-Reindex `current_index` into `new_index` using the new schema.
+Create `new_index` using the new schema.
+
+Reindex `current_index` into `new_index`.
+
 ```
 POST _reindex
 {
@@ -180,7 +183,7 @@ Configure `alias_name` to only write to `catchup2_index` and continue reading fr
 
 STEP 6
 
-Run `update_by_query` to copy `catchup1_index` into `new_index`.
+Reindex `catchup1_index` into `new_index`.
 - Merge the first catchup index into the new canonical index.
 
 STEP 7
@@ -192,7 +195,7 @@ Configure `alias_name` so there are NO write indexes
 
 STEP 8
 
-Run `update_by_query` to copy `catchup2_index` into `new_index`
+Reindex `catchup2_index` into `new_index`
 - Final sync to merge the second catchup index into the new canonical index.
 
 STEP 9

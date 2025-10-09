@@ -254,7 +254,22 @@ RSpec.describe SchemaTools::MigrateBreakingChange do
         allow(mock_client).to receive(:post).and_return({})
         
         # Mock diff to return differences
-        allow(Diff).to receive(:generate_schema_diff).and_return({ status: :changes })
+        allow(SchemaTools::Diff).to receive(:generate_schema_diff).and_return({ 
+          alias_name: 'test-alias',
+          status: :changes_detected,
+          settings_diff: 'Some changes detected',
+          mappings_diff: 'No changes detected',
+          comparison_context: {
+            new_files: {
+              settings: 'test-alias/settings.json',
+              mappings: 'test-alias/mappings.json'
+            },
+            old_api: {
+              settings: 'GET /test-index-20240101120000/_settings',
+              mappings: 'GET /test-index-20240101120000/_mappings'
+            }
+          }
+        })
       end
 
       it 'fails with verification error' do

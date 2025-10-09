@@ -6,13 +6,11 @@ require_relative 'settings_filter'
 
 module SchemaTools
   def self.diff_all_schemas(client:)
-    diff = Diff.new(client: client)
-    diff.diff_all_schemas
+    Diff.diff_all_schemas(client)
   end
 
   def self.diff_schema(alias_name, client:)
-    diff = Diff.new(client: client)
-    print_schema_diff(diff.generate_schema_diff(alias_name))
+    print_schema_diff(Diff.generate_schema_diff(alias_name, client))
     nil  # Console output method, returns nil
   end
 
@@ -93,7 +91,7 @@ module SchemaTools
         filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
 
         # Normalize local settings to ensure consistent comparison
-        normalized_local_settings = normalize_local_settings(local_settings)
+        normalized_local_settings = self.normalize_local_settings(local_settings)
 
         result[:settings_diff] = json_diff.generate_diff(filtered_remote_settings, normalized_local_settings)
         result[:mappings_diff] = json_diff.generate_diff(remote_mappings, local_mappings)
@@ -168,7 +166,7 @@ module SchemaTools
 
     private
 
-    def normalize_local_settings(local_settings)
+    def self.normalize_local_settings(local_settings)
       return local_settings unless local_settings.is_a?(Hash)
       
       # If local settings already have "index" wrapper, use it
@@ -177,6 +175,10 @@ module SchemaTools
         # If index exists but is not a hash, return as-is (invalid format)
         return local_settings
       end
+      
+      # If local settings are empty, don't add index wrapper
+      # This prevents empty {} from becoming { "index" => {} }
+      return local_settings if local_settings.empty?
       
       # If local settings don't have "index" wrapper, wrap them in "index"
       # This handles cases like { "number_of_shards": 1 } which should be compared as { "index": { "number_of_shards": 1 } }

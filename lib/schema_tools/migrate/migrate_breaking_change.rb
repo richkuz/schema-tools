@@ -30,7 +30,6 @@ module SchemaTools
           step.execute(self)
         end
         
-        # Verify migration by checking for differences after completion
         log "Verifying migration by comparing local schema with remote index..."
         diff = Diff.new(client: @client)
         diff_result = diff.generate_schema_diff(@alias_name)

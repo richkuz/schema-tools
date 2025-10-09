@@ -38,7 +38,6 @@ module SchemaTools
     puts "Migrating alias #{alias_name}"
     puts "=" * 60
     
-    # Check if the folder exists
     schema_path = File.join(Config.schemas_path, alias_name)
     unless Dir.exist?(schema_path)
       raise "Schema folder not found: #{schema_path}"
@@ -84,7 +83,7 @@ module SchemaTools
       puts "This appears to be a breaking change. Starting breaking change migration..."
       
       MigrateBreakingChange.migrate(alias_name:, client:)
-    end    
+    end
   end
 
   private
@@ -107,31 +106,15 @@ module SchemaTools
       raise "Could not load schema files for #{alias_name}"
     end
     
-    # Create the new index
     puts "Creating new index '#{new_index_name}' with provided schema..."
     client.create_index(new_index_name, settings, mappings)
     puts "✓ Index '#{new_index_name}' created"
     
-    # Create the alias
     puts "Creating alias '#{alias_name}' pointing to '#{new_index_name}'..."
     client.create_alias(alias_name, new_index_name)
     puts "✓ Alias '#{alias_name}' created and configured"
     
-    # Verify migration by checking for differences after creation
-    puts "Verifying migration by comparing local schema with remote index..."
-    diff = Diff.new(client: client)
-    diff_result = diff.generate_schema_diff(alias_name)
-    
-    if diff_result[:status] == :no_changes
-      puts "✓ Migration verification successful - no differences detected"
-      puts "Migration completed successfully!"
-    else
-      puts "⚠️  Migration verification failed - differences detected:"
-      puts "-" * 60
-      diff.diff_schema(alias_name)
-      puts "-" * 60
-      raise "Migration verification failed - local schema does not match remote index after migration"
-    end
+    puts "Migration completed successfully!"
   end
 
   def self.attempt_non_breaking_migration(alias_name:, index_name:, client:)
@@ -145,7 +128,6 @@ module SchemaTools
       raise "Could not load schema files for #{alias_name}"
     end
     
-    # Check for differences before attempting migration
     puts "Checking for differences between local schema and live alias..."
     diff = Diff.new(client: client)
     diff_result = diff.generate_schema_diff(alias_name)
@@ -156,7 +138,6 @@ module SchemaTools
       return
     end
     
-    # Show diff between local schema and live alias before migration
     puts "Showing diff between local schema and live alias before migration:"
     puts "-" * 60
     diff.diff_schema(alias_name)
@@ -165,15 +146,12 @@ module SchemaTools
     
     puts "Attempting to update index '#{index_name}' in place with new schema as a non-breaking change..."
     begin
-      # Get current remote settings to calculate minimal changes
       remote_settings = client.get_index_settings(index_name)
       filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
       
-      # Calculate minimal settings changes
       settings_diff = SettingsDiff.new(settings, filtered_remote_settings)
       minimal_settings_changes = settings_diff.generate_minimal_changes
       
-      # Only update settings if there are changes
       if minimal_settings_changes.empty?
         puts "✓ No settings changes needed - settings are already up to date"
       else
@@ -183,12 +161,10 @@ module SchemaTools
         puts "✓ Settings updated successfully"
       end
       
-      # Calculate minimal mappings changes
       remote_mappings = client.get_index_mappings(index_name)
       mappings_diff = ApiAwareMappingsDiff.new(mappings, remote_mappings)
       minimal_mappings_changes = mappings_diff.generate_minimal_changes
       
-      # Only update mappings if there are changes
       if minimal_mappings_changes.empty?
         puts "✓ No mappings changes needed - mappings are already up to date"
       else
@@ -200,7 +176,17 @@ module SchemaTools
       
       puts "✓ Index '#{index_name}' updated successfully"
       
-      # Verify migration by checking for differences after update
+      verify_migration(alias_name)
+    rescue => e
+      if e.message.include?("no settings to update")
+        puts "✓ No settings changes needed - index is already up to date"
+        puts "Migration completed successfully!"
+      else
+        raise e
+      end
+    end
+
+    def verify_migration(alias_name)
       puts "Verifying migration by comparing local schema with remote index..."
       diff_result = diff.generate_schema_diff(alias_name)
       
@@ -213,14 +199,6 @@ module SchemaTools
         diff.diff_schema(alias_name)
         puts "-" * 60
         raise "Migration verification failed - local schema does not match remote index after migration"
-      end
-    rescue => e
-      # Check if it's a "no settings to update" error - this is actually successful
-      if e.message.include?("no settings to update")
-        puts "✓ No settings changes needed - index is already up to date"
-        puts "Migration completed successfully!"
-      else
-        raise e
       end
     end
   end

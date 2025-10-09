@@ -205,7 +205,7 @@ module SchemaTools
           return scripts
         rescue => fallback_error
           # If both APIs fail, log the original error and return empty hash
-          @logger.warn("Could not retrieve stored scripts: #{e.message}") if @logger
+          @logger.warn("Could not retrieve stored scripts: #{e.message}. Fallback error: #{fallback_error}") if @logger
           {}
         end
       end

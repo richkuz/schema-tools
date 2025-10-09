@@ -42,7 +42,44 @@ module SchemaTools
 
     def normalize_json(json_obj)
       return {} unless json_obj
-      JSON.parse(JSON.generate(json_obj))
+      normalized = JSON.parse(JSON.generate(json_obj))
+      
+      # Normalize OpenSearch/Elasticsearch-specific behavior
+      if normalized.is_a?(Hash) && normalized.key?('properties')
+        normalized = normalize_mappings(normalized)
+      end
+      
+      normalized
+    end
+
+    def normalize_mappings(mappings)
+      return mappings unless mappings.is_a?(Hash) && mappings.key?('properties')
+      
+      normalized = mappings.dup
+      normalized['properties'] = normalize_properties(mappings['properties'])
+      normalized
+    end
+
+    def normalize_properties(properties)
+      return properties unless properties.is_a?(Hash)
+      
+      normalized = {}
+      properties.each do |key, value|
+        if value.is_a?(Hash)
+          # Remove implicit "type": "object" if the field has "properties"
+          if value.key?('properties') && value['type'] == 'object'
+            normalized_value = value.dup
+            normalized_value.delete('type')
+            normalized[key] = normalize_properties(normalized_value)
+          else
+            normalized[key] = normalize_properties(value)
+          end
+        else
+          normalized[key] = value
+        end
+      end
+      
+      normalized
     end
 
     def filter_ignored_keys(obj, path_prefix = "")

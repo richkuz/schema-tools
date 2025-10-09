@@ -254,10 +254,7 @@ RSpec.describe SchemaTools::MigrateBreakingChange do
         allow(mock_client).to receive(:post).and_return({})
         
         # Mock diff to return differences
-        diff_instance = double('Diff')
-        allow(diff_instance).to receive(:generate_schema_diff).and_return({ status: :changes })
-        allow(diff_instance).to receive(:diff_schema)
-        allow(SchemaTools::Diff).to receive(:new).and_return(diff_instance)
+        allow(Diff).to receive(:generate_schema_diff).and_return({ status: :changes })
       end
 
       it 'fails with verification error' do

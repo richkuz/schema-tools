@@ -129,8 +129,7 @@ module SchemaTools
     end
     
     puts "Checking for differences between local schema and live alias..."
-    diff = Diff.new(client: client)
-    diff_result = diff.generate_schema_diff(alias_name)
+    diff_result = Diff.generate_schema_diff(alias_name, client)
     
     if diff_result[:status] == :no_changes
       puts "✓ No differences detected between local schema and live alias"
@@ -140,7 +139,7 @@ module SchemaTools
     
     puts "Showing diff between local schema and live alias before migration:"
     puts "-" * 60
-    diff.diff_schema(alias_name)
+    Diff.print_schema_diff(diff_result)
     puts "-" * 60
     puts
     
@@ -175,8 +174,8 @@ module SchemaTools
       end
       
       puts "✓ Index '#{index_name}' updated successfully"
-      
-      verify_migration(alias_name)
+
+      verify_migration(alias_name, client)
     rescue => e
       if e.message.include?("no settings to update")
         puts "✓ No settings changes needed - index is already up to date"
@@ -185,21 +184,21 @@ module SchemaTools
         raise e
       end
     end
+  end
 
-    def verify_migration(alias_name)
-      puts "Verifying migration by comparing local schema with remote index..."
-      diff_result = diff.generate_schema_diff(alias_name)
-      
-      if diff_result[:status] == :no_changes
-        puts "✓ Migration verification successful - no differences detected"
-        puts "Migration completed successfully!"
-      else
-        puts "⚠️  Migration verification failed - differences detected:"
-        puts "-" * 60
-        diff.diff_schema(alias_name)
-        puts "-" * 60
-        raise "Migration verification failed - local schema does not match remote index after migration"
-      end
+  def self.verify_migration(alias_name, client)
+    puts "Verifying migration by comparing local schema with remote index..."
+    diff_result = Diff.generate_schema_diff(alias_name, client)
+    
+    if diff_result[:status] == :no_changes
+      puts "✓ Migration verification successful - no differences detected"
+      puts "Migration completed successfully!"
+    else
+      puts "⚠️  Migration verification failed - differences detected:"
+      puts "-" * 60
+      Diff.print_schema_diff(diff_result)
+      puts "-" * 60
+      raise "Migration verification failed - local schema does not match remote index after migration"
     end
   end
 end

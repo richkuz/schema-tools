@@ -31,8 +31,7 @@ module SchemaTools
         end
         
         log "Verifying migration by comparing local schema with remote index..."
-        diff = Diff.new(client: @client)
-        diff_result = diff.generate_schema_diff(@alias_name)
+        diff_result = Diff.generate_schema_diff(@alias_name, @client)
         
         if diff_result[:status] == :no_changes
           log "✓ Migration verification successful - no differences detected"
@@ -40,7 +39,7 @@ module SchemaTools
         else
           log "⚠️  Migration verification failed - differences detected:"
           log "-" * 60
-          diff.diff_schema(@alias_name)
+          Diff.print_schema_diff(diff_result)
           log "-" * 60
           raise "Migration verification failed - local schema does not match remote index after migration"
         end

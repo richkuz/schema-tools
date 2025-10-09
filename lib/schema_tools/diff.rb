@@ -12,17 +12,13 @@ module SchemaTools
 
   def self.diff_schema(alias_name, client:)
     diff = Diff.new(client: client)
-    diff.generate_schema_diff(alias_name)
+    print_schema_diff(diff.generate_schema_diff(alias_name))
+    nil  # Console output method, returns nil
   end
 
   class Diff
-    def initialize(client:)
-      @client = client
-      @json_diff = JsonDiff.new
-    end
-
     # Compare all schemas to their corresponding downloaded alias settings and mappings
-    def diff_all_schemas
+    def self.diff_all_schemas(client)
       schemas = SchemaFiles.discover_all_schemas
       
       if schemas.empty?
@@ -38,7 +34,7 @@ module SchemaTools
 
       schemas.each do |alias_name|
         begin
-          diff_schema(alias_name)
+          print_schema_diff(generate_schema_diff(alias_name, client))
         rescue => e
           puts "✗ Diff failed for #{alias_name}: #{e.message}"
         end
@@ -46,74 +42,9 @@ module SchemaTools
       end
     end
 
-    # Compare a single schema to its corresponding downloaded alias settings and mappings
-    def diff_schema(alias_name)
-      puts "=" * 60
-      puts "Comparing schema: #{alias_name}"
-      puts "=" * 60
-
-      # Check if alias exists
-      unless @client.alias_exists?(alias_name)
-        puts "❌ Alias '#{alias_name}' not found in cluster"
-        return
-      end
-
-      # Get alias indices
-      alias_indices = @client.get_alias_indices(alias_name)
-      
-      if alias_indices.length > 1
-        puts "⚠️  Alias '#{alias_name}' points to multiple indices: #{alias_indices.join(', ')}"
-        puts "   This configuration is not supported for diffing."
-        return
-      end
-
-      index_name = alias_indices.first
-
-      local_settings = SchemaFiles.get_settings(alias_name)
-      local_mappings = SchemaFiles.get_mappings(alias_name)
-
-      if local_settings.nil? || local_mappings.nil?
-        puts "❌ Local schema files not found for #{alias_name}"
-        return
-      end
-
-      remote_settings = @client.get_index_settings(index_name)
-      remote_mappings = @client.get_index_mappings(index_name)
-
-      if remote_settings.nil? || remote_mappings.nil?
-        puts "❌ Failed to retrieve remote settings or mappings for #{index_name}"
-        return
-      end
-
-      # Show what's being compared
-      puts "Old (Remote API):"
-      puts "   GET /#{index_name}/_settings"
-      puts "   GET /#{index_name}/_mappings"
-      puts
-      puts "New (Local Files):"
-      puts "   #{alias_name}/settings.json"
-      puts "   #{alias_name}/mappings.json"
-      puts
-
-      # Filter remote settings to match local format
-      old_settings = SettingsFilter.filter_internal_settings(remote_settings)
-
-      # Normalize local settings to ensure consistent comparison
-      new_settings = normalize_local_settings(local_settings)
-
-      puts "Settings Comparison:"
-      settings_diff = @json_diff.generate_diff(old_settings, new_settings)
-      puts settings_diff
-      puts
-
-      puts "Mappings Comparison:"
-      mappings_diff = @json_diff.generate_diff(remote_mappings, local_mappings)
-      puts mappings_diff
-    end
-
     # Generate a nicely formatted diff representation for a single schema
-    # This method can be called independently for individual schema diffing
-    def generate_schema_diff(alias_name)
+    # Compare a single schema to its corresponding downloaded alias settings and mappings
+    def self.generate_schema_diff(alias_name, client)
       result = {
         alias_name: alias_name,
         status: nil,
@@ -121,15 +52,16 @@ module SchemaTools
         mappings_diff: nil,
         error: nil
       }
+      json_diff = JsonDiff.new
 
       begin
-        unless @client.alias_exists?(alias_name)
+        unless client.alias_exists?(alias_name)
           result[:status] = :alias_not_found
           result[:error] = "Alias '#{alias_name}' not found in cluster"
           return result
         end
 
-        alias_indices = @client.get_alias_indices(alias_name)
+        alias_indices = client.get_alias_indices(alias_name)
         
         if alias_indices.length > 1
           result[:status] = :multiple_indices
@@ -148,8 +80,8 @@ module SchemaTools
           return result
         end
 
-        remote_settings = @client.get_index_settings(index_name)
-        remote_mappings = @client.get_index_mappings(index_name)
+        remote_settings = client.get_index_settings(index_name)
+        remote_mappings = client.get_index_mappings(index_name)
 
         if remote_settings.nil? || remote_mappings.nil?
           result[:status] = :remote_fetch_failed
@@ -163,8 +95,8 @@ module SchemaTools
         # Normalize local settings to ensure consistent comparison
         normalized_local_settings = normalize_local_settings(local_settings)
 
-        result[:settings_diff] = @json_diff.generate_diff(filtered_remote_settings, normalized_local_settings)
-        result[:mappings_diff] = @json_diff.generate_diff(remote_mappings, local_mappings)
+        result[:settings_diff] = json_diff.generate_diff(filtered_remote_settings, normalized_local_settings)
+        result[:mappings_diff] = json_diff.generate_diff(remote_mappings, local_mappings)
         
         result[:comparison_context] = {
           new_files: {
@@ -189,6 +121,49 @@ module SchemaTools
       end
 
       result
+    end
+
+    # print_schema_diff(generate_schema_diff(alias_name))
+    def self.print_schema_diff(schema_diff)
+      puts "=" * 60
+      puts "Comparing schema: #{schema_diff[:alias_name]}"
+      puts "=" * 60
+
+      # Handle errors by printing and returning
+      if schema_diff[:status] == :alias_not_found
+        puts "❌ #{schema_diff[:error]}"
+        return
+      elsif schema_diff[:status] == :multiple_indices
+        puts "⚠️  #{schema_diff[:error]}"
+        return
+      elsif schema_diff[:status] == :local_files_not_found
+        puts "❌ #{schema_diff[:error]}"
+        return
+      elsif schema_diff[:status] == :remote_fetch_failed
+        puts "❌ #{schema_diff[:error]}"
+        return
+      elsif schema_diff[:status] == :error
+        puts "❌ Error: #{schema_diff[:error]}"
+        return
+      end
+
+      # Show what's being compared
+      puts "New (Local Files):"
+      puts "   #{schema_diff[:comparison_context][:new_files][:settings]}"
+      puts "   #{schema_diff[:comparison_context][:new_files][:mappings]}"
+      puts
+      puts "Old (Remote API):"
+      puts "   #{schema_diff[:comparison_context][:old_api][:settings]}"
+      puts "   #{schema_diff[:comparison_context][:old_api][:mappings]}"
+      puts
+
+      # Display the diffs
+      puts "Settings Comparison:"
+      puts schema_diff[:settings_diff]
+      puts
+
+      puts "Mappings Comparison:"
+      puts schema_diff[:mappings_diff]
     end
 
     private

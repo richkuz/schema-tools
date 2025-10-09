@@ -113,6 +113,11 @@ module SchemaTools
       response[index_name]['mappings']
     end
 
+    def get_index_doc_count(index_name)
+      response = get("/#{index_name}/_count")
+      return 0 unless response
+      response['count'] || 0
+    end
 
     def create_index(index_name, settings, mappings)
       body = {

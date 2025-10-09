@@ -69,7 +69,6 @@ module SchemaTools
 
       index_name = alias_indices.first
 
-      # Get local schema files
       local_settings = SchemaFiles.get_settings(alias_name)
       local_mappings = SchemaFiles.get_mappings(alias_name)
 
@@ -78,7 +77,6 @@ module SchemaTools
         return
       end
 
-      # Get remote settings and mappings
       remote_settings = @client.get_index_settings(index_name)
       remote_mappings = @client.get_index_mappings(index_name)
 
@@ -87,17 +85,28 @@ module SchemaTools
         return
       end
 
-      # Filter remote settings to match local format
-      filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
+      # Show what's being compared
+      puts "Old (Remote API):"
+      puts "   GET /#{index_name}/_settings"
+      puts "   GET /#{index_name}/_mappings"
+      puts
+      puts "New (Local Files):"
+      puts "   #{alias_name}/settings.json"
+      puts "   #{alias_name}/mappings.json"
+      puts
 
-      # Compare settings
+      # Filter remote settings to match local format
+      old_settings = SettingsFilter.filter_internal_settings(remote_settings)
+
+      # Normalize local settings to ensure consistent comparison
+      new_settings = normalize_local_settings(local_settings)
+
       puts "Settings Comparison:"
-      settings_diff = @json_diff.generate_diff(filtered_remote_settings, local_settings)
+      settings_diff = @json_diff.generate_diff(old_settings, new_settings)
       puts settings_diff
       puts
 
-      # Compare mappings
-      puts "🗺️  Mappings Comparison:"
+      puts "Mappings Comparison:"
       mappings_diff = @json_diff.generate_diff(remote_mappings, local_mappings)
       puts mappings_diff
     end
@@ -114,14 +123,12 @@ module SchemaTools
       }
 
       begin
-        # Check if alias exists
         unless @client.alias_exists?(alias_name)
           result[:status] = :alias_not_found
           result[:error] = "Alias '#{alias_name}' not found in cluster"
           return result
         end
 
-        # Get alias indices
         alias_indices = @client.get_alias_indices(alias_name)
         
         if alias_indices.length > 1
@@ -132,7 +139,6 @@ module SchemaTools
 
         index_name = alias_indices.first
 
-        # Get local schema files
         local_settings = SchemaFiles.get_settings(alias_name)
         local_mappings = SchemaFiles.get_mappings(alias_name)
 
@@ -142,7 +148,6 @@ module SchemaTools
           return result
         end
 
-        # Get remote settings and mappings
         remote_settings = @client.get_index_settings(index_name)
         remote_mappings = @client.get_index_mappings(index_name)
 
@@ -155,11 +160,23 @@ module SchemaTools
         # Filter remote settings to match local format
         filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
 
-        # Generate diffs
-        result[:settings_diff] = @json_diff.generate_diff(filtered_remote_settings, local_settings)
+        # Normalize local settings to ensure consistent comparison
+        normalized_local_settings = normalize_local_settings(local_settings)
+
+        result[:settings_diff] = @json_diff.generate_diff(filtered_remote_settings, normalized_local_settings)
         result[:mappings_diff] = @json_diff.generate_diff(remote_mappings, local_mappings)
         
-        # Determine overall status
+        result[:comparison_context] = {
+          new_files: {
+            settings: "#{alias_name}/settings.json",
+            mappings: "#{alias_name}/mappings.json"
+          },
+          old_api: {
+            settings: "GET /#{index_name}/_settings",
+            mappings: "GET /#{index_name}/_mappings"
+          }
+        }
+        
         if result[:settings_diff] == "No changes detected" && result[:mappings_diff] == "No changes detected"
           result[:status] = :no_changes
         else
@@ -172,6 +189,23 @@ module SchemaTools
       end
 
       result
+    end
+
+    private
+
+    def normalize_local_settings(local_settings)
+      return local_settings unless local_settings.is_a?(Hash)
+      
+      # If local settings already have "index" wrapper, use it
+      if local_settings.key?("index")
+        return local_settings if local_settings["index"].is_a?(Hash)
+        # If index exists but is not a hash, return as-is (invalid format)
+        return local_settings
+      end
+      
+      # If local settings don't have "index" wrapper, wrap them in "index"
+      # This handles cases like { "number_of_shards": 1 } which should be compared as { "index": { "number_of_shards": 1 } }
+      { "index" => local_settings }
     end
   end
 end

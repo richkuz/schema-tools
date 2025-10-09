@@ -2,7 +2,7 @@ require_relative '../schema_files'
 require_relative 'migrate_breaking_change'
 require_relative '../diff'
 require_relative '../settings_diff'
-require_relative '../mappings_diff'
+require_relative '../api_aware_mappings_diff'
 require 'json'
 
 module SchemaTools
@@ -118,7 +118,7 @@ module SchemaTools
     puts "✓ Alias '#{alias_name}' created and configured"
     
     # Verify migration by checking for differences after creation
-    puts "📊 Verifying migration by comparing local schema with remote index..."
+    puts "Verifying migration by comparing local schema with remote index..."
     diff = Diff.new(client: client)
     diff_result = diff.generate_schema_diff(alias_name)
     
@@ -146,7 +146,7 @@ module SchemaTools
     end
     
     # Check for differences before attempting migration
-    puts "📊 Checking for differences between local schema and live alias..."
+    puts "Checking for differences between local schema and live alias..."
     diff = Diff.new(client: client)
     diff_result = diff.generate_schema_diff(alias_name)
     
@@ -157,7 +157,7 @@ module SchemaTools
     end
     
     # Show diff between local schema and live alias before migration
-    puts "📊 Showing diff between local schema and live alias before migration:"
+    puts "Showing diff between local schema and live alias before migration:"
     puts "-" * 60
     diff.diff_schema(alias_name)
     puts "-" * 60
@@ -177,7 +177,7 @@ module SchemaTools
       if minimal_settings_changes.empty?
         puts "✓ No settings changes needed - settings are already up to date"
       else
-        puts "📊 Applying minimal settings changes:"
+        puts "Applying minimal settings changes:"
         puts JSON.pretty_generate(minimal_settings_changes)
         client.update_index_settings(index_name, minimal_settings_changes)
         puts "✓ Settings updated successfully"
@@ -185,14 +185,14 @@ module SchemaTools
       
       # Calculate minimal mappings changes
       remote_mappings = client.get_index_mappings(index_name)
-      mappings_diff = MappingsDiff.new(mappings, remote_mappings)
+      mappings_diff = ApiAwareMappingsDiff.new(mappings, remote_mappings)
       minimal_mappings_changes = mappings_diff.generate_minimal_changes
       
       # Only update mappings if there are changes
       if minimal_mappings_changes.empty?
         puts "✓ No mappings changes needed - mappings are already up to date"
       else
-        puts "📊 Applying minimal mappings changes:"
+        puts "Applying minimal mappings changes:"
         puts JSON.pretty_generate(minimal_mappings_changes)
         client.update_index_mappings(index_name, minimal_mappings_changes)
         puts "✓ Mappings updated successfully"
@@ -201,7 +201,7 @@ module SchemaTools
       puts "✓ Index '#{index_name}' updated successfully"
       
       # Verify migration by checking for differences after update
-      puts "📊 Verifying migration by comparing local schema with remote index..."
+      puts "Verifying migration by comparing local schema with remote index..."
       diff_result = diff.generate_schema_diff(alias_name)
       
       if diff_result[:status] == :no_changes

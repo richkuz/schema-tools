@@ -181,6 +181,16 @@
     "wildcard_field": {
       "type": "wildcard",
       "doc_values": false
+    },
+    "updated_at": {
+      "type": "date",
+      "format": "epoch_millis"
+    },
+    "categories": {
+      "type": "keyword"
+    },
+    "status": {
+      "type": "keyword"
     }
   }
 }

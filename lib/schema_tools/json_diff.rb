@@ -119,7 +119,7 @@ module SchemaTools
       changes = []
       
       if old_array.length != new_array.length
-        changes << "📊 ARRAY LENGTH CHANGED: #{path_prefix} (#{old_array.length} → #{new_array.length})"
+        changes << "ARRAY LENGTH CHANGED: #{path_prefix} (#{old_array.length} → #{new_array.length})"
       end
       
       # Compare elements up to the minimum length

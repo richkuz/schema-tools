@@ -4,6 +4,9 @@
       "type": "DOCUMENT"
     },
     "number_of_shards": "1",
-    "number_of_replicas": "1"
+    "number_of_replicas": "1",
+    "refresh_interval": "5s",
+    "max_result_window": "50000",
+    "max_inner_result_window": "5000"
   }
 }

@@ -91,7 +91,7 @@ module SchemaTools
       filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
 
       # Compare settings
-      puts "📊 Settings Comparison:"
+      puts "Settings Comparison:"
       settings_diff = @json_diff.generate_diff(filtered_remote_settings, local_settings)
       puts settings_diff
       puts

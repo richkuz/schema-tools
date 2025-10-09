@@ -16,7 +16,7 @@ namespace :myapp do
     puts "🚀 Deploying to staging..."
     
     # Run schema migration
-    puts "📊 Running schema migration..."
+    puts "Running schema migration..."
     ENV['DRYRUN'] = 'false'
     Rake::Task['schema:migrate'].invoke(index_name, "myapp-staging-#{ENV['BUILD_NUMBER'] || Time.now.to_i}")
     
@@ -38,7 +38,7 @@ namespace :myapp do
     Rake::Task['schema:migrate'].invoke(index_name)
     
     # 2. Actual migration
-    puts "📊 Running production migration..."
+    puts "Running production migration..."
     ENV['DRYRUN'] = 'false'
     Rake::Task['schema:migrate'].invoke(index_name, "myapp-production-#{Time.now.to_i}")
     
@@ -77,7 +77,7 @@ namespace :myapp do
     index_name = args[:index_name]
     raise "index_name parameter is required" unless index_name
     
-    puts "📊 Schema status for #{index_name}:"
+    puts "Schema status for #{index_name}:"
     
     # Generate diff to show current state
     Rake::Task['schema:diff'].invoke(index_name)

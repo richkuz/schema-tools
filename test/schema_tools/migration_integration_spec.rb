@@ -1,7 +1,7 @@
 require_relative '../spec_helper'
 require 'schema_tools/migrate/migrate'
 require 'schema_tools/settings_diff'
-require 'schema_tools/mappings_diff'
+require 'schema_tools/api_aware_mappings_diff'
 require 'schema_tools/settings_filter'
 require 'schema_tools/config'
 require 'json'
@@ -378,11 +378,11 @@ RSpec.describe 'Migration Integration Test' do
       expect(migration_output).to include("Attempting to update index 'test-index-123' in place with new schema as a non-breaking change...")
 
       # Verify that minimal settings changes were calculated and applied
-      expect(migration_output).to include("📊 Applying minimal settings changes:")
+      expect(migration_output).to include("Applying minimal settings changes:")
       expect(migration_output).to include("✓ Settings updated successfully")
 
       # Verify that minimal mappings changes were calculated and applied
-      expect(migration_output).to include("📊 Applying minimal mappings changes:")
+      expect(migration_output).to include("Applying minimal mappings changes:")
       expect(migration_output).to include("✓ Mappings updated successfully")
 
       # Verify that the migration completed successfully
@@ -413,7 +413,7 @@ RSpec.describe 'Migration Integration Test' do
       expect(minimal_settings_changes["index"]["analysis"]["analyzer"]).to include("advanced_analyzer")
 
       # Test the MappingsDiff directly to verify it calculates correct minimal changes
-      mappings_diff = SchemaTools::MappingsDiff.new(new_mappings, remote_mappings)
+      mappings_diff = SchemaTools::ApiAwareMappingsDiff.new(new_mappings, remote_mappings)
       minimal_mappings_changes = mappings_diff.generate_minimal_changes
 
       # Verify that only changed mappings are included

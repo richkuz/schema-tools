@@ -7,6 +7,47 @@
     "number_of_replicas": "1",
     "refresh_interval": "5s",
     "max_result_window": "50000",
-    "max_inner_result_window": "5000"
+    "max_inner_result_window": "5000",
+    "max_ngram_diff": "8",
+    "knn": "true",
+    "analysis": {
+      "analyzer": {
+        "custom_text_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop", "stemmer"]
+        },
+        "ngram_analyzer": {
+          "type": "custom",
+          "tokenizer": "ngram_tokenizer",
+          "filter": ["lowercase"]
+        }
+      },
+      "filter": {
+        "stemmer": {
+          "type": "stemmer",
+          "language": "english"
+        },
+        "stop": {
+          "type": "stop",
+          "stopwords": ["_english_"]
+        }
+      },
+      "tokenizer": {
+        "ngram_tokenizer": {
+          "type": "ngram",
+          "min_gram": "2",
+          "max_gram": "10",
+          "token_chars": ["letter", "digit"]
+        }
+      }
+    },
+    "similarity": {
+      "custom_similarity": {
+        "type": "BM25",
+        "k1": "1.5",
+        "b": "0.8"
+      }
+    }
   }
 }

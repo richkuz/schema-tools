@@ -1,4 +1,5 @@
 {
+  "dynamic": "true",
   "properties": {
     "alias_field": {
       "type": "alias",
@@ -29,7 +30,13 @@
     },
     "description": {
       "type": "text",
-      "analyzer": "english"
+      "analyzer": "custom_text_analyzer",
+      "fields": {
+        "ngram": {
+          "type": "text",
+          "analyzer": "ngram_analyzer"
+        }
+      }
     },
     "double_range_field": {
       "type": "double_range"
@@ -67,7 +74,15 @@
     },
     "metadata": {
       "type": "object",
-      "dynamic": "strict"
+      "dynamic": "strict",
+      "properties": {
+        "priority": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "keyword"
+        }
+      }
     },
     "multi_field_example": {
       "type": "text",
@@ -110,9 +125,15 @@
     },
     "product_name": {
       "type": "text",
+      "analyzer": "custom_text_analyzer",
       "fields": {
         "keyword": {
-          "type": "keyword"
+          "type": "keyword",
+          "ignore_above": 512
+        },
+        "ngram": {
+          "type": "text",
+          "analyzer": "ngram_analyzer"
         }
       }
     },
@@ -130,7 +151,8 @@
       "type": "nested",
       "properties": {
         "comment": {
-          "type": "text"
+          "type": "text",
+          "analyzer": "custom_text_analyzer"
         },
         "rating": {
           "type": "short"
@@ -140,6 +162,9 @@
         },
         "user_id": {
           "type": "keyword"
+        },
+        "helpful": {
+          "type": "boolean"
         }
       }
     },

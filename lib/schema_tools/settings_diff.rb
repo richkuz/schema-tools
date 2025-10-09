@@ -8,14 +8,33 @@ module SchemaTools
     end
 
     def generate_minimal_changes
-      return {} unless @local_schema.is_a?(Hash) && @local_schema.key?("index")
+      return {} unless @local_schema.is_a?(Hash)
       
+      # Normalize local schema to always have "index" wrapper
+      local_index = normalize_local_schema(@local_schema)
+      return {} if local_index.nil?
+      
+      # Extract remote index settings
       remote_index = @remote_schema.is_a?(Hash) && @remote_schema.key?("index") ? @remote_schema["index"] : {}
-      changes = find_changes(remote_index, @local_schema["index"])
+      
+      changes = find_changes(remote_index, local_index)
       changes.empty? ? {} : { "index" => changes }
     end
 
     private
+
+    def normalize_local_schema(local_schema)
+      # If local schema already has "index" wrapper, use it only if it's a valid hash
+      if local_schema.key?("index")
+        return local_schema["index"] if local_schema["index"].is_a?(Hash)
+        # If index exists but is not a hash, return nil to indicate invalid schema
+        return nil
+      end
+      
+      # If local schema doesn't have "index" wrapper, treat the entire schema as index settings
+      # This handles cases like { "number_of_shards": 1 } which is equivalent to { "index": { "number_of_shards": 1 } }
+      return local_schema
+    end
 
     def find_changes(remote, local)
       changes = {}

@@ -290,5 +290,136 @@ RSpec.describe SchemaTools::SettingsDiff do
         expect(diff.generate_minimal_changes).to eq({})
       end
     end
+
+    context 'when local schema has no index wrapper' do
+      it 'treats entire local schema as index settings' do
+        local = {
+          "number_of_replicas" => "2",
+          "refresh_interval" => "5s",
+          "max_result_window" => "10000"
+        }
+        
+        remote = {
+          "index" => {
+            "number_of_replicas" => "1",
+            "refresh_interval" => "5s"
+          }
+        }
+        
+        diff = SchemaTools::SettingsDiff.new(local, remote)
+        expected = {
+          "index" => {
+            "number_of_replicas" => "2",
+            "max_result_window" => "10000"
+          }
+        }
+        
+        expect(diff.generate_minimal_changes).to eq(expected)
+      end
+    end
+
+    context 'when local schema has no index wrapper and is identical to remote' do
+      it 'returns empty hash' do
+        local = {
+          "number_of_replicas" => "1",
+          "refresh_interval" => "5s"
+        }
+        
+        remote = {
+          "index" => {
+            "number_of_replicas" => "1",
+            "refresh_interval" => "5s"
+          }
+        }
+        
+        diff = SchemaTools::SettingsDiff.new(local, remote)
+        expect(diff.generate_minimal_changes).to eq({})
+      end
+    end
+
+    context 'when local schema has no index wrapper with nested structures' do
+      it 'handles nested changes correctly' do
+        local = {
+          "number_of_replicas" => "1",
+          "analysis" => {
+            "analyzer" => {
+              "custom_analyzer" => {
+                "type" => "custom",
+                "tokenizer" => "standard",
+                "filter" => ["lowercase"]
+              }
+            }
+          }
+        }
+        
+        remote = {
+          "index" => {
+            "number_of_replicas" => "1",
+            "analysis" => {
+              "analyzer" => {
+                "custom_analyzer" => {
+                  "type" => "custom",
+                  "tokenizer" => "standard",
+                  "filter" => ["lowercase", "stop"]
+                }
+              }
+            }
+          }
+        }
+        
+        diff = SchemaTools::SettingsDiff.new(local, remote)
+        expected = {
+          "index" => {
+            "analysis" => {
+              "analyzer" => {
+                "custom_analyzer" => {
+                  "filter" => ["lowercase"]
+                }
+              }
+            }
+          }
+        }
+        
+        expect(diff.generate_minimal_changes).to eq(expected)
+      end
+    end
+
+    context 'when local schema has no index wrapper and remote is empty' do
+      it 'returns entire local schema as index settings' do
+        local = {
+          "number_of_replicas" => "1",
+          "refresh_interval" => "5s"
+        }
+        
+        remote = {}
+        
+        diff = SchemaTools::SettingsDiff.new(local, remote)
+        expected = {
+          "index" => {
+            "number_of_replicas" => "1",
+            "refresh_interval" => "5s"
+          }
+        }
+        
+        expect(diff.generate_minimal_changes).to eq(expected)
+      end
+    end
+
+    context 'when local schema has index wrapper but index is not a hash' do
+      it 'returns empty hash' do
+        local = {
+          "index" => "invalid"
+        }
+        
+        remote = {
+          "index" => {
+            "number_of_replicas" => "1"
+          }
+        }
+        
+        diff = SchemaTools::SettingsDiff.new(local, remote)
+        expect(diff.generate_minimal_changes).to eq({})
+      end
+    end
   end
 end

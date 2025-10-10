@@ -1,5 +1,6 @@
 require_relative '../schema_files'
 require_relative 'migration_step'
+require_relative 'migrate_verify'
 require_relative '../diff'
 require_relative 'rollback'
 require 'json'
@@ -68,20 +69,7 @@ module SchemaTools
           @current_step = step
           step.execute(self)
         end
-        
-        log "Verifying migration by comparing local schema with remote index..."
-        diff_result = Diff.generate_schema_diff(@alias_name, @client)
-        
-        if diff_result[:status] == :no_changes
-          log "✓ Migration verification successful - no differences detected"
-          log "Breaking change migration completed successfully!"
-        else
-          log "⚠️  Migration verification failed - differences detected:"
-          log "-" * 60
-          Diff.print_schema_diff(diff_result)
-          log "-" * 60
-          raise "Migration verification failed - local schema does not match remote index after migration"
-        end
+        SchemaTools.verify_migration(@alias_name, @client)
       rescue => e
         log("Migration failed: #{e.message}")
         raise e

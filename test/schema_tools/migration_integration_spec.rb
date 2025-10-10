@@ -1,6 +1,8 @@
 require_relative '../spec_helper'
 require 'schema_tools/migrate/migrate'
 require 'schema_tools/migrate/migrate_new'
+require 'schema_tools/migrate/migrate_non_breaking_change'
+require 'schema_tools/migrate/migrate_verify'
 require 'schema_tools/settings_diff'
 require 'schema_tools/api_aware_mappings_diff'
 require 'schema_tools/settings_filter'

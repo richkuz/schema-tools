@@ -358,6 +358,90 @@ RSpec.describe SchemaTools::Diff do
     end
   end
 
+  describe '.normalize_remote_settings' do
+    context 'when normalizing remote settings from ES API' do
+      it 'converts string values to proper types' do
+        remote_settings = {
+          "index" => {
+            "number_of_replicas" => "0",
+            "number_of_shards" => "1",
+            "enabled" => "true"
+          }
+        }
+        
+        result = SchemaTools::Diff.send(:normalize_remote_settings, remote_settings)
+        
+        expect(result).to eq({
+          "index" => {
+            "number_of_replicas" => 0,
+            "number_of_shards" => 1,
+            "enabled" => true
+          }
+        })
+      end
+
+      it 'handles settings without index wrapper' do
+        remote_settings = {
+          "number_of_replicas" => "0",
+          "number_of_shards" => "1"
+        }
+        
+        result = SchemaTools::Diff.send(:normalize_remote_settings, remote_settings)
+        
+        expect(result).to eq({
+          "index" => {
+            "number_of_replicas" => 0,
+            "number_of_shards" => 1
+          }
+        })
+      end
+
+      it 'handles nested structures' do
+        remote_settings = {
+          "index" => {
+            "analysis" => {
+              "analyzer" => {
+                "custom" => {
+                  "enabled" => "true",
+                  "boost" => "1.5"
+                }
+              }
+            }
+          }
+        }
+        
+        result = SchemaTools::Diff.send(:normalize_remote_settings, remote_settings)
+        
+        expect(result).to eq({
+          "index" => {
+            "analysis" => {
+              "analyzer" => {
+                "custom" => {
+                  "enabled" => true,
+                  "boost" => 1.5
+                }
+              }
+            }
+          }
+        })
+      end
+
+      it 'handles empty settings' do
+        remote_settings = {}
+        
+        result = SchemaTools::Diff.send(:normalize_remote_settings, remote_settings)
+        
+        expect(result).to eq({ "index" => {} })
+      end
+
+      it 'handles nil input' do
+        result = SchemaTools::Diff.send(:normalize_remote_settings, nil)
+        
+        expect(result).to be_nil
+      end
+    end
+  end
+
   describe '.normalize_string_value' do
     it 'converts "true" to boolean true' do
       expect(SchemaTools::Diff.send(:normalize_string_value, "true")).to eq(true)

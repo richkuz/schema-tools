@@ -1,4 +1,5 @@
 require 'json'
+require_relative 'diff'
 
 module SchemaTools
   class SettingsDiff
@@ -17,7 +18,11 @@ module SchemaTools
       # Extract remote index settings
       remote_index = @remote_schema.is_a?(Hash) && @remote_schema.key?("index") ? @remote_schema["index"] : {}
       
-      changes = find_changes(remote_index, local_index)
+    # Normalize both sides to ensure consistent comparison
+    normalized_remote = Diff.normalize_values(remote_index)
+    normalized_local = Diff.normalize_values(local_index)
+      
+      changes = find_changes(normalized_remote, normalized_local)
       changes.empty? ? {} : { "index" => changes }
     end
 

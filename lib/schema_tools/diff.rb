@@ -90,10 +90,11 @@ module SchemaTools
         # Filter remote settings to match local format
         filtered_remote_settings = SettingsFilter.filter_internal_settings(remote_settings)
 
-        # Normalize local settings to ensure consistent comparison
+        # Normalize both local and remote settings to ensure consistent comparison
         normalized_local_settings = self.normalize_local_settings(local_settings)
+        normalized_remote_settings = self.normalize_remote_settings(filtered_remote_settings)
 
-        result[:settings_diff] = json_diff.generate_diff(filtered_remote_settings, normalized_local_settings)
+        result[:settings_diff] = json_diff.generate_diff(normalized_remote_settings, normalized_local_settings)
         result[:mappings_diff] = json_diff.generate_diff(remote_mappings, local_mappings)
         
         result[:comparison_context] = {
@@ -188,6 +189,26 @@ module SchemaTools
       # If local settings don't have "index" wrapper, wrap them in "index"
       # This handles cases like { "number_of_shards": 1 } which should be compared as { "index": { "number_of_shards": 1 } }
       normalized_settings = normalize_values(local_settings)
+      { "index" => normalized_settings }
+    end
+
+    # Normalize remote settings to ensure consistent comparison
+    # Remote settings may come back as strings from ES API, so normalize them too
+    def self.normalize_remote_settings(remote_settings)
+      return remote_settings unless remote_settings.is_a?(Hash)
+      
+      # If remote settings already have "index" wrapper, normalize it
+      if remote_settings.key?("index")
+        if remote_settings["index"].is_a?(Hash)
+          normalized_index = normalize_values(remote_settings["index"])
+          return { "index" => normalized_index }
+        else
+          return remote_settings
+        end
+      end
+      
+      # If remote settings don't have "index" wrapper, normalize and wrap them
+      normalized_settings = normalize_values(remote_settings)
       { "index" => normalized_settings }
     end
 

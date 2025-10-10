@@ -16,7 +16,7 @@ RSpec.describe SchemaTools::MigrateBreakingChange do
     double('Client').tap do |client|
       allow(client).to receive(:alias_exists?).with(alias_name).and_return(true)
       allow(client).to receive(:get_alias_indices).with(alias_name).and_return([current_index])
-      allow(client).to receive(:get_index_settings).with(current_index).and_return({})
+      allow(client).to receive(:get_index_settings).with(current_index).and_return({ "index" => {} })
       allow(client).to receive(:get_index_mappings).with(current_index).and_return({})
       allow(client).to receive(:index_exists?).and_return(false)
       allow(client).to receive(:create_index).and_return({})
@@ -33,10 +33,10 @@ RSpec.describe SchemaTools::MigrateBreakingChange do
   let(:migration) { described_class.new(alias_name: alias_name, client: mock_client) }
 
   before do
-    allow(SchemaTools::SchemaFiles).to receive(:get_settings).and_return({})
+    allow(SchemaTools::SchemaFiles).to receive(:get_settings).and_return({ "index" => {} })
     allow(SchemaTools::SchemaFiles).to receive(:get_mappings).and_return({})
     allow(SchemaTools::SchemaFiles).to receive(:get_reindex_script).and_return(nil)
-    allow(SchemaTools::SettingsFilter).to receive(:filter_internal_settings).and_return({})
+    allow(SchemaTools::SettingsFilter).to receive(:filter_internal_settings).and_return({ "index" => {} })
   end
 
   describe 'rollback functionality' do

@@ -1,11 +1,17 @@
 {
-  "number_of_shards": 1,
-  "number_of_replicas": 0,
-  "analysis": {
-    "analyzer": {
-      "default": {
-        "type": "standard"
+  "index": {
+    "replication": {
+      "type": "DOCUMENT"
+    },
+    "number_of_shards": 3,
+    "refresh_interval": "15s",
+    "analysis": {
+      "analyzer": {
+        "default": {
+          "type": "standard"
+        }
       }
-    }
+    },
+    "number_of_replicas": "0"
   }
 }

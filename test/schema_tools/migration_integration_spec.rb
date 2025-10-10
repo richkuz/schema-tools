@@ -401,12 +401,12 @@ RSpec.describe 'Migration Integration Test' do
 
       # Verify that only changed settings are included
       expect(minimal_settings_changes).to include("index")
-      expect(minimal_settings_changes["index"]).to include("number_of_shards" => "5")
-      expect(minimal_settings_changes["index"]).to include("number_of_replicas" => "2")
-      expect(minimal_settings_changes["index"]).to include("max_result_window" => "50000")
-      expect(minimal_settings_changes["index"]).to include("max_inner_result_window" => "5000")
-      expect(minimal_settings_changes["index"]).to include("max_ngram_diff" => "100")
-      expect(minimal_settings_changes["index"]).to include("knn" => "true")
+      expect(minimal_settings_changes["index"]).to include("number_of_shards" => 5)
+      expect(minimal_settings_changes["index"]).to include("number_of_replicas" => 2)
+      expect(minimal_settings_changes["index"]).to include("max_result_window" => 50000)
+      expect(minimal_settings_changes["index"]).to include("max_inner_result_window" => 5000)
+      expect(minimal_settings_changes["index"]).to include("max_ngram_diff" => 100)
+      expect(minimal_settings_changes["index"]).to include("knn" => true)
 
       # Verify that unchanged settings are not included
       expect(minimal_settings_changes["index"]).not_to include("refresh_interval")

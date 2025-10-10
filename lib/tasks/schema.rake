@@ -122,8 +122,7 @@ namespace :schema do
   task :diff do |t, args|
     client = create_client!
 
-    diff = SchemaTools::Diff.new(client: client)
-    diff.diff_all_schemas
+    SchemaTools::Diff.diff_all_schemas(client)
   end
 end
 

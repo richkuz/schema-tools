@@ -453,7 +453,7 @@ module SchemaTools
     end
 
     def log_operation(method, path, body = nil)
-      message = "\e[37m#{method} #{path}\e[0m" # White color
+      message = "\e[1m\e[37m#{method} #{path}\e[0m" # Bold White color
       if body
         message += "\n#{body.is_a?(String) ? body : JSON.pretty_generate(body)}"
       end

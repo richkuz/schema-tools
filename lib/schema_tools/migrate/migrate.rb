@@ -137,7 +137,6 @@ module SchemaTools
     puts "-" * 60
     Diff.print_schema_diff(diff_result)
     puts "-" * 60
-    puts
     
     puts "Attempting to update index '#{index_name}' in place with new schema as a non-breaking change..."
     begin

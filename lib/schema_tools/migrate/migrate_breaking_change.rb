@@ -101,7 +101,7 @@ module SchemaTools
       end
 
       @new_timestamp = Time.now.strftime('%Y%m%d%H%M%S')
-      @migration_log_index = "#{@alias_name}-migration-log-#{@new_timestamp}"
+      @migration_log_index = "#{@alias_name}-#{@new_timestamp}-migration-log"
       log "Creating log index: #{@migration_log_index}"
       @client.create_index(@migration_log_index, {}, {})
       @logger.migration_log_index = @migration_log_index

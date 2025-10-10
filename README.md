@@ -150,7 +150,7 @@ First, some terms:
 - `catchup2_index`: Temp index to preserve writes while flushing `catchup1_index`
 	- `products-20250601000000-catchup-2`
 - `log_index`: Index to log the migration state, not stored with `alias_name`
-	- `products-migration-log-202506010000000`
+	- `products-20250601000000-migration-log`
 
 SETUP
 
@@ -235,7 +235,7 @@ Caveats for clients that perform writes during the migration:
 
 ### Diagnosing a failed or aborted migration
 
-If a migration fails or aborts, check status logs in the index named `#{alias_name}-migration-log-#{timestamp}`
+If a migration fails or aborts, check status logs in the index named `#{alias_name}-#{timestamp}-migration-log`
 
 ### Transform data during migration
 

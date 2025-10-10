@@ -21,13 +21,18 @@ RSpec.describe 'Migration Integration Test' do
       allow(client).to receive(:alias_exists?).with(alias_name).and_return(true)
       allow(client).to receive(:get_alias_indices).with(alias_name).and_return(['test-index-123'])
       allow(client).to receive(:index_exists?).with('test-index-123').and_return(true)
+      allow(client).to receive(:index_exists?).and_return(true) # Handle any other index names
       
       # Mock settings and mappings to return updated values after updates
       settings_updated = false
       mappings_updated = false
       
+      # Normalize the settings to match what ES would return (canonical types)
+      normalized_remote_settings = normalize_settings_for_es(remote_settings)
+      normalized_new_settings = normalize_settings_for_es(new_settings)
+      
       allow(client).to receive(:get_index_settings).with('test-index-123') do
-        settings_updated ? new_settings : remote_settings
+        settings_updated ? normalized_new_settings : normalized_remote_settings
       end
       
       allow(client).to receive(:get_index_mappings).with('test-index-123') do
@@ -462,5 +467,41 @@ RSpec.describe 'Migration Integration Test' do
       expect(migration_output).to include("✓ Migration skipped - index is already up to date")
       expect(migration_output).not_to include("Migration completed successfully!")
     end
+  end
+
+  # Helper method to normalize settings to match ES canonical format
+  def normalize_settings_for_es(settings)
+    return settings unless settings.is_a?(Hash)
+    
+    normalized = {}
+    settings.each do |key, value|
+      if value.is_a?(Hash)
+        normalized[key] = normalize_settings_for_es(value)
+      elsif value.is_a?(String)
+        # Convert string values to their proper types (same logic as Diff.normalize_string_value)
+        case value.downcase
+        when "true"
+          normalized[key] = true
+        when "false"
+          normalized[key] = false
+        when "1"
+          normalized[key] = 1
+        when "0"
+          normalized[key] = 0
+        else
+          if value.match?(/\A-?\d+\z/)
+            normalized[key] = value.to_i
+          elsif value.match?(/\A-?\d*\.\d+\z/)
+            normalized[key] = value.to_f
+          else
+            normalized[key] = value
+          end
+        end
+      else
+        normalized[key] = value
+      end
+    end
+    
+    normalized
   end
 end

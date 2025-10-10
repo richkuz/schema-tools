@@ -9,7 +9,7 @@ module SchemaTools
   def self.migrate_all(client:)
     puts "Discovering all schemas and migrating each to their latest revisions..."
     
-    schemas = find_all_schemas
+    schemas = SchemaFiles.discover_all_schemas
     
     if schemas.empty?
       puts "No schemas found in #{Config.schemas_path}"
@@ -87,10 +87,6 @@ module SchemaTools
   end
 
   private
-
-  def self.find_all_schemas
-    SchemaFiles.discover_all_schemas
-  end
 
   def self.migrate_to_new_alias(alias_name, client)
     timestamp = Time.now.strftime("%Y%m%d%H%M%S")

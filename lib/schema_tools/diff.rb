@@ -171,9 +171,14 @@ module SchemaTools
       
       # If local settings already have "index" wrapper, use it
       if local_settings.key?("index")
-        return local_settings if local_settings["index"].is_a?(Hash)
-        # If index exists but is not a hash, return as-is (invalid format)
-        return local_settings
+        if local_settings["index"].is_a?(Hash)
+          # Normalize the index settings and return
+          normalized_index = normalize_values(local_settings["index"])
+          return { "index" => normalized_index }
+        else
+          # If index exists but is not a hash, return as-is (invalid format)
+          return local_settings
+        end
       end
       
       # If local settings are empty, don't add index wrapper
@@ -182,7 +187,56 @@ module SchemaTools
       
       # If local settings don't have "index" wrapper, wrap them in "index"
       # This handles cases like { "number_of_shards": 1 } which should be compared as { "index": { "number_of_shards": 1 } }
-      { "index" => local_settings }
+      normalized_settings = normalize_values(local_settings)
+      { "index" => normalized_settings }
+    end
+
+    # Normalize string values to their proper types for Elasticsearch comparison
+    # Handles the gotcha cases where ES accepts string inputs but returns canonical types
+    def self.normalize_values(obj)
+      case obj
+      when Hash
+        normalized = {}
+        obj.each do |key, value|
+          normalized[key] = normalize_values(value)
+        end
+        normalized
+      when Array
+        obj.map { |item| normalize_values(item) }
+      when String
+        normalize_string_value(obj)
+      else
+        obj
+      end
+    end
+
+    # Convert string values to their proper types based on Elasticsearch behavior
+    def self.normalize_string_value(str)
+      # Handle boolean values
+      case str.downcase
+      when "true"
+        true
+      when "false"
+        false
+      when "1"
+        # Could be boolean true or numeric 1, default to numeric for settings
+        1
+      when "0"
+        # Could be boolean false or numeric 0, default to numeric for settings
+        0
+      else
+        # Handle numeric strings
+        if str.match?(/\A-?\d+\z/)
+          # Integer string
+          str.to_i
+        elsif str.match?(/\A-?\d*\.\d+\z/)
+          # Float string
+          str.to_f
+        else
+          # Keep as string if it doesn't match any pattern
+          str
+        end
+      end
     end
   end
 end

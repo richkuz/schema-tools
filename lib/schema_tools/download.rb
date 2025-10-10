@@ -10,7 +10,7 @@ module SchemaTools
     
     single_aliases = aliases.select { |alias_name, indices| indices.length == 1 && !alias_name.start_with?('.') }
     multi_aliases = aliases.select { |alias_name, indices| indices.length > 1 && !alias_name.start_with?('.') }
-    unaliased_indices = indices.reject { |index| aliases.values.flatten.include?(index) || index.start_with?('.') }
+    unaliased_indices = indices.reject { |index| aliases.values.flatten.include?(index) || index.start_with?('.') || client.index_closed?(index) }
     
     # Create a combined list with sequential numbering
     options = []

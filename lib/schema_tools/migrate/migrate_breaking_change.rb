@@ -332,12 +332,13 @@ module SchemaTools
     end
 
     def step10_close_unused_indexes
-      [@current_index, @catchup1_index, @catchup2_index].each do |index|
+      [@current_index, @catchup1_index, @catchup2_index, @migration_log_index].each do |index|
         if @client.index_exists?(index)
+          log "Closing index: #{index}"
           @client.close_index(index)
-          log "Closed index: #{index}"
         end
       end
+      @migration_log_index = nil
     end
 
     private

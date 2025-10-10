@@ -83,7 +83,7 @@ module SchemaTools
     aliases = client.list_aliases
     indices = client.list_indices
     
-    unaliased_indices = indices.reject { |index| aliases.values.flatten.include?(index) || index.start_with?('.') }
+    unaliased_indices = indices.reject { |index| aliases.values.flatten.include?(index) || index.start_with?('.') || client.index_closed?(index) }
     
     puts "\nIndexes not part of any aliases:"
     if unaliased_indices.empty?

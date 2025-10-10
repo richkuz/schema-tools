@@ -29,8 +29,8 @@ module SchemaTools
     private
 
     def add_default_logging
-      @before_actions << ->(logger) { logger.log("#{@name} (starting)") }
-      @after_actions << ->(logger) { logger.log("#{@name} (completed)") }
+      @before_actions << ->(logger) { logger.log("\nSTARTING: #{@name}") }
+      @after_actions << ->(logger) { logger.log("COMPLETED: #{@name}") }
     end
   end
 end

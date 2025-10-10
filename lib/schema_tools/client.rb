@@ -1,14 +1,31 @@
 require 'net/http'
 require 'json'
 require 'uri'
-require 'logger'
 require_relative 'settings_filter'
+
+class SimpleLogger
+  def initialize(output = STDOUT)
+    @output = output
+  end
+
+  def info(message)
+    @output.puts message
+  end
+
+  def warn(message)
+    @output.puts message
+  end
+
+  def error(message)
+    @output.puts message
+  end
+end
 
 module SchemaTools
   class Client
     attr_reader :url
     
-    def initialize(url, dryrun: false, logger: Logger.new(STDOUT), username: nil, password: nil)
+    def initialize(url, dryrun: false, logger: SimpleLogger.new, username: nil, password: nil)
       @url = url
       @dryrun = dryrun
       @logger = logger
@@ -33,9 +50,13 @@ module SchemaTools
       end
     end
 
-    def put(path, body)
+    def put(path, body, suppress_logging: false)
+      unless suppress_logging
+        @logger.info("DRYRUN=true, simulation only") if @dryrun
+        log_operation('PUT', path, body)
+        await_user_input if interactive_mode?
+      end
       if @dryrun
-        print_curl_command('PUT', path, body)
         return { 'acknowledged' => true } # Return mock response for dry run
       end
 
@@ -55,9 +76,14 @@ module SchemaTools
       end
     end
 
-    def post(path, body)
+    def post(path, body, suppress_logging: false)
+      unless suppress_logging
+        @logger.info("DRYRUN=true, simulation only") if @dryrun
+        log_operation('POST', path, body)
+        await_user_input if interactive_mode?
+      end
       if @dryrun
-        print_curl_command('POST', path, body)
+        return {"task"=>"FEl-TdjcTpmIvnE5_1fv4Q:164963"} if path.start_with?('/_reindex')
         return { 'acknowledged' => true } # Return mock response for dry run
       end
 
@@ -77,9 +103,13 @@ module SchemaTools
       end
     end
 
-    def delete(path)
+    def delete(path, suppress_logging: false)
+      unless suppress_logging
+        @logger.info("DRYRUN=true, simulation only") if @dryrun
+        log_operation('DELETE', path)
+        await_user_input if interactive_mode?
+      end
       if @dryrun
-        print_curl_command('DELETE', path)
         return { 'acknowledged' => true } # Return mock response for dry run
       end
 
@@ -154,9 +184,13 @@ module SchemaTools
       put("/_scripts/#{script_name}", body)
     end
 
-    def delete_script(script_name)
+    def delete_script(script_name, suppress_logging: false)
+      unless suppress_logging
+        @logger.info("DRYRUN=true, simulation only") if @dryrun
+        log_operation('DELETE', "/_scripts/#{script_name}")
+        await_user_input if interactive_mode?
+      end
       if @dryrun
-        print_curl_command('DELETE', "/_scripts/#{script_name}")
         return { 'acknowledged' => true } # Return mock response for dry run
       end
 
@@ -349,9 +383,13 @@ module SchemaTools
       end
     end
 
-    def bulk_index(documents, index_name)
+    def bulk_index(documents, index_name, suppress_logging: false)
+      unless suppress_logging
+        @logger.info("DRYRUN=true, simulation only") if @dryrun
+        log_operation('POST', '/_bulk') # including documents would be too noisy
+        await_user_input if interactive_mode?
+      end
       if @dryrun
-        print_curl_command('POST', '/_bulk', documents)
         return { 'items' => documents.map { |doc| { 'index' => { 'status' => 201 } } } }
       end
 
@@ -414,20 +452,21 @@ module SchemaTools
       end
     end
 
-    def print_curl_command(method, path, body = nil)
-      uri = URI("#{@url}#{path}")
-      curl_cmd = "curl -X #{method.upcase} '#{uri}'"
-      
-      if @username && @password
-        curl_cmd += " -u '#{@username}:#{@password}'"
-      end
-      
+    def log_operation(method, path, body = nil)
+      message = "\e[37m#{method} #{path}\e[0m" # White color
       if body
-        curl_cmd += " -H 'Content-Type: application/json'"
-        curl_cmd += " -d '#{body.to_json}'"
+        message += "\n#{body.is_a?(String) ? body : JSON.pretty_generate(body)}"
       end
-      
-      @logger.info "🔍 DRY RUN - Would execute: #{curl_cmd}"
+      @logger.info message
+    end
+
+    def interactive_mode?
+      ENV['INTERACTIVE'] == 'true'
+    end
+
+    def await_user_input
+      print "\nPress Enter to continue... "
+      STDIN.gets
     end
   end
 end

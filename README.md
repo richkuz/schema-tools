@@ -108,6 +108,22 @@ schemas/users
 
 Each schema folder name matches the name of an alias.
 
+## Other settings and tasks
+
+Use `rake schema:seed` to seed an index with sample documents that conform to your schema.
+
+Use `DRYRUN` to simulate but not apply any POST/PUT/DELETE operations to your index:
+
+```
+DRYRUN=true rake schema:migrate
+```
+
+Use `INTERACTIVE` to prompt to proceed before applying any POST/PUT/DELETE operations to your index:
+
+```
+INTERACTIVE=true rake schema:migrate
+```
+
 
 ## How migrations work
 

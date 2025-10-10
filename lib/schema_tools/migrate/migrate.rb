@@ -150,8 +150,7 @@ module SchemaTools
       if minimal_settings_changes.empty?
         puts "✓ No settings changes needed - settings are already up to date"
       else
-        puts "Applying minimal settings changes:"
-        puts JSON.pretty_generate(minimal_settings_changes)
+        puts "Applying minimal settings changes"
         client.update_index_settings(index_name, minimal_settings_changes)
         puts "✓ Settings updated successfully"
       end
@@ -163,8 +162,7 @@ module SchemaTools
       if minimal_mappings_changes.empty?
         puts "✓ No mappings changes needed - mappings are already up to date"
       else
-        puts "Applying minimal mappings changes:"
-        puts JSON.pretty_generate(minimal_mappings_changes)
+        puts "Applying minimal mappings changes"
         client.update_index_mappings(index_name, minimal_mappings_changes)
         puts "✓ Mappings updated successfully"
       end

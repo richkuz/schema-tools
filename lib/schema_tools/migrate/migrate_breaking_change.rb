@@ -5,6 +5,42 @@ require_relative 'rollback'
 require 'json'
 
 module SchemaTools
+  # Custom logger that uses the migration's log() method
+  class MigrationLogger
+    attr_writer :migration_log_index
+
+    def initialize(migration_log_index, client)
+      @migration_log_index = migration_log_index
+      @client = client
+    end
+
+    def info(message)
+      log(message)
+    end
+
+    def warn(message)
+      log(message)
+    end
+
+    def error(message)
+      log(message)
+    end
+
+    def log(message)
+      puts message
+      log_to_log_index(message)
+    end
+
+    def log_to_log_index(message)
+      return unless @migration_log_index
+      doc = {
+        timestamp: Time.now.iso8601,
+        message: message.is_a?(String) ? message : message.to_json
+      }
+      @client.post("/#{@migration_log_index}/_doc", doc, suppress_logging: true)
+    end
+  end
+
   class MigrateBreakingChange
     def self.migrate(alias_name:, client:)
       new(alias_name: alias_name, client: client).migrate
@@ -16,6 +52,9 @@ module SchemaTools
       @migration_log_index = nil
       @current_step = nil
       @rollback_attempted = false
+
+      @logger = MigrationLogger.new(nil, client)
+      @client.instance_variable_set(:@logger, @logger)
     end
 
     def migrate
@@ -60,15 +99,18 @@ module SchemaTools
         log "  Currently points to: #{indices.join(', ')}"
         raise "Alias '#{@alias_name}' must point to exactly one index"
       end
-      
-      @migration_log_index = "#{@alias_name}-migration-log-#{Time.now.strftime('%Y%m%d%H%M%S')}"
-      log "Logging to '#{@migration_log_index}'"
 
+      @new_timestamp = Time.now.strftime('%Y%m%d%H%M%S')
+      @migration_log_index = "#{@alias_name}-migration-log-#{@new_timestamp}"
+      log "Creating log index: #{@migration_log_index}"
+      @client.create_index(@migration_log_index, {}, {})
+      @logger.migration_log_index = @migration_log_index
+      log "Logging to '#{@migration_log_index}'"
+      
       @current_index = indices.first
       log "Alias '#{@alias_name}' points to index '#{@current_index}'"
       
-      new_timestamp = Time.now.strftime('%Y%m%d%H%M%S')
-      @new_index = "#{@alias_name}-#{new_timestamp}"
+      @new_index = "#{@alias_name}-#{@new_timestamp}"
       log "new_index: #{@new_index}"
 
       @catchup1_index = "#{@new_index}-catchup-1"
@@ -101,17 +143,7 @@ module SchemaTools
     end
 
     def log(message)
-      puts message
-      log_to_log_index(message)
-    end
-
-    def log_to_log_index(message)
-      return unless @migration_log_index
-      doc = {
-        timestamp: Time.now.iso8601,
-        message: message.is_a?(String) ? message : message.to_json
-      }
-      @client.post("/#{@migration_log_index}/_doc", doc)
+      @logger.info(message)
     end
 
     def migration_steps
@@ -339,6 +371,7 @@ module SchemaTools
         end
       end
       @migration_log_index = nil
+      @logger.migration_log_index = nil
     end
 
     private

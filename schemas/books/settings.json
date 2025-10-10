@@ -3,7 +3,7 @@
     "replication": {
       "type": "DOCUMENT"
     },
-    "number_of_shards": 2,
+    "number_of_shards": 1,
     "refresh_interval": "15s",
     "analysis": {
       "analyzer": {

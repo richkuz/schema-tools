@@ -264,7 +264,7 @@ RSpec.describe SchemaTools::Client do
 
       it 'prints curl command instead of making request' do
         expect { dry_run_client.bulk_index(documents, index_name) }
-          .to output(/🔍 DRY RUN - Would execute: curl -X POST/).to_stdout_from_any_process
+          .to output(/DRYRUN=true, simulation only/).to_stdout_from_any_process
       end
 
       it 'returns mock response in dry run mode' do

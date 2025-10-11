@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = "schema-tools"
-  spec.version       = "1.0.4"
+  spec.version       = "1.0.5"
   spec.authors       = ["Rich Kuzsma"]
   spec.email         = ["rkuzsma@gmail.com"]
   

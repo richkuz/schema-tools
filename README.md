@@ -15,6 +15,12 @@ Install this Ruby gem.
 gem install schema-tools
 ```
 
+Add (or edit) a file called `Rakefile` and add this line:
+
+```ruby
+require 'schema_tools'
+```
+
 ### Configuration
 
 Set the connection URL for your OpenSearch or Elasticsearch instance:
@@ -33,6 +39,12 @@ export ELASTICSEARCH_PASSWORD=your_password
 # or
 export OPENSEARCH_USERNAME=your_username
 export OPENSEARCH_PASSWORD=your_password
+```
+
+### View available rake tasks
+
+```sh
+rake -T | grep " schema:"
 ```
 
 ### Download an existing schema

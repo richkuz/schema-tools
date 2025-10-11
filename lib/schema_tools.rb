@@ -1,0 +1,1 @@
+require 'schema_tools/rake_tasks'

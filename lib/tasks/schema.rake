@@ -91,6 +91,30 @@ namespace :schema do
     )
   end
 
+  desc "Delete an alias (does not delete the index)"
+  task :drop, [:alias_name] do |t, args|
+    client = create_client!
+
+    unless args[:alias_name]
+      puts "Error: alias_name is required"
+      puts "Usage: rake 'schema:drop[alias_name]'"
+      exit 1
+    end
+
+    alias_name = args[:alias_name]
+
+    unless client.alias_exists?(alias_name)
+      puts "Error: Alias '#{alias_name}' does not exist"
+      exit 1
+    end
+
+    indices = client.get_alias_indices(alias_name)
+    puts "Deleting alias '#{alias_name}' from indices: #{indices.join(', ')}"
+
+    client.delete_alias(alias_name)
+    puts "✓ Alias '#{alias_name}' deleted successfully"
+  end
+
   desc "Download schema from an existing alias or index"
   task :download do |t, args|
     client = create_client!

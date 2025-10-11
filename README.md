@@ -47,6 +47,17 @@ export OPENSEARCH_PASSWORD=your_password
 rake -T | grep " schema:"
 ```
 
+Available schema tasks:
+- `schema:migrate[alias_name]` - Migrate to a specific alias schema or migrate all schemas
+- `schema:new` - Create a new alias with sample schema
+- `schema:close[name]` - Close an index or alias
+- `schema:delete[name]` - Hard delete an index (only works on closed indexes) or delete an alias
+- `schema:drop[alias_name]` - Delete an alias (does not delete the index)
+- `schema:download` - Download schema from an existing alias or index
+- `schema:alias` - Create an alias for an existing index
+- `schema:seed` - Seed data to a live index
+- `schema:diff` - Compare all schemas to their corresponding downloaded alias settings and mappings
+
 ### Download an existing schema
 
 Run `rake schema:download` to download a schema from an existing alias or index:
@@ -309,6 +320,8 @@ Run `rake 'schema:delete[index_name]'` to hard-delete an index. For safety, this
 Run `rake 'schema:close[alias_name]'` to close all indexes in an alias.
 
 Run `rake 'schema:delete[alias_name]'` to delete an alias and leave its indexes untouched.
+
+Run `rake 'schema:drop[alias_name]'` to delete an alias (does not delete the underlying index).
 
 GitHub Actions:
 - OpenSearch Staging Close Index

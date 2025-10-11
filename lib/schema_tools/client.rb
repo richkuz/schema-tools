@@ -435,6 +435,20 @@ module SchemaTools
       settings.dig('index', 'verified_before_close') == 'true'
     end
 
+    def delete_by_query(index_name, query, suppress_logging: false)
+      unless suppress_logging
+        @logger.info("DRYRUN=true, simulation only") if @dryrun
+        log_operation('POST', "/#{index_name}/_delete_by_query", { query: query })
+        await_user_input if interactive_mode?
+      end
+      if @dryrun
+        return { 'deleted' => 1, 'batches' => 1, 'version_conflicts' => 0, 'failures' => [] }
+      end
+
+      body = { query: query }
+      post("/#{index_name}/_delete_by_query", body, suppress_logging: suppress_logging)
+    end
+
     private
 
     def make_http_request(uri)

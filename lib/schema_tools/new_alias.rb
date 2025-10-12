@@ -80,6 +80,7 @@ module SchemaTools
       //
       // Example: Add a new field
       // ctx._source.new_field = 'default_value';
+      long timestamp = System.currentTimeMillis();
     PAINLESS
     
     File.write(reindex_file, reindex_content)

@@ -43,13 +43,15 @@ module SchemaTools
   end
 
   class MigrateBreakingChange
-    def self.migrate(alias_name:, client:)
-      new(alias_name: alias_name, client: client).migrate
+    def self.migrate(alias_name:, client:, reindex_batch_size: 1000, reindex_requests_per_second: -1)
+      new(alias_name: alias_name, client: client, reindex_batch_size: reindex_batch_size, reindex_requests_per_second: reindex_requests_per_second).migrate
     end
 
-    def initialize(alias_name:, client:)
+    def initialize(alias_name:, client:, reindex_batch_size: 1000, reindex_requests_per_second: -1)
       @alias_name = alias_name
       @client = client
+      @reindex_batch_size = reindex_batch_size
+      @reindex_requests_per_second = reindex_requests_per_second
       @migration_log_index = nil
       @current_step = nil
       @rollback_attempted = false
@@ -189,7 +191,7 @@ module SchemaTools
     def step0_test_reindex_one_doc
       @client.create_index(@throwaway_test_index, @new_settings, @new_mappings)
       begin
-        @client.reindex_one_doc(@current_index, @throwaway_test_index, @reindex_script)
+        @client.reindex_one_doc(source_index: @current_index, dest_index: @throwaway_test_index, script: @reindex_script)
       rescue => e
         log "Failed reindexing a test document"
         raise e
@@ -246,7 +248,7 @@ module SchemaTools
     end
 
     def reindex(current_index, new_index, reindex_script)
-      task_response = @client.reindex(current_index, new_index, reindex_script)
+      task_response = @client.reindex(source_index: current_index, dest_index: new_index, script: reindex_script, size: @reindex_batch_size, requests_per_second: @reindex_requests_per_second)
       log task_response
       if task_response['took']
         log "Reindex task complete. Took: #{task_response['took']}"

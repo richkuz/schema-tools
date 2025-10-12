@@ -105,7 +105,7 @@ module SchemaTools
           @logger.log "📊 Found #{doc_count} documents in catchup-1 index - reindexing to original..."
           
           # Reindex from catchup-1 to original index
-          response = @client.reindex(@catchup1_index, @current_index, nil)
+          response = @client.reindex(source_index: @catchup1_index, dest_index: @current_index, script: nil)
           @logger.log "Reindex task started - task_id: #{response['task']}"
           
           # Wait for reindex to complete

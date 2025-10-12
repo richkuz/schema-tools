@@ -163,20 +163,24 @@ module SchemaTools
     end
 
 
-    def reindex(source_index, dest_index, script = nil)
+    def reindex(source_index:, dest_index:, script: nil, size: 1000, requests_per_second: -1)
       body = {
-        source: { index: source_index },
+        source: { 
+          index: source_index,
+          size: size
+        },
         dest: { index: dest_index },
         conflicts: "proceed"
       }
       body[:script] = { lang: 'painless', source: script } if script
       
       url = "/_reindex?wait_for_completion=false&refresh=false"
+      url += "&requests_per_second=#{requests_per_second}" if requests_per_second != -1
       
       post(url, body)
     end
 
-    def reindex_one_doc(source_index, dest_index, script = nil)
+    def reindex_one_doc(source_index:, dest_index:, script: nil)
       body = {
         source: {
           index: source_index,

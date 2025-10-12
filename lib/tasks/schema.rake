@@ -28,6 +28,10 @@ def create_client!
     exit 1
   end
   
+  # Parse reindex parameters from ENV variables
+  reindex_batch_size = ENV['REINDEX_BATCH_SIZE'] ? ENV['REINDEX_BATCH_SIZE'].to_i : 1000
+  reindex_requests_per_second = ENV['REINDEX_REQUESTS_PER_SECOND'] ? ENV['REINDEX_REQUESTS_PER_SECOND'].to_i : -1
+  
   # Initialize client and test connection
   client = SchemaTools::Client.new(
     SchemaTools::Config.connection_url, 
@@ -54,9 +58,9 @@ namespace :schema do
     client = create_client!
     
     if args[:alias_name]
-      SchemaTools.migrate_one_schema(alias_name: args[:alias_name], client: client)
+      SchemaTools.migrate_one_schema(alias_name: args[:alias_name], client: client, reindex_batch_size: reindex_batch_size, reindex_requests_per_second: reindex_requests_per_second)
     else
-      SchemaTools.migrate_all(client: client)
+      SchemaTools.migrate_all(client: client, reindex_batch_size: reindex_batch_size, reindex_requests_per_second: reindex_requests_per_second)
     end
   end
 

@@ -147,6 +147,18 @@ Use `INTERACTIVE` to prompt to proceed before applying any POST/PUT/DELETE opera
 INTERACTIVE=true rake schema:migrate
 ```
 
+Use `REINDEX_BATCH_SIZE` to control the batch size for reindexing operations (default: 1000):
+
+```
+REINDEX_BATCH_SIZE=500 rake schema:migrate
+```
+
+Use `REINDEX_REQUESTS_PER_SECOND` to throttle reindexing operations (default: -1, no throttling):
+
+```
+REINDEX_REQUESTS_PER_SECOND=100 rake schema:migrate
+```
+
 
 ## How migrations work
 

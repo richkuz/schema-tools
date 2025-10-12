@@ -11,7 +11,10 @@ RSpec.describe SchemaTools::Client do
     context 'without script' do
       it 'sends correct reindex request' do
         expected_body = {
-          source: { index: source_index },
+          source: { 
+            index: source_index,
+            size: 1000
+          },
           dest: { index: dest_index },
           conflicts: "proceed"
         }
@@ -22,7 +25,7 @@ RSpec.describe SchemaTools::Client do
           .with(body: expected_body.to_json)
           .to_return(status: 200, body: response_body)
         
-        result = client.reindex(source_index, dest_index)
+        result = client.reindex(source_index: source_index, dest_index: dest_index)
         expect(result).to eq({ 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' })
       end
     end
@@ -30,7 +33,10 @@ RSpec.describe SchemaTools::Client do
     context 'with script' do
       it 'includes script in reindex request' do
         expected_body = {
-          source: { index: source_index },
+          source: { 
+            index: source_index,
+            size: 1000
+          },
           dest: { index: dest_index },
           conflicts: "proceed",
           script: { lang: 'painless', source: script }
@@ -42,7 +48,7 @@ RSpec.describe SchemaTools::Client do
           .with(body: expected_body.to_json)
           .to_return(status: 200, body: response_body)
         
-        result = client.reindex(source_index, dest_index, script)
+        result = client.reindex(source_index: source_index, dest_index: dest_index, script: script)
         expect(result).to eq({ 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' })
       end
     end
@@ -50,7 +56,10 @@ RSpec.describe SchemaTools::Client do
     context 'with empty script' do
       it 'does not include script when script is nil' do
         expected_body = {
-          source: { index: source_index },
+          source: { 
+            index: source_index,
+            size: 1000
+          },
           dest: { index: dest_index },
           conflicts: "proceed"
         }
@@ -61,7 +70,49 @@ RSpec.describe SchemaTools::Client do
           .with(body: expected_body.to_json)
           .to_return(status: 200, body: response_body)
         
-        result = client.reindex(source_index, dest_index, nil)
+        result = client.reindex(source_index: source_index, dest_index: dest_index, script: nil)
+        expect(result).to eq({ 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' })
+      end
+    end
+
+    context 'with custom size and requests_per_second' do
+      it 'includes custom size and requests_per_second in reindex request' do
+        expected_body = {
+          source: { 
+            index: source_index,
+            size: 500
+          },
+          dest: { index: dest_index },
+          conflicts: "proceed"
+        }
+        
+        response_body = { 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' }.to_json
+        
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=false&refresh=false&requests_per_second=100')
+          .with(body: expected_body.to_json)
+          .to_return(status: 200, body: response_body)
+        
+        result = client.reindex(source_index: source_index, dest_index: dest_index, size: 500, requests_per_second: 100)
+        expect(result).to eq({ 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' })
+      end
+
+      it 'does not include requests_per_second when set to -1' do
+        expected_body = {
+          source: { 
+            index: source_index,
+            size: 2000
+          },
+          dest: { index: dest_index },
+          conflicts: "proceed"
+        }
+        
+        response_body = { 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' }.to_json
+        
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=false&refresh=false')
+          .with(body: expected_body.to_json)
+          .to_return(status: 200, body: response_body)
+        
+        result = client.reindex(source_index: source_index, dest_index: dest_index, size: 2000, requests_per_second: -1)
         expect(result).to eq({ 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' })
       end
     end
@@ -70,7 +121,7 @@ RSpec.describe SchemaTools::Client do
       stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=false&refresh=false')
         .to_return(status: 500, body: 'Internal Server Error')
       
-      expect { client.reindex(source_index, dest_index) }
+      expect { client.reindex(source_index: source_index, dest_index: dest_index) }
         .to raise_error(/HTTP 500/)
     end
 
@@ -78,12 +129,12 @@ RSpec.describe SchemaTools::Client do
       let(:dry_run_client) { SchemaTools::Client.new('http://localhost:9200', dryrun: true) }
 
       it 'returns mock response without making actual request' do
-        result = dry_run_client.reindex(source_index, dest_index)
+        result = dry_run_client.reindex(source_index: source_index, dest_index: dest_index)
         expect(result).to eq({ 'task' => 'FEl-TdjcTpmIvnE5_1fv4Q:164963' })
       end
 
       it 'logs dry run message' do
-        expect { dry_run_client.reindex(source_index, dest_index) }
+        expect { dry_run_client.reindex(source_index: source_index, dest_index: dest_index) }
           .to output(/DRYRUN=true, simulation only/).to_stdout_from_any_process
       end
     end
@@ -117,7 +168,7 @@ RSpec.describe SchemaTools::Client do
           .with(body: expected_body.to_json)
           .to_return(status: 200, body: response_body)
         
-        result = client.reindex_one_doc(source_index, dest_index)
+        result = client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
         expect(result['total']).to eq(1)
         expect(result['created']).to eq(1)
       end
@@ -149,7 +200,7 @@ RSpec.describe SchemaTools::Client do
           .with(body: expected_body.to_json)
           .to_return(status: 200, body: response_body)
         
-        result = client.reindex_one_doc(source_index, dest_index, script)
+        result = client.reindex_one_doc(source_index: source_index, dest_index: dest_index, script: script)
         expect(result['total']).to eq(1)
         expect(result['created']).to eq(1)
       end
@@ -177,7 +228,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
-        expect { client.reindex_one_doc(source_index, dest_index) }
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to raise_error(/Reindex failed with internal errors. Failures: Document mapping type mismatch/)
       end
 
@@ -196,7 +247,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
-        expect { client.reindex_one_doc(source_index, dest_index) }
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to raise_error(/Reindex query found 0 documents. Expected to find 1./)
       end
 
@@ -215,7 +266,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
-        expect { client.reindex_one_doc(source_index, dest_index) }
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to raise_error(/Reindex query found 5 documents. Expected to find 1./)
       end
 
@@ -234,7 +285,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
-        expect { client.reindex_one_doc(source_index, dest_index) }
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to raise_error(/Reindex failed to index the document \(created: 0, updated: 0\). Noops: 1./)
       end
 
@@ -253,7 +304,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
-        expect { client.reindex_one_doc(source_index, dest_index) }
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to raise_error(/Reindex operation timed out./)
       end
 
@@ -261,7 +312,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 500, body: 'Internal Server Error')
         
-        expect { client.reindex_one_doc(source_index, dest_index) }
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to raise_error(/HTTP 500/)
       end
     end
@@ -282,7 +333,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
-        result = client.reindex_one_doc(source_index, dest_index)
+        result = client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
         expect(result['total']).to eq(1)
         expect(result['updated']).to eq(1)
         expect(result['created']).to eq(0)
@@ -303,7 +354,7 @@ RSpec.describe SchemaTools::Client do
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
-        result = client.reindex_one_doc(source_index, dest_index)
+        result = client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
         expect(result['total']).to eq(1)
         expect(result['created'] + result['updated']).to eq(1)
       end
@@ -315,7 +366,7 @@ RSpec.describe SchemaTools::Client do
       it 'raises error because dry run response is not valid for reindex_one_doc validation' do
         # The dry run mode returns a task response, but reindex_one_doc expects
         # a completed response with total, created, updated fields
-        expect { dry_run_client.reindex_one_doc(source_index, dest_index) }
+        expect { dry_run_client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to raise_error(/Reindex query found 0 documents. Expected to find 1./)
       end
     end
@@ -341,7 +392,7 @@ RSpec.describe SchemaTools::Client do
         # Mock STDIN.gets to simulate user pressing Enter
         allow(STDIN).to receive(:gets).and_return("\n")
         
-        expect { interactive_client.reindex_one_doc(source_index, dest_index) }
+        expect { interactive_client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
           .to output(/Press Enter to continue/).to_stdout
       end
     end
@@ -355,7 +406,7 @@ RSpec.describe SchemaTools::Client do
       stub_request(:post, "http://localhost:9200#{expected_url}")
         .to_return(status: 200, body: response_body)
       
-      client.reindex(source_index, dest_index)
+      client.reindex(source_index: source_index, dest_index: dest_index)
       
       expect(WebMock).to have_requested(:post, "http://localhost:9200#{expected_url}")
     end
@@ -376,7 +427,7 @@ RSpec.describe SchemaTools::Client do
       stub_request(:post, "http://localhost:9200#{expected_url}")
         .to_return(status: 200, body: response_body)
       
-      client.reindex_one_doc(source_index, dest_index)
+      client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
       
       expect(WebMock).to have_requested(:post, "http://localhost:9200#{expected_url}")
     end
@@ -407,7 +458,7 @@ RSpec.describe SchemaTools::Client do
         .with(body: expected_body.to_json)
         .to_return(status: 200, body: response_body)
       
-      client.reindex_one_doc(source_index, dest_index)
+      client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
       
       expect(WebMock).to have_requested(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
         .with(body: expected_body.to_json)

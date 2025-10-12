@@ -8,7 +8,7 @@ require_relative '../api_aware_mappings_diff'
 require 'json'
 
 module SchemaTools
-  def self.migrate_all(client:)
+  def self.migrate_all(client:, reindex_batch_size: 1000, reindex_requests_per_second: -1)
     puts "Discovering all schemas and migrating each to their latest revisions..."
     
     schemas = SchemaFiles.discover_all_schemas
@@ -26,7 +26,7 @@ module SchemaTools
     
     schemas.each do |alias_name|
       begin
-        migrate_one_schema(alias_name: alias_name, client: client)
+        migrate_one_schema(alias_name: alias_name, client: client, reindex_batch_size: reindex_batch_size, reindex_requests_per_second: reindex_requests_per_second)
       rescue => e
         puts "✗ Migration failed for #{alias_name}: #{e.message}"
         raise e
@@ -35,7 +35,7 @@ module SchemaTools
     end
   end
 
-  def self.migrate_one_schema(alias_name:, client:)
+  def self.migrate_one_schema(alias_name:, client:, reindex_batch_size: 1000, reindex_requests_per_second: -1)
     puts "=" * 60
     puts "Migrating alias #{alias_name}"
     puts "=" * 60
@@ -84,7 +84,7 @@ module SchemaTools
       puts "✗ Failed to update index '#{index_name}': #{e.message}"
       puts "This appears to be a breaking change. Starting breaking change migration..."
       
-      MigrateBreakingChange.migrate(alias_name:, client:)
+      MigrateBreakingChange.migrate(alias_name:, client:, reindex_batch_size: reindex_batch_size, reindex_requests_per_second: reindex_requests_per_second)
     end
   end
 end

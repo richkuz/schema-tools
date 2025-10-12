@@ -169,11 +169,47 @@ module SchemaTools
         dest: { index: dest_index },
         conflicts: "proceed"
       }
-      body[:script] = { source: script } if script
+      body[:script] = { lang: 'painless', source: script } if script
       
       url = "/_reindex?wait_for_completion=false&refresh=false"
       
       post(url, body)
+    end
+
+    def reindex_one_doc(source_index, dest_index, script = nil)
+      body = {
+        source: {
+          index: source_index,
+          query: { match_all: {} }, 
+          max_docs: 1
+        },
+        dest: { index: dest_index },
+        conflicts: "proceed"
+      }
+      body[:script] = { lang: 'painless', source: script } if script
+      
+      url = "/_reindex?wait_for_completion=true&refresh=true"
+      
+      response = post(url, body)
+
+      if response['failures'] && !response['failures'].empty?
+        failure_reason = response['failures'].map { |f| f['cause']['reason'] }.join("; ")
+        raise "Reindex failed with internal errors. Failures: #{failure_reason}"
+      end
+
+      total = response['total'].to_i
+      created = response['created'].to_i
+      updated = response['updated'].to_i
+      
+      if total != 1
+        raise "Reindex query found #{total} documents. Expected to find 1."
+      elsif created + updated != 1
+        raise "Reindex failed to index the document (created: #{created}, updated: #{updated}). Noops: #{response.fetch('noops', 0)}."
+      elsif response['timed_out'] == true
+        raise "Reindex operation timed out."
+      end
+      
+      response
     end
 
     def get_task_status(task_id)
@@ -373,6 +409,10 @@ module SchemaTools
         task_status = get_task_status(task_id)
         
         if task_status['completed']
+          if task_status['error'] 
+            log "ERROR: Task #{task_id} failed with a top-level error: #{task_status['error']}"
+            raise task_status['error']['reason']
+          end
           return task_status
         end
         

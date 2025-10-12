@@ -107,6 +107,9 @@ module SchemaTools
       @catchup2_index = "#{@new_index}-catchup-2"
       log "catchup2_index: #{@catchup2_index}"
 
+      @throwaway_test_index = "#{@new_index}-throwaway-test"
+      log "throwaway_test_index: #{@throwaway_test_index}}"
+
       # Use current index settings and mappings when creating catchup indexes
       # so that any reindex painless script logic will apply correctly to them.
       @current_settings = @client.get_index_settings(@current_index)
@@ -136,6 +139,10 @@ module SchemaTools
 
     def migration_steps
       [
+        MigrationStep.new(
+          name: "STEP 0: Pre-test reindex with 1 document",
+          run: ->(logger) { step0_test_reindex_one_doc }
+        ),
         MigrationStep.new(
           name: "STEP 1: Create catchup-1 index",
           run: ->(logger) { step1_create_catchup1 }
@@ -177,6 +184,19 @@ module SchemaTools
           run: ->(logger) { step10_close_unused_indexes }
         )
       ]
+    end
+
+    def step0_test_reindex_one_doc
+      @client.create_index(@throwaway_test_index, @new_settings, @new_mappings)
+      begin
+        @client.reindex_one_doc(@current_index, @throwaway_test_index, @reindex_script)
+      rescue => e
+        log "Failed reindexing a test document"
+        raise e
+      ensure
+        log "Deleting throwaway test index #{@throwaway_test_index}"
+        @client.delete_index(@throwaway_test_index)
+      end
     end
 
     def step1_create_catchup1
@@ -226,28 +246,37 @@ module SchemaTools
     end
 
     def reindex(current_index, new_index, reindex_script)
-      response = @client.reindex(current_index, new_index, reindex_script)
-      log response
-
-      if response['took']
-        log "Reindex task complete. Took: #{response['took']}"
+      task_response = @client.reindex(current_index, new_index, reindex_script)
+      log task_response
+      if task_response['took']
+        log "Reindex task complete. Took: #{task_response['took']}"
+        if task_response['failures'] && !task_response['failures'].empty?
+          failure_reason = task_response['failures'].map { |f| f['cause']['reason'] }.join("; ")
+          raise "Reindex failed synchronously with internal errors. Failures: #{failure_reason}"
+        end
         return true
       end
-      
-      task_id = response['task']
-      if !task_id
-        raise "No task ID from reindex. Reindex incomplete."
+      task_id = task_response['task']
+      unless task_id
+        raise "Reindex response did not contain 'task' ID or 'took' time. Reindex incomplete."
       end
-
       log "Reindex task started at #{Time.now}. task_id is #{task_id}. Fetch task status with GET #{@client.url}/_tasks/#{task_id}"
-      
       timeout = 604800 # 1 week
-      result = @client.wait_for_task(response['task'], timeout)
-      if result['error']
-        log "ERROR: Reindex task responded with response['error]: #{result['error']}"
-        raise result['error']['reason']
+      completed_task_status = @client.wait_for_task(task_response['task'], timeout)
+      final_result = completed_task_status.fetch('response', {})
+      if final_result['failures'] && !final_result['failures'].empty?
+        failure_reason = final_result['failures'].map { |f| f['cause']['reason'] }.join("; ")
+        raise "Reindex FAILED during async processing. Failures: #{failure_reason}"
       end
-      log "Reindex complete"
+      created = final_result.fetch('created', 0)
+      updated = final_result.fetch('updated', 0)
+      deleted = final_result.fetch('deleted', 0)
+      log "Reindex complete." + \
+        "\nTook: #{final_result['took']}ms." + \
+        "\nCreated: #{created}" + \
+        "\nUpdated: #{updated}" + \
+        "\nDeleted: #{deleted}"
+      return true
     end
 
     def step4_create_catchup2

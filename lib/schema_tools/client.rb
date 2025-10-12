@@ -180,9 +180,9 @@ module SchemaTools
       body = {
         source: {
           index: source_index,
-          query: { match_all: {} }, 
-          max_docs: 1
+          query: { match_all: {} }
         },
+        max_docs: 1,
         dest: { index: dest_index },
         conflicts: "proceed"
       }

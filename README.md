@@ -246,15 +246,41 @@ Operation complete.
 
 Users can safely delete closed indexes anytime after they are closed.
 
-Caveats for clients that perform writes during the migration:
-- Clients MUST retry failed creates/updates/deletes for up to a minute.
-	- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss.
-- Clients MUST `_refresh` and use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing.
-	- If using `DELETE` to delete a single document from an alias, clients might delete from the wrong index and receive a successful response containing "result: not_found". The new index will _not_ reflect such a deletion.
-- Clients MUST read and write to an alias, not directly to an index.
-	- To prevent downtime, the migration procedure only operates on aliased indexes.
-	- Run `rake schema:alias` to create a new alias pointed at an index.
-	- Client applications must read and write to alias_name instead of index_name.
+### Caveats
+
+Client applications that perform writes during a migration must be aware of several caveats.
+
+Clients MUST retry failed creates/updates/deletes for up to a minute.
+- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss.
+
+Clients MUST `_refresh` and use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing.
+- If using `DELETE` to delete a single document from an alias, clients might delete from the wrong index and receive a successful response containing "result: not_found". The new index will _not_ reflect such a deletion.
+
+Clients MUST read and write to an alias, not directly to an index.
+- To prevent downtime, the migration procedure only operates on aliased indexes.
+- Run `rake schema:alias` to create a new alias pointed at an index.
+- Client applications must read and write to alias_name instead of index_name.
+
+#### Duplicate documents returned during reindexing
+
+When clients update documents during reindexing, searches may return duplicate results.
+
+While reindexing, the alias is reconfigured to read from two indexes:
+- Original index <-- reads only
+- Catchup index <-- reads AND writes
+
+When clients UPDATE existing records, they produce an additional record in the Catchup index.
+
+When clients READ those updated records, they will see TWO results: the original and updated.
+
+Clients can filter these duplicate records by using `collapse` on the document ID field and sorting on `_index` name.
+
+Deduplication with `collapse` incurs a small performance cost to each query.
+Clients can choose to de-dupe only when the alias is configured to read from multiple indices.
+
+For a reference implementation of de-duping using a `collapse` query while reindexing, see:
+https://github.com/richkuz/schema-tools-sample-app/blob/fc60718f5784e52d55b0c009e863f8b1c8303662/demo_script.rb#L255
+
 
 ### Diagnosing a failed or aborted migration
 

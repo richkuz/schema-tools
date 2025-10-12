@@ -95,9 +95,9 @@ RSpec.describe SchemaTools::Client do
         expected_body = {
           source: {
             index: source_index,
-            query: { match_all: {} },
-            max_docs: 1
+            query: { match_all: {} }
           },
+          max_docs: 1,
           dest: { index: dest_index },
           conflicts: "proceed"
         }
@@ -126,9 +126,9 @@ RSpec.describe SchemaTools::Client do
         expected_body = {
           source: {
             index: source_index,
-            query: { match_all: {} },
-            max_docs: 1
+            query: { match_all: {} }
           },
+          max_docs: 1,
           dest: { index: dest_index },
           conflicts: "proceed",
           script: { lang: 'painless', source: script }
@@ -385,9 +385,9 @@ RSpec.describe SchemaTools::Client do
       expected_body = {
         source: {
           index: source_index,
-          query: { match_all: {} },
-          max_docs: 1
+          query: { match_all: {} }
         },
+        max_docs: 1,
         dest: { index: dest_index },
         conflicts: "proceed"
       }

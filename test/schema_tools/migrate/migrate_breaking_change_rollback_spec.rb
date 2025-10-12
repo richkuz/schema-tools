@@ -22,6 +22,7 @@ RSpec.describe SchemaTools::MigrateBreakingChange do
       allow(client).to receive(:create_index).and_return({})
       allow(client).to receive(:update_aliases).and_return({})
       allow(client).to receive(:reindex).and_return({ 'task' => 'test-task-id' })
+      allow(client).to receive(:reindex_one_doc).and_return({ 'took' => 100 })
       allow(client).to receive(:wait_for_task).and_return({})
       allow(client).to receive(:delete_index).and_return({})
       allow(client).to receive(:close_index).and_return({})

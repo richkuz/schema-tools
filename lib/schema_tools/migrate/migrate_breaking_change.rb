@@ -261,6 +261,7 @@ module SchemaTools
         raise "Reindex response did not contain 'task' ID or 'took' time. Reindex incomplete."
       end
       log "Reindex task started at #{Time.now}. task_id is #{task_id}. Fetch task status with GET #{@client.url}/_tasks/#{task_id}"
+      
       timeout = 604800 # 1 week
       completed_task_status = @client.wait_for_task(task_response['task'], timeout)
       final_result = completed_task_status.fetch('response', {})

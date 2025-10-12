@@ -242,7 +242,11 @@ module SchemaTools
       log "Reindex task started at #{Time.now}. task_id is #{task_id}. Fetch task status with GET #{@client.url}/_tasks/#{task_id}"
       
       timeout = 604800 # 1 week
-      @client.wait_for_task(response['task'], timeout)
+      result = @client.wait_for_task(response['task'], timeout)
+      if result['error']
+        log "ERROR: Reindex task responded with response['error]: #{result['error']}"
+        raise result['error']['reason']
+      end
       log "Reindex complete"
     end
 

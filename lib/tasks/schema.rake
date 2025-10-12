@@ -32,6 +32,7 @@ def create_client!
   client = SchemaTools::Client.new(
     SchemaTools::Config.connection_url, 
     dryrun: ENV['DRYRUN'] == 'true',
+    interactive: ENV['INTERACTIVE'] == 'true',
     username: SchemaTools::Config.connection_username,
     password: SchemaTools::Config.connection_password
   )

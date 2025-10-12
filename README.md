@@ -249,7 +249,7 @@ Users can safely delete closed indexes anytime after they are closed.
 Caveats for clients that perform writes during the migration:
 - Clients MUST retry failed creates/updates/deletes for up to a minute.
 	- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss.
-- Clients MUST use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing.
+- Clients MUST `_refresh` and use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing.
 	- If using `DELETE` to delete a single document from an alias, clients might delete from the wrong index and receive a successful response containing "result: not_found". The new index will _not_ reflect such a deletion.
 - Clients MUST read and write to an alias, not directly to an index.
 	- To prevent downtime, the migration procedure only operates on aliased indexes.

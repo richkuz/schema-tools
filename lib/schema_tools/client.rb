@@ -25,9 +25,10 @@ module SchemaTools
   class Client
     attr_reader :url
     
-    def initialize(url, dryrun: false, logger: SimpleLogger.new, username: nil, password: nil)
+    def initialize(url, dryrun: false, interactive: false, logger: SimpleLogger.new, username: nil, password: nil)
       @url = url
       @dryrun = dryrun
+      @interactive = interactive
       @logger = logger
       @username = username
       @password = password
@@ -435,16 +436,13 @@ module SchemaTools
       settings.dig('index', 'verified_before_close') == 'true'
     end
 
-    def delete_by_query(index_name, query, suppress_logging: false)
-      unless suppress_logging
-        @logger.info("DRYRUN=true, simulation only") if @dryrun
-        log_operation('POST', "/#{index_name}/_delete_by_query", { query: query })
-        await_user_input if interactive_mode?
-      end
-      if @dryrun
-        return { 'deleted' => 1, 'batches' => 1, 'version_conflicts' => 0, 'failures' => [] }
-      end
+    def refresh(index_name, suppress_logging: false)
+      post("/#{index_name}/_refresh", {}, suppress_logging: suppress_logging)
+    end
 
+    # For this to work reliably, segments MUST be flushed.
+    # Call refresh(index_name) first!
+    def delete_by_query(index_name, query, suppress_logging: false)
       body = { query: query }
       post("/#{index_name}/_delete_by_query", body, suppress_logging: suppress_logging)
     end
@@ -475,7 +473,7 @@ module SchemaTools
     end
 
     def interactive_mode?
-      ENV['INTERACTIVE'] == 'true'
+      @interactive
     end
 
     def await_user_input

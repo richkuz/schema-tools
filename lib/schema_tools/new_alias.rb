@@ -62,13 +62,32 @@ module SchemaTools
     
     settings_file = File.join(schema_path, 'settings.json')
     mappings_file = File.join(schema_path, 'mappings.json')
+    reindex_file = File.join(schema_path, 'reindex.painless')
     
     File.write(settings_file, JSON.pretty_generate(sample_settings))
     File.write(mappings_file, JSON.pretty_generate(sample_mappings))
     
+    # Create example reindex.painless file
+    reindex_content = <<~PAINLESS
+      // Example reindex script for transforming data during migration
+      // Modify this script to transform your data as needed
+      //
+      // Example: Rename a field
+      // if (ctx._source.containsKey('old_field_name')) {
+      //   ctx._source.new_field_name = ctx._source.old_field_name;
+      //   ctx._source.remove('old_field_name');
+      // }
+      //
+      // Example: Add a new field
+      // ctx._source.new_field = 'default_value';
+    PAINLESS
+    
+    File.write(reindex_file, reindex_content)
+    
     puts "✓ Sample schema created at #{schema_path}"
     puts "  - settings.json"
     puts "  - mappings.json"
+    puts "  - reindex.painless"
   end
 
   def self.create_alias_for_index(client:)
@@ -145,13 +164,32 @@ module SchemaTools
     
     settings_file = File.join(schema_path, 'settings.json')
     mappings_file = File.join(schema_path, 'mappings.json')
+    reindex_file = File.join(schema_path, 'reindex.painless')
     
     File.write(settings_file, JSON.pretty_generate(filtered_settings))
     File.write(mappings_file, JSON.pretty_generate(mappings))
     
+    # Create example reindex.painless file
+    reindex_content = <<~PAINLESS
+      # Example reindex script for transforming data during migration
+      # Modify this script to transform your data as needed
+      #
+      # Example: Rename a field
+      # if (ctx._source.containsKey('old_field_name')) {
+      #   ctx._source.new_field_name = ctx._source.old_field_name;
+      #   ctx._source.remove('old_field_name');
+      # }
+      #
+      # Example: Add a new field
+      # ctx._source.new_field = 'default_value';
+    PAINLESS
+    
+    File.write(reindex_file, reindex_content)
+    
     puts "✓ Schema downloaded to #{schema_path}"
     puts "  - settings.json"
     puts "  - mappings.json"
+    puts "  - reindex.painless"
   end
 
 end

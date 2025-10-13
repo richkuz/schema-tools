@@ -160,138 +160,53 @@ REINDEX_REQUESTS_PER_SECOND=100 rake schema:migrate
 ```
 
 
-## How migrations work
+## Client responsibilities during breaking migrations
 
-When possible, `rake schema:migrate` will update settings and mappings in-place on an aliased index, without reindexing. Only breaking changes require a reindex.
+#### Clients MUST retry failed creates/updates/deletes for up to ~ 1 minute.
 
-Migrating breaking changes requires careful orchestration of reads and writes to ensure documents that are created/updated/deleted during the migration are not lost.
+Writes will be temporarily disabled for a few seconds during the procedure to prevent data loss.
 
-Use case:
-- I have an alias `products` pointing at index `products-20250301000000`.
-- I have heavy reads and writes with 100M+ documents in the index
-- I want to reindex `products-20250301000000` into a new index and update the `products` alias to reference it, without losing any creates/updates/deletes during the process.
+#### Clients MUST read and write to an **alias**. Clients must NOT write directly to an **index**.
 
-Rake `schema:migrate` solves this use case through the following procedure.
+To prevent downtime, the migration procedure only operates on aliased indexes.
 
-First, some terms:
-- `alias_name`: Alias containing the index to migrate
-	- `products`
-- `current_index`: First and only index in the alias
-	- `products-20250301000000`
-- `new_index`: Final canonical index into which to migrate `current_index`
-	- `products-20250601000000`
-- `catchup1_index`: Temp index to preserve writes during reindex
-	- `products-20250601000000-catchup-1`
-- `catchup2_index`: Temp index to preserve writes while flushing `catchup1_index`
-	- `products-20250601000000-catchup-2`
-- `log_index`: Index to log the migration state, not stored with `alias_name`
-	- `products-20250601000000-migration-log`
+Run `rake schema:alias` to create a new alias pointed at an index.
 
-SETUP
+#### Hard-deletes during reindexing will NOT affect the migrated index.
 
-Create `log_index` to log the migration state.
-- The migration logs when it starts and completes a step along with a description.
+Clients can mitigate the lack of hard-delete support two ways:
 
-STEP 1
+1. (Recommended) Implement soft-deletes (e.g. set `deleted_at`) with a recurring hard-delete job. Run the hard-delete job after reindexing.
 
-Create `catchup1_index` using the new schema.
-- This index will preserve writes during the reindex.
+2. Use RBAC to deny all `DELETE` operations during reindexing and implement continuous retries on failed `DELETE` operations to ensure eventual consistency.
 
-STEP 2
+#### During reindexing, searches will return **duplicate results** for updated documents.
 
-Configure `alias_name` to only write to `catchup1_index` and read from `current_index` and `catchup1_index`.
+After reindexing, only the latest update will appear in search results.
 
-STEP 3
+Clients can mitigate seeing duplicate documents in two ways:
 
-Create `new_index` using the new schema.
+1. (Recommended) Clients may hide duplicate documents by implementing `collapse` on all searches. `collapse` incurs a small performance cost to each query. Clients may choose to `collapse` only when the alias is configured to read from multiple indices. For a reference implementation of conditionally de-duping using a `collapse` query while reindexing, see: https://github.com/richkuz/schema-tools-sample-app/blob/fc60718f5784e52d55b0c009e863f8b1c8303662/demo_script.rb#L255
 
-Reindex `current_index` into `new_index`.
+2. Use RBAC to deny all `UPDATE` operations during reindexing and implement continuous retries on failed `UPDATE` operations to ensure eventual consistency. This approach is suitable only for clients that can tolerate not seeing documents updated during reindexing.
 
-```
-POST _reindex
-{
-  "source": { "index": "#{current_index}" },
-  "dest": { "index": "#{new_index}" },
-  "conflicts": "proceed",
-  "refresh": false
-}
-```
+Why there are duplicate updated documents during reindexing:
+- The migration task configures an alias to read from both the original index and a catchup index, and write to the catchup index.
+- `UPDATE` operations produce an additional document in the catchup index.
+- When clients `_search` the alias for an updated document, they will see two results: one result from the original index, and one result from the catchup index.
 
-STEP 4
 
-Create `catchup2_index` using the new schema.
-- This index ensures a place for ongoing writes while flushing `catchup1_index`.
+#### Theoretical Alternatives for UPDATE and DELETE
 
-STEP 5
+In theory, the migrate task could support alternative reindexing modes when constrainted by native Elasticsearch/OpenSearch capabilities.
 
-Configure `alias_name` to only write to `catchup2_index` and continue reading from `current_index` and `catchup1_index`.
+1. Preserve Hard-Deletes and Show All Duplicates
 
-STEP 6
+The migrate task could support clients that require hard-deletes during reindexing by adding the new index into the alias during migration. Clients would have to use `_refresh` and `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing. If using `DELETE` to delete a single document from an alias, clients might delete from the wrong index and receive a successful response containing "result: not_found". The new index would _not_ reflect such a deletion. With this approach, clients would see duplicate documents in search results for all documents during reindexing, not just updated documents. Clients could hide duplicate documents by implementing `collapse` on all searches. 
 
-Reindex `catchup1_index` into `new_index`.
-- Merge the first catchup index into the new canonical index.
+2. Ignore Hard-Deletes and Hide All Duplicates
 
-STEP 7
-
-Configure `alias_name` so there are NO write indexes
-- This guarantees that no writes can sneak into an obsolete catchup index during the second (quick) merge.
-- Any write operations will fail during this time with: `"reason": "Alias [FOO] has more than one index associated with it [...], can't execute a single index op"`
-- Clients must retry any failed writes.
-
-STEP 8
-
-Reindex `catchup2_index` into `new_index`
-- Final sync to merge the second catchup index into the new canonical index.
-
-STEP 9
-
-Configure `alias_name` to write to and read from `new_index` only.
-- Writes resume to the single new index. All data and deletes are consistent.
-
-STEP 10
-
-Close unused indexes to avoid accidental writes.
-- Close `catchup1_index`
-- Close `catchup2_index`
-- Close `current_index`
-Operation complete.
-
-Users can safely delete closed indexes anytime after they are closed.
-
-### Caveats
-
-Client applications that perform writes during a migration must be aware of several caveats.
-
-Clients MUST retry failed creates/updates/deletes for up to a minute.
-- Writes will be temporarily disabled for up to a few seconds during the procedure to ensure no data loss.
-
-Clients MUST `_refresh` and use `delete_by_query` when deleting documents to ensure documents are deleted from all indexes in the alias during reindexing.
-- If using `DELETE` to delete a single document from an alias, clients might delete from the wrong index and receive a successful response containing "result: not_found". The new index will _not_ reflect such a deletion.
-
-Clients MUST read and write to an alias, not directly to an index.
-- To prevent downtime, the migration procedure only operates on aliased indexes.
-- Run `rake schema:alias` to create a new alias pointed at an index.
-- Client applications must read and write to alias_name instead of index_name.
-
-#### Duplicate documents returned during reindexing
-
-When clients update documents during reindexing, searches may return duplicate results.
-
-While reindexing, the alias is reconfigured to read from two indexes:
-- Original index <-- reads only
-- Catchup index <-- reads AND writes
-
-When clients UPDATE existing records, they produce an additional record in the Catchup index.
-
-When clients READ those updated records, they will see TWO results: the original and updated.
-
-Clients can filter these duplicate records by using `collapse` on the document ID field and sorting on `_index` name.
-
-Deduplication with `collapse` incurs a small performance cost to each query.
-Clients can choose to de-dupe only when the alias is configured to read from multiple indices.
-
-For a reference implementation of de-duping using a `collapse` query while reindexing, see:
-https://github.com/richkuz/schema-tools-sample-app/blob/fc60718f5784e52d55b0c009e863f8b1c8303662/demo_script.rb#L255
+Some clients might not be able to filter out duplicate documents during reindexing. The migrate task could support such clients by not returning any INSERTED or UPDATED documents until after the reindexing completes. This approach would not support hard-deletes. To support re-updating the same document during reindexing, clients would have to find documents to upsert based on a consistent ID, not based on a changing field.
 
 
 ### Diagnosing a failed or aborted migration
@@ -366,3 +281,108 @@ GitHub Actions:
 - OpenSearch Production Close Index
 - OpenSearch Staging Delete Index
 - OpenSearch Production Delete Index
+
+
+## How migrations work
+
+When possible, `rake schema:migrate` will update settings and mappings in-place on an aliased index, without reindexing. Only breaking changes require a reindex.
+
+Migrating breaking changes requires careful orchestration of reads and writes to ensure documents that are created/updated during the migration are not lost.
+
+Hard-delete operations are not preserved during a breaking migration. See "Client responsibilities" above for how to mitigate this.
+
+Use case:
+- I have an alias `products` pointing at index `products-20250301000000`.
+- I have heavy reads and writes with 100M+ documents in the index
+- I want to reindex `products-20250301000000` into a new index and update the `products` alias to reference it, without losing any creates/updates during the process.
+
+Rake `schema:migrate` solves this use case through the following procedure.
+
+First, some terms:
+- `alias_name`: Alias containing the index to migrate
+	- `products`
+- `current_index`: First and only index in the alias
+	- `products-20250301000000`
+- `new_index`: Final canonical index into which to migrate `current_index`
+	- `products-20250601000000`
+- `catchup1_index`: Temp index to preserve writes during reindex
+	- `products-20250601000000-catchup-1`
+- `catchup2_index`: Temp index to preserve writes while flushing `catchup1_index`
+	- `products-20250601000000-catchup-2`
+- `log_index`: Index to log the migration state, not stored with `alias_name`
+	- `products-20250601000000-migration-log`
+
+SETUP
+
+Create `log_index` to log the migration state.
+- The migration logs when it starts and completes a step along with a description.
+
+STEP 1
+
+Attempt to reindex 1 document to a throwaway index to catch obvious configuration errors and abort early if possible.
+
+STEP 2
+
+Create `catchup1_index` using the new schema.
+- This index will preserve writes during the reindex.
+
+STEP 3
+
+Configure `alias_name` to only write to `catchup1_index` and read from `current_index` and `catchup1_index`.
+
+STEP 4
+
+Create `new_index` using the new schema.
+
+Reindex `current_index` into `new_index`.
+
+```
+POST _reindex
+{
+  "source": { "index": "#{current_index}" },
+  "dest": { "index": "#{new_index}" },
+  "conflicts": "proceed",
+  "refresh": false
+}
+```
+
+STEP 5
+
+Create `catchup2_index` using the new schema.
+- This index ensures a place for ongoing writes while flushing `catchup1_index`.
+
+STEP 6
+
+Configure `alias_name` to only write to `catchup2_index` and continue reading from `current_index` and `catchup1_index`.
+
+STEP 7
+
+Reindex `catchup1_index` into `new_index`.
+- Merge the first catchup index into the new canonical index.
+
+STEP 8
+
+Configure `alias_name` so there are NO write indexes
+- This guarantees that no writes can sneak into an obsolete catchup index during the second (quick) merge.
+- Any write operations will fail during this time with: `"reason": "Alias [FOO] has more than one index associated with it [...], can't execute a single index op"`
+- Clients must retry any failed writes.
+
+STEP 9
+
+Reindex `catchup2_index` into `new_index`
+- Final sync to merge the second catchup index into the new canonical index.
+
+STEP 10
+
+Configure `alias_name` to write to and read from `new_index` only.
+- Writes resume to the single new index. All data and deletes are consistent.
+
+STEP 11
+
+Close unused indexes to avoid accidental writes.
+- Close `catchup1_index`
+- Close `catchup2_index`
+- Close `current_index`
+Operation complete.
+
+Users can safely delete closed indexes anytime after they are closed.

@@ -115,6 +115,10 @@ $ rake schema:new
 #   - mappings.json
 ```
 
+## Sample App
+
+A sample app that uses schema-tools is available at: https://github.com/richkuz/schema-tools-sample-app
+
 ## Directory structure reference
 
 Example directory structure with multiple aliases:

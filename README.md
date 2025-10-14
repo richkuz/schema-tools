@@ -7,6 +7,8 @@
 - Create new aliases with sample schemas.
 - Manage painless scripts independently from schema migrations.
 
+A sample app that uses schema-tools is available at: https://github.com/richkuz/schema-tools-sample-app
+
 ## Quick start
 
 Install this Ruby gem.
@@ -40,23 +42,6 @@ export ELASTICSEARCH_PASSWORD=your_password
 export OPENSEARCH_USERNAME=your_username
 export OPENSEARCH_PASSWORD=your_password
 ```
-
-### View available rake tasks
-
-```sh
-rake -T | grep " schema:"
-```
-
-Available schema tasks:
-- `schema:migrate[alias_name]` - Migrate to a specific alias schema or migrate all schemas
-- `schema:new` - Create a new alias with sample schema
-- `schema:close[name]` - Close an index or alias
-- `schema:delete[name]` - Hard delete an index (only works on closed indexes) or delete an alias
-- `schema:drop[alias_name]` - Delete an alias (does not delete the index)
-- `schema:download` - Download schema from an existing alias or index
-- `schema:alias` - Create an alias for an existing index
-- `schema:seed` - Seed data to a live index
-- `schema:diff` - Compare all schemas to their corresponding downloaded alias settings and mappings
 
 ### Download an existing schema
 
@@ -115,9 +100,23 @@ $ rake schema:new
 #   - mappings.json
 ```
 
-## Sample App
+### View available rake tasks
 
-A sample app that uses schema-tools is available at: https://github.com/richkuz/schema-tools-sample-app
+```sh
+rake -T | grep " schema:"
+```
+
+Available schema tasks:
+- `schema:download` - Download schema from an existing alias or index
+- `schema:migrate` - Migrate all schemas to match local schema files
+- `schema:migrate[alias_name]` - Migrate a specific alias to match its local schema files
+- `schema:new` - Create a new alias with sample schema
+- `schema:alias` - Create an alias for an existing index
+- `schema:diff` - Compare all schemas to their corresponding downloaded alias settings and mappings
+- `schema:seed` - Seed data to a live index
+- `schema:close[name]` - Close an index or alias
+- `schema:delete[name]` - Hard delete an index (only works on closed indexes) or delete an alias
+- `schema:drop[alias_name]` - Delete an alias (does not delete the index)
 
 ## Directory structure reference
 
@@ -302,6 +301,8 @@ Use case:
 
 Rake `schema:migrate` solves this use case through the following procedure.
 
+See: ![Migration Procedure Diagram](https://github.com/richkuz/schema-tools/blob/main/docs/schema-tools-migration.svg)
+
 First, some terms:
 - `alias_name`: Alias containing the index to migrate
 	- `products`
@@ -321,20 +322,20 @@ SETUP
 Create `log_index` to log the migration state.
 - The migration logs when it starts and completes a step along with a description.
 
-STEP 1
+STEP 0
 
 Attempt to reindex 1 document to a throwaway index to catch obvious configuration errors and abort early if possible.
 
-STEP 2
+STEP 1
 
 Create `catchup1_index` using the new schema.
 - This index will preserve writes during the reindex.
 
-STEP 3
+STEP 2
 
 Configure `alias_name` to only write to `catchup1_index` and read from `current_index` and `catchup1_index`.
 
-STEP 4
+STEP 3
 
 Create `new_index` using the new schema.
 
@@ -350,38 +351,38 @@ POST _reindex
 }
 ```
 
-STEP 5
+STEP 4
 
 Create `catchup2_index` using the new schema.
 - This index ensures a place for ongoing writes while flushing `catchup1_index`.
 
-STEP 6
+STEP 5
 
 Configure `alias_name` to only write to `catchup2_index` and continue reading from `current_index` and `catchup1_index`.
 
-STEP 7
+STEP 6
 
 Reindex `catchup1_index` into `new_index`.
 - Merge the first catchup index into the new canonical index.
 
-STEP 8
+STEP 7
 
 Configure `alias_name` so there are NO write indexes
 - This guarantees that no writes can sneak into an obsolete catchup index during the second (quick) merge.
 - Any write operations will fail during this time with: `"reason": "Alias [FOO] has more than one index associated with it [...], can't execute a single index op"`
 - Clients must retry any failed writes.
 
-STEP 9
+STEP 8
 
 Reindex `catchup2_index` into `new_index`
 - Final sync to merge the second catchup index into the new canonical index.
 
-STEP 10
+STEP 9
 
 Configure `alias_name` to write to and read from `new_index` only.
 - Writes resume to the single new index. All data and deletes are consistent.
 
-STEP 11
+STEP 10
 
 Close unused indexes to avoid accidental writes.
 - Close `catchup1_index`

@@ -1,5 +1,7 @@
 # Schema-Tools - AI Log
 
+(This document is authored by a human, not by AI)
+
 I built schema-tools to solve a need, but also to experiment with using Cursor CLI to build a real side project.
 
 ## Quick stats
@@ -18,7 +20,7 @@ I built schema-tools to solve a need, but also to experiment with using Cursor C
 
 Schema-Tools began on September 14th, 2025, with a simple initial commit containing just a LICENSE and very detailed README. The first prompt, "Read the README.md and implement everything specified in it" generated an initial working prototype. This gave me the motivation to keep going.
 
-The Foundation Phase (September 14-21):
+Foundation Phase (September 14-21):
 - The project started with basic infrastructure and a schema:define task
 - The early phase had a complex directory structure to track major and minor revisions as separate files, with diff_output.txt files to show what changed.
 - Most effort went into an initial implementation of schema:define and schema:migrate.
@@ -27,16 +29,16 @@ The Foundation Phase (September 14-21):
 - The early version added history details as metadata on the index itself. Later I removed this feature altogether. To know exactly what schema an index is running, it's more reliable to diff the remote schema with the local schema files than to look at a metadata object.
 - Project briefly renamed to "Schemurai", then renamed back to "Schema-tools". I tried to find a unique name to distinguish the history details in the index metadata section. More distraction.
 
-The Feature Expansion Phase (September 27-October 2):
+Feature Expansion Phase (September 27-October 2):
 - This period focused on adding essential functionality and improving the user experience.
 - Added painless script management
 - Added a generic schema:seed task to populate any index with schema-compliant test data so I could start load testing.
 - Added authentication support.
 - Better diff capabilities, improved error handling, and more robust reindexing processes.
 
-The Major Rewrite (October 8-10):
+Major Rewrite (October 8-10):
 - The most dramatic phase was the "Version 2" release on October 8th, which represented a complete architectural overhaul.
-- This massive commit (82 files changed, 1781 insertions, 6135 deletions) completely rewrote the migration system, removed the complex breaking changes detector in favor of a simpler approach, and introduced new features like rollback support, interactive mode, and configurable batch processing.
+- This massive commit (82 files changed, 1781 insertions, 6135 deletions) completely rewrote the migration system, removed the complex breaking changes detector in favor of a simpler approach, and introduced new features like rollback support, interactive mode, and configurable batch processing. (README [before](https://github.com/richkuz/schema-tools/blob/17fe40abd7a472d194eca290b8b5c35f56134463/README.md) and [now](https://github.com/richkuz/schema-tools/blob/main/README.md))
 - Why: After playing with the earlier version, the directory layout that had major and minor revision changes felt too cumbersome and complex. I wanted a simple directory with "settings.json" and "mappings.json".
 - Switched to using aliases to manage indexes so the application doesn't have to keep changing when adding new indexes.
 - Completely rewrote rake:migrate with a 10-step approach born out of rigorous experimentation and research with OpenSearch manual testing.

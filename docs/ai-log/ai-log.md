@@ -7,6 +7,7 @@ I built schema-tools to solve a need, but also to experiment with using Cursor C
 - Started the project on Sep 15
 - Released the project on Oct 13 on RubyGems - https://rubygems.org/gems/schema-tools (technically released sooner, but v1.0.6 is the first good version)
 - Used only Cursor CLI and occasionally Gemini for research.
+- Used "vanilla" Cursor CLI, no additional .md files or .cursorrules files other than the README.md.
 - Used 202M tokens, $60 total spend (all included in my $20/mo personal subscription)
 - 292 total Cursor CLI prompts - [Full Prompt Log](history_clean.csv)
 - [126 commits](https://github.com/richkuz/schema-tools/commits/main/) on schema-tools, [11 commits](https://github.com/richkuz/schema-tools-sample-app/commits/main/) on schema-tools-sample-app
@@ -57,3 +58,12 @@ Sample App (October 10-13)
 - Rapidly iterated through many (failed) approaches until landing on a solution with the least worst tradeoffs. Heavily leaned on OpenSearch API directly to test edge cases.
 - Made final adjustments by hand to the README.md.
 
+## Conclusions
+
+- No tool exists like this and now I understand why. Elasticsearch/OpenSearch aren't designed to provide effortless zero-downtime, zero-data loss index migrations. It's possible, but there are tradeoffs that clients have to make for it to work well.
+- Anyone using Elasticsearch/OpenSearch for heavy upsert use cases should periodically validate indexed data against the source-of-truth data store from which it derives. I trust the schema-tools migration script, but clients still must be programmed very carefully to avoid data loss.
+- I would have never built such an elaborate tool so quickly without AI assistance.
+- AI helped me the most when it came to keeping Ruby specs current.
+- Because AI makes it so easy to add stuff, I added more things than I normally would.
+- This type of project is great for AI because everything can be tested quickly from the CLI in isolation.
+- Manual interaction testing is critical to evaluate edge cases and learn undocumented behaviors in dependent systems.

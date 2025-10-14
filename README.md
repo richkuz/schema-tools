@@ -301,7 +301,7 @@ Use case:
 
 Rake `schema:migrate` solves this use case through the following procedure.
 
-See: ![Migration Procedure Diagram](https://github.com/richkuz/schema-tools/blob/main/docs/schema-tools-migration.svg)
+See: [Migration Procedure Diagram](https://github.com/richkuz/schema-tools/blob/main/docs/schema-tools-migration.svg)
 
 First, some terms:
 - `alias_name`: Alias containing the index to migrate

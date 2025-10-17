@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = "schema-tools"
-  spec.version       = "1.0.7"
+  spec.version       = "1.0.8"
   spec.authors       = ["Rich Kuzsma"]
   spec.email         = ["rkuzsma@gmail.com"]
   
@@ -16,9 +16,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rake", "~> 13.0"
   spec.add_dependency "json", "~> 2.6"
   spec.add_dependency "net-http", "~> 0.3"
-  spec.add_dependency "uri", "~> 0.12"
   spec.add_dependency "time", "~> 0.2"
-  spec.add_dependency "logger", "~> 1.5"
   
   spec.add_development_dependency "rspec", "~> 3.12"
   spec.add_development_dependency "webmock", "~> 3.19"

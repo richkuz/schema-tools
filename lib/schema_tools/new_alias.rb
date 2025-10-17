@@ -5,6 +5,21 @@ require_relative 'config'
 require_relative 'settings_filter'
 
 module SchemaTools
+  EXAMPLE_PAINLESS_SCRIPT = <<~PAINLESS
+      // Example reindex script for transforming data during migration
+      // Modify this script to transform your data as needed
+      //
+      // Example: Rename a field
+      // if (ctx._source.containsKey('old_field_name')) {
+      //   ctx._source.new_field_name = ctx._source.old_field_name;
+      //   ctx._source.remove('old_field_name');
+      // }
+      //
+      // Example: Add a new field
+      // ctx._source.new_field = 'default_value';
+      long timestamp = System.currentTimeMillis();
+    PAINLESS
+  
   def self.new_alias(client:)
     puts "\nEnter a new alias name:"
     alias_name = STDIN.gets&.chomp
@@ -68,20 +83,7 @@ module SchemaTools
     File.write(mappings_file, JSON.pretty_generate(sample_mappings))
     
     # Create example reindex.painless file
-    reindex_content = <<~PAINLESS
-      // Example reindex script for transforming data during migration
-      // Modify this script to transform your data as needed
-      //
-      // Example: Rename a field
-      // if (ctx._source.containsKey('old_field_name')) {
-      //   ctx._source.new_field_name = ctx._source.old_field_name;
-      //   ctx._source.remove('old_field_name');
-      // }
-      //
-      // Example: Add a new field
-      // ctx._source.new_field = 'default_value';
-      long timestamp = System.currentTimeMillis();
-    PAINLESS
+    reindex_content = EXAMPLE_PAINLESS_SCRIPT
     
     File.write(reindex_file, reindex_content)
     
@@ -170,20 +172,7 @@ module SchemaTools
     File.write(settings_file, JSON.pretty_generate(filtered_settings))
     File.write(mappings_file, JSON.pretty_generate(mappings))
     
-    # Create example reindex.painless file
-    reindex_content = <<~PAINLESS
-      # Example reindex script for transforming data during migration
-      # Modify this script to transform your data as needed
-      #
-      # Example: Rename a field
-      # if (ctx._source.containsKey('old_field_name')) {
-      #   ctx._source.new_field_name = ctx._source.old_field_name;
-      #   ctx._source.remove('old_field_name');
-      # }
-      #
-      # Example: Add a new field
-      # ctx._source.new_field = 'default_value';
-    PAINLESS
+    reindex_content = EXAMPLE_PAINLESS_SCRIPT
     
     File.write(reindex_file, reindex_content)
     

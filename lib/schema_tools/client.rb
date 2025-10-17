@@ -196,6 +196,11 @@ module SchemaTools
       
       response = post(url, body)
 
+      # In dry run mode, post returns a task response, not a completed response
+      if @dryrun
+        return response
+      end
+
       if response['failures'] && !response['failures'].empty?
         failure_reason = response['failures'].map { |f| f['cause']['reason'] }.join("; ")
         raise "Reindex failed with internal errors. Failures: #{failure_reason}"
@@ -205,14 +210,25 @@ module SchemaTools
       created = response['created'].to_i
       updated = response['updated'].to_i
       
-      if total != 1
+      if total == 0
+        # Verify that the source index actually has 0 documents
+        source_doc_count = get_index_doc_count(source_index)
+        if source_doc_count == 0
+          # Handle the case where the source index has no documents
+          # This is a valid scenario - just log and continue
+          @logger.info("Source index has no documents to reindex")
+        else
+          # This shouldn't happen - if source has docs but reindex found 0, something went wrong
+          raise "Reindex query found 0 documents but source index has #{source_doc_count} documents. This indicates a reindex configuration issue."
+        end
+      elsif total != 1
         raise "Reindex query found #{total} documents. Expected to find 1."
-      elsif created + updated != 1
+      elsif total == 1 && created + updated != 1
         raise "Reindex failed to index the document (created: #{created}, updated: #{updated}). Noops: #{response.fetch('noops', 0)}."
       elsif response['timed_out'] == true
         raise "Reindex operation timed out."
       end
-      
+
       response
     end
 

@@ -275,6 +275,226 @@ RSpec.describe SchemaTools::Client do
     end
   end
 
+  describe '#reindex_one_doc' do
+    let(:source_index) { 'source-index' }
+    let(:dest_index) { 'dest-index' }
+
+    context 'when source index has 1 document' do
+      it 'successfully reindexes the document' do
+        response_body = {
+          'took' => 10,
+          'timed_out' => false,
+          'total' => 1,
+          'created' => 1,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 1,
+          'noops' => 0,
+          'failures' => []
+        }.to_json
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .to_return(status: 200, body: response_body)
+
+        result = client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
+        expect(result['total']).to eq(1)
+        expect(result['created']).to eq(1)
+      end
+    end
+
+    context 'when source index has 0 documents' do
+      it 'handles empty index gracefully' do
+        # Mock the reindex response showing 0 documents found
+        reindex_response = {
+          'took' => 5,
+          'timed_out' => false,
+          'total' => 0,
+          'created' => 0,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 0,
+          'noops' => 0,
+          'failures' => []
+        }.to_json
+
+        # Mock the doc count check to confirm source index is actually empty
+        doc_count_response = { 'count' => 0 }.to_json
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .to_return(status: 200, body: reindex_response)
+
+        stub_request(:get, "http://localhost:9200/#{source_index}/_count")
+          .to_return(status: 200, body: doc_count_response)
+
+        # Should not raise an error and should log the message
+        # Should not raise an error
+        result = client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
+        expect(result['total']).to eq(0)
+      end
+    end
+
+    context 'when reindex finds 0 docs but source actually has documents' do
+      it 'raises an error indicating configuration issue' do
+        # Mock the reindex response showing 0 documents found
+        reindex_response = {
+          'took' => 5,
+          'timed_out' => false,
+          'total' => 0,
+          'created' => 0,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 0,
+          'noops' => 0,
+          'failures' => []
+        }.to_json
+
+        # Mock the doc count check to show source index actually has documents
+        doc_count_response = { 'count' => 5 }.to_json
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .to_return(status: 200, body: reindex_response)
+
+        stub_request(:get, "http://localhost:9200/#{source_index}/_count")
+          .to_return(status: 200, body: doc_count_response)
+
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
+          .to raise_error(/Reindex query found 0 documents but source index has 5 documents/)
+      end
+    end
+
+    context 'when source index has more than 1 document' do
+      it 'raises an error for unexpected document count' do
+        response_body = {
+          'took' => 10,
+          'timed_out' => false,
+          'total' => 3,
+          'created' => 3,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 1,
+          'noops' => 0,
+          'failures' => []
+        }.to_json
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .to_return(status: 200, body: response_body)
+
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
+          .to raise_error(/Reindex query found 3 documents. Expected to find 1./)
+      end
+    end
+
+    context 'when reindex fails to index the document' do
+      it 'raises an error with details' do
+        response_body = {
+          'took' => 10,
+          'timed_out' => false,
+          'total' => 1,
+          'created' => 0,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 1,
+          'noops' => 1,
+          'failures' => []
+        }.to_json
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .to_return(status: 200, body: response_body)
+
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
+          .to raise_error(/Reindex failed to index the document \(created: 0, updated: 0\). Noops: 1./)
+      end
+    end
+
+    context 'when reindex has internal failures' do
+      it 'raises an error with failure details' do
+        response_body = {
+          'took' => 10,
+          'timed_out' => false,
+          'total' => 1,
+          'created' => 0,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 1,
+          'noops' => 0,
+          'failures' => [
+            {
+              'index' => 'dest-index',
+              'type' => '_doc',
+              'id' => '1',
+              'cause' => {
+                'type' => 'document_missing_exception',
+                'reason' => 'document missing'
+              }
+            }
+          ]
+        }.to_json
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .to_return(status: 200, body: response_body)
+
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
+          .to raise_error(/Reindex failed with internal errors. Failures: document missing/)
+      end
+    end
+
+    context 'when reindex times out' do
+      it 'raises an error for timeout' do
+        response_body = {
+          'took' => 30000,
+          'timed_out' => true,
+          'total' => 1,
+          'created' => 1,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 1,
+          'noops' => 0,
+          'failures' => []
+        }.to_json
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .to_return(status: 200, body: response_body)
+
+        expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
+          .to raise_error(/Reindex operation timed out./)
+      end
+    end
+
+    context 'with painless script' do
+      it 'includes script in the reindex request' do
+        response_body = {
+          'took' => 10,
+          'timed_out' => false,
+          'total' => 1,
+          'created' => 1,
+          'updated' => 0,
+          'deleted' => 0,
+          'batches' => 1,
+          'noops' => 0,
+          'failures' => []
+        }.to_json
+
+        script_content = 'ctx._source.new_field = "transformed"'
+        expected_body = {
+          source: {
+            index: source_index,
+            query: { match_all: {} }
+          },
+          max_docs: 1,
+          dest: { index: dest_index },
+          conflicts: "proceed",
+          script: { lang: 'painless', source: script_content }
+        }
+
+        stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
+          .with(body: expected_body.to_json)
+          .to_return(status: 200, body: response_body)
+
+        client.reindex_one_doc(source_index: source_index, dest_index: dest_index, script: script_content)
+      end
+    end
+  end
+
   describe 'HTTPS support' do
     let(:https_client) { SchemaTools::Client.new('https://example.com:9200') }
     

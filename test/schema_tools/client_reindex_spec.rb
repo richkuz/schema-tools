@@ -244,11 +244,17 @@ RSpec.describe SchemaTools::Client do
           'failures' => []
         }.to_json
         
+        # Mock the reindex response showing 0 documents found
         stub_request(:post, 'http://localhost:9200/_reindex?wait_for_completion=true&refresh=true')
           .to_return(status: 200, body: response_body)
         
+        # Mock the doc count check to show source index actually has documents
+        doc_count_response = { 'count' => 5 }.to_json
+        stub_request(:get, "http://localhost:9200/#{source_index}/_count")
+          .to_return(status: 200, body: doc_count_response)
+        
         expect { client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
-          .to raise_error(/Reindex query found 0 documents. Expected to find 1./)
+          .to raise_error(/Reindex query found 0 documents but source index has 5 documents/)
       end
 
       it 'raises error when too many documents found' do
@@ -363,11 +369,10 @@ RSpec.describe SchemaTools::Client do
     context 'in dry run mode' do
       let(:dry_run_client) { SchemaTools::Client.new('http://localhost:9200', dryrun: true) }
 
-      it 'raises error because dry run response is not valid for reindex_one_doc validation' do
-        # The dry run mode returns a task response, but reindex_one_doc expects
-        # a completed response with total, created, updated fields
-        expect { dry_run_client.reindex_one_doc(source_index: source_index, dest_index: dest_index) }
-          .to raise_error(/Reindex query found 0 documents. Expected to find 1./)
+      it 'returns task response without validation in dry run mode' do
+        # In dry run mode, reindex_one_doc returns the task response without validation
+        result = dry_run_client.reindex_one_doc(source_index: source_index, dest_index: dest_index)
+        expect(result).to eq({"task"=>"FEl-TdjcTpmIvnE5_1fv4Q:164963"})
       end
     end
 

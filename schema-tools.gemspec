@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = "schema-tools"
-  spec.version       = "1.0.8"
+  spec.version       = "1.0.9"
   spec.authors       = ["Rich Kuzsma"]
   spec.email         = ["rkuzsma@gmail.com"]
   
@@ -13,13 +13,10 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
   
-  spec.add_dependency "rake", "~> 13.0"
-  spec.add_dependency "json", "~> 2.6"
-  spec.add_dependency "net-http", "~> 0.3"
-  spec.add_dependency "time", "~> 0.2"
+  spec.add_dependency "rake", ">= 12.0"
   
-  spec.add_development_dependency "rspec", "~> 3.12"
-  spec.add_development_dependency "webmock", "~> 3.19"
+  spec.add_development_dependency "rspec", ">= 3.0"
+  spec.add_development_dependency "webmock", ">= 3.0"
   
-  spec.required_ruby_version = ">= 3.0"
+  spec.required_ruby_version = ">= 2.7"
 end

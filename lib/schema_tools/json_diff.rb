@@ -10,13 +10,13 @@ module SchemaTools
 
     # Generate a detailed diff between two JSON objects
     # Returns a formatted string showing additions, removals, and modifications
-    def generate_diff(old_json, new_json, context: {})
+    def generate_diff(old_json, new_json, context: {}, ignored_keys: [])
       old_normalized = normalize_json(old_json)
       new_normalized = normalize_json(new_json)
       
       # Filter out ignored keys
-      old_filtered = filter_ignored_keys(old_normalized)
-      new_filtered = filter_ignored_keys(new_normalized)
+      old_filtered = filter_ignored_keys(old_normalized, "", ignored_keys)
+      new_filtered = filter_ignored_keys(new_normalized, "", ignored_keys)
       
       if old_filtered == new_filtered
         return "No changes detected"
@@ -27,7 +27,7 @@ module SchemaTools
       diff_lines << ""
       
       # Generate detailed diff
-      changes = compare_objects(old_filtered, new_filtered, "")
+      changes = compare_objects(old_filtered, new_filtered, "", ignored_keys)
       
       if changes.empty?
         diff_lines << "No changes detected"
@@ -82,19 +82,22 @@ module SchemaTools
       normalized
     end
 
-    def filter_ignored_keys(obj, path_prefix = "")
+    def filter_ignored_keys(obj, path_prefix = "", ignored_keys = [])
       return obj unless obj.is_a?(Hash)
+      
+      # Combine class-level ignored keys with parameter ignored keys
+      all_ignored_keys = IGNORED_KEYS + ignored_keys
       
       filtered = {}
       obj.each do |key, value|
         current_path = path_prefix.empty? ? key : "#{path_prefix}.#{key}"
         
         # Skip ignored keys
-        next if IGNORED_KEYS.any? { |ignored_key| current_path == ignored_key }
+        next if all_ignored_keys.any? { |ignored_key| current_path == ignored_key }
         
         # Recursively filter nested objects
         if value.is_a?(Hash)
-          filtered[key] = filter_ignored_keys(value, current_path)
+          filtered[key] = filter_ignored_keys(value, current_path, ignored_keys)
         else
           filtered[key] = value
         end
@@ -103,14 +106,14 @@ module SchemaTools
       filtered
     end
 
-    def compare_objects(old_obj, new_obj, path_prefix)
+    def compare_objects(old_obj, new_obj, path_prefix, ignored_keys = [])
       changes = []
       
       # Handle different object types
       if old_obj.is_a?(Hash) && new_obj.is_a?(Hash)
-        changes.concat(compare_hashes(old_obj, new_obj, path_prefix))
+        changes.concat(compare_hashes(old_obj, new_obj, path_prefix, ignored_keys))
       elsif old_obj.is_a?(Array) && new_obj.is_a?(Array)
-        changes.concat(compare_arrays(old_obj, new_obj, path_prefix))
+        changes.concat(compare_arrays(old_obj, new_obj, path_prefix, ignored_keys))
       elsif old_obj != new_obj
         changes << format_change(path_prefix, old_obj, new_obj)
       end
@@ -118,15 +121,18 @@ module SchemaTools
       changes
     end
 
-    def compare_hashes(old_hash, new_hash, path_prefix)
+    def compare_hashes(old_hash, new_hash, path_prefix, ignored_keys = [])
       changes = []
       all_keys = (old_hash.keys + new_hash.keys).uniq.sort
+      
+      # Combine class-level ignored keys with parameter ignored keys
+      all_ignored_keys = IGNORED_KEYS + ignored_keys
       
       all_keys.each do |key|
         current_path = path_prefix.empty? ? key : "#{path_prefix}.#{key}"
         
         # Skip ignored keys
-        next if IGNORED_KEYS.any? { |ignored_key| current_path == ignored_key }
+        next if all_ignored_keys.any? { |ignored_key| current_path == ignored_key }
         
         old_value = old_hash[key]
         new_value = new_hash[key]
@@ -140,7 +146,7 @@ module SchemaTools
         elsif old_value != new_value
           if old_value.is_a?(Hash) && new_value.is_a?(Hash) ||
              old_value.is_a?(Array) && new_value.is_a?(Array)
-            changes.concat(compare_objects(old_value, new_value, current_path))
+            changes.concat(compare_objects(old_value, new_value, current_path, ignored_keys))
           else
             changes << "🔄 MODIFIED: #{current_path}"
             changes.concat(format_value_details("Old value", old_value, "  "))
@@ -152,7 +158,7 @@ module SchemaTools
       changes
     end
 
-    def compare_arrays(old_array, new_array, path_prefix)
+    def compare_arrays(old_array, new_array, path_prefix, ignored_keys = [])
       changes = []
       
       if old_array.length != new_array.length
@@ -169,7 +175,7 @@ module SchemaTools
         if old_value != new_value
           if old_value.is_a?(Hash) && new_value.is_a?(Hash) ||
              old_value.is_a?(Array) && new_value.is_a?(Array)
-            changes.concat(compare_objects(old_value, new_value, current_path))
+            changes.concat(compare_objects(old_value, new_value, current_path, ignored_keys))
           else
             changes << "🔄 MODIFIED: #{current_path}"
             changes.concat(format_value_details("Old value", old_value, "  "))

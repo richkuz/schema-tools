@@ -94,7 +94,11 @@ module SchemaTools
         normalized_local_settings = self.normalize_local_settings(local_settings)
         normalized_remote_settings = self.normalize_remote_settings(filtered_remote_settings)
 
-        result[:settings_diff] = json_diff.generate_diff(normalized_remote_settings, normalized_local_settings)
+        # Check for replica count differences first
+        replica_warning = check_replica_count_difference(normalized_remote_settings, normalized_local_settings)
+        
+        # Generate diff while ignoring number_of_replicas
+        result[:settings_diff] = json_diff.generate_diff(normalized_remote_settings, normalized_local_settings, ignored_keys: ["index.number_of_replicas"])
         result[:mappings_diff] = json_diff.generate_diff(remote_mappings, local_mappings)
         
         result[:comparison_context] = {
@@ -108,8 +112,10 @@ module SchemaTools
           }
         }
         
+        # Set status based on diff results
         if result[:settings_diff] == "No changes detected" && result[:mappings_diff] == "No changes detected"
           result[:status] = :no_changes
+          result[:replica_warning] = replica_warning if replica_warning
         else
           result[:status] = :changes_detected
         end
@@ -163,9 +169,37 @@ module SchemaTools
 
       puts "Mappings Comparison:"
       puts schema_diff[:mappings_diff]
+      
+      # Display replica warning if present
+      if schema_diff[:replica_warning]
+        puts
+        puts "⚠️  #{schema_diff[:replica_warning]}"
+      end
     end
 
     private
+
+    def self.check_replica_count_difference(remote_settings, local_settings)
+      remote_replicas = get_replica_count(remote_settings)
+      local_replicas = get_replica_count(local_settings)
+      
+      if remote_replicas && local_replicas && remote_replicas != local_replicas
+        "WARNING: The specified number of replicas #{local_replicas} in the schema could not be applied to the cluster, likely because the cluster isn't running enough nodes."
+      else
+        nil
+      end
+    end
+
+    def self.get_replica_count(settings)
+      return nil unless settings.is_a?(Hash)
+      
+      if settings.key?("index") && settings["index"].is_a?(Hash)
+        settings["index"]["number_of_replicas"]
+      else
+        settings["number_of_replicas"]
+      end
+    end
+
 
     def self.normalize_local_settings(local_settings)
       return local_settings unless local_settings.is_a?(Hash)

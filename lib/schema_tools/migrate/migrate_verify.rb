@@ -7,6 +7,9 @@ module SchemaTools
     
     if diff_result[:status] == :no_changes
       puts "✓ Migration verification successful - no differences detected"
+      if diff_result[:replica_warning]
+        puts "⚠️  #{diff_result[:replica_warning]}"
+      end
       puts "Migration completed successfully!"
     else
       puts "⚠️  Migration verification failed - differences detected:"

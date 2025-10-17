@@ -236,6 +236,64 @@ RSpec.describe SchemaTools::JsonDiff do
         expect(result).to include("ADDED: key2")
       end
     end
+
+    context 'when using ignored_keys parameter' do
+      it 'ignores specified keys during comparison' do
+        obj1 = { "key1" => "value1", "key2" => "value2", "key3" => "value3" }
+        obj2 = { "key1" => "different1", "key2" => "value2", "key3" => "different3" }
+
+        result = json_diff.generate_diff(obj1, obj2, ignored_keys: ["key1"])
+        expect(result).to include("Changes Detected")
+        expect(result).to include("MODIFIED: key3")
+        expect(result).not_to include("key1")
+      end
+
+      it 'ignores nested keys' do
+        obj1 = { "index" => { "replicas" => 1, "shards" => 3, "refresh" => "5s" } }
+        obj2 = { "index" => { "replicas" => 2, "shards" => 3, "refresh" => "1s" } }
+
+        result = json_diff.generate_diff(obj1, obj2, ignored_keys: ["index.replicas"])
+        expect(result).to include("Changes Detected")
+        expect(result).to include("MODIFIED: index.refresh")
+        expect(result).not_to include("replicas")
+      end
+
+      it 'returns no changes when only ignored keys differ' do
+        obj1 = { "index" => { "replicas" => 1, "shards" => 3 } }
+        obj2 = { "index" => { "replicas" => 2, "shards" => 3 } }
+
+        result = json_diff.generate_diff(obj1, obj2, ignored_keys: ["index.replicas"])
+        expect(result).to eq("No changes detected")
+      end
+
+      it 'combines with class-level ignored keys' do
+        # This test assumes IGNORED_KEYS is empty, but tests the combination logic
+        obj1 = { "key1" => "value1", "key2" => "value2" }
+        obj2 = { "key1" => "different1", "key2" => "different2" }
+
+        result = json_diff.generate_diff(obj1, obj2, ignored_keys: ["key1"])
+        expect(result).to include("Changes Detected")
+        expect(result).to include("MODIFIED: key2")
+        expect(result).not_to include("key1")
+      end
+
+      it 'handles multiple ignored keys' do
+        obj1 = { "key1" => "value1", "key2" => "value2", "key3" => "value3" }
+        obj2 = { "key1" => "different1", "key2" => "different2", "key3" => "value3" }
+
+        result = json_diff.generate_diff(obj1, obj2, ignored_keys: ["key1", "key2"])
+        expect(result).to eq("No changes detected")
+      end
+
+      it 'handles empty ignored keys array' do
+        obj1 = { "key1" => "value1" }
+        obj2 = { "key1" => "value2" }
+
+        result = json_diff.generate_diff(obj1, obj2, ignored_keys: [])
+        expect(result).to include("Changes Detected")
+        expect(result).to include("MODIFIED: key1")
+      end
+    end
   end
 
   describe '#normalize_mappings' do

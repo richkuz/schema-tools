@@ -2,20 +2,38 @@ module SchemaTools
   def self.seed(client:)
     # List available indices and aliases (connection already validated during client initialization)
     puts "Connecting to #{Config.connection_url}..."
+    
+    options = print_aliases_and_indices(client)
+    if options.empty?
+      puts "No indices or aliases found in the cluster."
+      puts "Please create an index first."
+      exit 0
+    end
+
+    selected_option = prompt_for_selection(options)
+    puts "Selected #{selected_option[:type]}: #{selected_option[:name]}"
+    
+    num_docs = prompt_for_positive_integer("How many documents would you like to seed?")
+    
+    batch_size = prompt_for_positive_integer("What batch size would you like to use? \nUse a higher number for faster speed, lower number if you hit memory errors.", default: 50)
+    
+    seeder = Seeder::Seeder.new(index_or_alias_name: selected_option[:name], client: client)
+    seeder.seed(num_docs: num_docs, batch_size: batch_size)
+  end
+
+  private
+
+  def self.print_aliases_and_indices(client)
     aliases = client.list_aliases
     indices = client.list_indices
     
     single_aliases = aliases.select { |alias_name, indices| indices.length == 1 && !alias_name.start_with?('.') }
     unaliased_indices = indices.reject { |index| aliases.values.flatten.include?(index) || index.start_with?('.') || client.index_closed?(index) }
     
+    return [] if single_aliases.empty? && unaliased_indices.empty?
+
     # Create a combined list with sequential numbering
     options = []
-    
-    if single_aliases.empty? && unaliased_indices.empty?
-      puts "No indices or aliases found in the cluster."
-      puts "Please create an index first."
-      exit 0
-    end
     
     puts "Available indices and aliases:"
     
@@ -36,7 +54,11 @@ module SchemaTools
         puts "#{option_number}. #{index_name}"
       end
     end
-    
+
+    options
+  end
+
+  def self.prompt_for_selection(options)
     puts "\nPlease select an index or alias by number (1-#{options.length}):"
     selection_input = STDIN.gets&.chomp
     if selection_input.nil?
@@ -50,24 +72,34 @@ module SchemaTools
       exit 1
     end
     
-    selected_option = options[selection - 1]
-    puts "Selected #{selected_option[:type]}: #{selected_option[:name]}"
+    options[selection - 1]
+  end
+
+  def self.prompt_for_positive_integer(message, default: nil)
+    if default
+      puts "\n#{message}"
+      puts "Press Enter to use default value (#{default}) or enter a custom value:"
+    else
+      puts "\n#{message}"
+    end
     
-    # Prompt user for number of documents to seed
-    puts "\nHow many documents would you like to seed?"
-    num_docs_input = STDIN.gets&.chomp
-    if num_docs_input.nil?
+    input = STDIN.gets&.chomp
+    if input.nil?
       puts "No input provided. Exiting."
       exit 1
     end
     
-    num_docs = num_docs_input.to_i
-    if num_docs <= 0
-      puts "Invalid number of documents. Please enter a positive integer."
+    # Use default if input is empty and default is provided
+    if input.empty? && default
+      return default
+    end
+    
+    value = input.to_i
+    if value <= 0
+      puts "Invalid input. Please enter a positive integer."
       exit 1
     end
     
-    seeder = Seeder::Seeder.new(index_or_alias_name: selected_option[:name], client: client)
-    seeder.seed(num_docs: num_docs, batch_size: 5)
+    value
   end
 end

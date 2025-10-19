@@ -31,14 +31,14 @@ RSpec.describe SchemaTools do
 
     context 'when indices are available' do
       it 'lists available indices and prompts for selection' do
-        allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
+        allow(STDIN).to receive(:gets).and_return("1\n", "5\n", "\n")
 
         expect { SchemaTools.seed(client: mock_client) }
           .to output(/Available indices and aliases:/).to_stdout
       end
 
       it 'creates seeder with selected index' do
-        allow(STDIN).to receive(:gets).and_return("2\n", "10\n")
+        allow(STDIN).to receive(:gets).and_return("2\n", "10\n", "\n")
 
         expect(SchemaTools::Seeder::Seeder).to receive(:new).with(
           index_or_alias_name: 'users-2',
@@ -49,16 +49,16 @@ RSpec.describe SchemaTools do
       end
 
       it 'prompts for number of documents to seed' do
-        allow(STDIN).to receive(:gets).and_return("1\n", "25\n")
+        allow(STDIN).to receive(:gets).and_return("1\n", "25\n", "\n")
 
         expect { SchemaTools.seed(client: mock_client) }
           .to output(/How many documents would you like to seed\?/).to_stdout
       end
 
       it 'calls seeder.seed with correct parameters' do
-        allow(STDIN).to receive(:gets).and_return("3\n", "100\n")
+        allow(STDIN).to receive(:gets).and_return("3\n", "100\n", "\n")
 
-        expect(mock_seeder).to receive(:seed).with(num_docs: 100, batch_size: 5)
+        expect(mock_seeder).to receive(:seed).with(num_docs: 100, batch_size: 50)
 
         SchemaTools.seed(client: mock_client)
       end
@@ -67,7 +67,7 @@ RSpec.describe SchemaTools do
         allow(STDIN).to receive(:gets).and_return("1\n", "0\n")
 
         expect { SchemaTools.seed(client: mock_client) }
-          .to output(/Invalid number of documents/).to_stdout
+          .to output(/Invalid input/).to_stdout
           .and raise_error(SystemExit)
       end
 
@@ -75,7 +75,7 @@ RSpec.describe SchemaTools do
         allow(STDIN).to receive(:gets).and_return("1\n", "-5\n")
 
         expect { SchemaTools.seed(client: mock_client) }
-          .to output(/Invalid number of documents/).to_stdout
+          .to output(/Invalid input/).to_stdout
           .and raise_error(SystemExit)
       end
 
@@ -83,7 +83,7 @@ RSpec.describe SchemaTools do
         allow(STDIN).to receive(:gets).and_return("1\n", "abc\n")
 
         expect { SchemaTools.seed(client: mock_client) }
-          .to output(/Invalid number of documents/).to_stdout
+          .to output(/Invalid input/).to_stdout
           .and raise_error(SystemExit)
       end
 
@@ -128,7 +128,7 @@ RSpec.describe SchemaTools do
       end
 
       it 'handles seeder initialization failure' do
-        allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
+        allow(STDIN).to receive(:gets).and_return("1\n", "5\n", "\n")
         allow(SchemaTools::Seeder::Seeder).to receive(:new).and_raise("No custom document seeder, sample documents, or mappings found for products-1")
 
         expect { SchemaTools.seed(client: mock_client) }
@@ -160,14 +160,14 @@ RSpec.describe SchemaTools do
       end
 
       it 'shows aliases first in the list' do
-        allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
+        allow(STDIN).to receive(:gets).and_return("1\n", "5\n", "\n")
 
         expect { SchemaTools.seed(client: mock_client) }
           .to output(/1\. products -> products-20251014142208/).to_stdout
       end
 
       it 'creates seeder with alias name' do
-        allow(STDIN).to receive(:gets).and_return("1\n", "10\n")
+        allow(STDIN).to receive(:gets).and_return("1\n", "10\n", "\n")
 
         expect(SchemaTools::Seeder::Seeder).to receive(:new).with(
           index_or_alias_name: 'products',
@@ -178,7 +178,7 @@ RSpec.describe SchemaTools do
       end
 
       it 'shows selected alias message' do
-        allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
+        allow(STDIN).to receive(:gets).and_return("1\n", "5\n", "\n")
 
         expect { SchemaTools.seed(client: mock_client) }
           .to output(/Selected alias: products/).to_stdout
@@ -188,19 +188,19 @@ RSpec.describe SchemaTools do
     context 'integration with real input' do
       it 'processes complete workflow successfully' do
         # Mock user input: select index 2, seed 50 documents
-        allow(STDIN).to receive(:gets).and_return("2\n", "50\n")
+        allow(STDIN).to receive(:gets).and_return("2\n", "50\n", "\n")
 
         expect(SchemaTools::Seeder::Seeder).to receive(:new).with(
           index_or_alias_name: 'users-2',
           client: mock_client
         )
-        expect(mock_seeder).to receive(:seed).with(num_docs: 50, batch_size: 5)
+        expect(mock_seeder).to receive(:seed).with(num_docs: 50, batch_size: 50)
 
         SchemaTools.seed(client: mock_client)
       end
 
       it 'shows progress messages' do
-        allow(STDIN).to receive(:gets).and_return("1\n", "10\n")
+        allow(STDIN).to receive(:gets).and_return("1\n", "10\n", "\n")
 
         expect { SchemaTools.seed(client: mock_client) }
           .to output(/Selected index: products-1/).to_stdout

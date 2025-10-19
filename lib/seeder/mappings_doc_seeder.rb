@@ -13,7 +13,7 @@ module SchemaTools::Seeder
       document = {}
       
       (@mappings.dig('properties') || {}).each do |field_name, field_config|
-        value = generate_field_value(field_config)
+        value = self.class.generate_field_value(field_config)
         # Skip fields that return nil (like alias fields)
         document[field_name] = value unless value.nil?
       end
@@ -21,7 +21,7 @@ module SchemaTools::Seeder
       document
     end
 
-    def generate_field_value(field_config)
+    def self.generate_field_value(field_config)
       field_type = field_config['type']
       
       case field_type
@@ -94,13 +94,13 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_text_value
+    def self.generate_text_value
       # Generate a paragraph of 10-50 words
       word_count = rand(10..50)
       word_count.times.map { dictionary_words.sample }.join(' ')
     end
 
-    def generate_keyword_value
+    def self.generate_keyword_value
       # Generate a short phrase or single word
       case rand(1..4)
       when 1
@@ -114,7 +114,7 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_integer_value
+    def self.generate_integer_value
       # Generate reasonable integer values based on common use cases
       case rand(1..5)
       when 1
@@ -130,7 +130,7 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_short_value
+    def self.generate_short_value
       # Generate short values within Java short range (-32,768 to 32,767)
       case rand(1..3)
       when 1
@@ -142,7 +142,7 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_float_value
+    def self.generate_float_value
       # Generate decimal numbers
       case rand(1..3)
       when 1
@@ -154,11 +154,11 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_boolean_value
+    def self.generate_boolean_value
       [true, false].sample
     end
 
-    def generate_date_value(format = nil)
+    def self.generate_date_value(format = nil)
       # Generate a random date within the last year
       start_time = Time.now - (365 * 24 * 60 * 60) # one year ago
       random_time = Time.at(start_time.to_i + rand(Time.now.to_i - start_time.to_i))
@@ -182,7 +182,7 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_object_value(properties)
+    def self.generate_object_value(properties)
       return {} unless properties
       
       object = {}
@@ -200,7 +200,7 @@ module SchemaTools::Seeder
       object
     end
 
-    def generate_nested_value(properties)
+    def self.generate_nested_value(properties)
       return [] unless properties
       
       # Generate 1-3 nested objects
@@ -222,7 +222,7 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_rank_features_value
+    def self.generate_rank_features_value
       # Generate a rank_features object with random feature names and scores
       # OpenSearch requires positive normal floats with minimum value of 1.17549435E-38
       feature_count = rand(3..8)
@@ -242,7 +242,7 @@ module SchemaTools::Seeder
       features
     end
 
-    def generate_geo_point_value
+    def self.generate_geo_point_value
       # Generate random latitude/longitude coordinates
       {
         lat: (rand * 180 - 90).round(6), # -90 to 90
@@ -250,7 +250,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_ip_value
+    def self.generate_ip_value
       # Generate random IP addresses
       case rand(1..2)
       when 1
@@ -262,14 +262,14 @@ module SchemaTools::Seeder
       end
     end
 
-    def generate_binary_value
+    def self.generate_binary_value
       # Generate base64 encoded random data
       require 'base64'
       random_bytes = (0...32).map { rand(256) }.pack('C*')
       Base64.encode64(random_bytes).strip
     end
 
-    def generate_completion_value
+    def self.generate_completion_value
       # Generate completion suggestions
       {
         'input' => [dictionary_words.sample, "#{dictionary_words.sample} #{dictionary_words.sample}"],
@@ -277,54 +277,54 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_search_as_you_type_value
+    def self.generate_search_as_you_type_value
       # Generate search-as-you-type text
       "#{dictionary_words.sample} #{dictionary_words.sample} #{dictionary_words.sample}"
     end
 
-    def generate_token_count_value
+    def self.generate_token_count_value
       # Generate token count (integer representing number of tokens)
       rand(1..50)
     end
 
-    def generate_byte_value
+    def self.generate_byte_value
       # Generate byte values (-128 to 127)
       rand(-128..127)
     end
 
-    def generate_half_float_value
+    def self.generate_half_float_value
       # Generate half-float values (smaller range than regular float)
       (rand * 100 - 50).round(2)
     end
 
-    def generate_scaled_float_value
+    def self.generate_scaled_float_value
       # Generate scaled float values (multiplied by scaling factor)
       (rand * 100).round(2)
     end
 
-    def generate_unsigned_long_value
+    def self.generate_unsigned_long_value
       # Generate unsigned long values (0 to 2^64-1, but keep reasonable)
       rand(0..999_999_999)
     end
 
-    def generate_date_nanos_value
+    def self.generate_date_nanos_value
       # Generate date with nanosecond precision
       start_time = Time.now - (365 * 24 * 60 * 60)
       random_time = Time.at(start_time.to_i + rand(Time.now.to_i - start_time.to_i))
       random_time.iso8601(9) # Include nanoseconds
     end
 
-    def generate_wildcard_value
+    def self.generate_wildcard_value
       # Generate wildcard text (similar to keyword but optimized for wildcard queries)
       "#{dictionary_words.sample}_#{rand(1000..9999)}"
     end
 
-    def generate_constant_keyword_value
+    def self.generate_constant_keyword_value
       # Generate constant keyword (always the same value)
       "constant_value"
     end
 
-    def generate_geo_shape_value
+    def self.generate_geo_shape_value
       # Generate simple geo shapes (point)
       {
         'type' => "point",
@@ -332,7 +332,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_date_range_value
+    def self.generate_date_range_value
       # Generate date range
       start_date = Time.now - (365 * 24 * 60 * 60)
       end_date = Time.now
@@ -342,7 +342,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_integer_range_value
+    def self.generate_integer_range_value
       # Generate integer range
       start_val = rand(-1000..1000)
       end_val = start_val + rand(1..1000)
@@ -352,7 +352,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_float_range_value
+    def self.generate_float_range_value
       # Generate float range
       start_val = (rand * 100 - 50).round(2)
       end_val = start_val + (rand * 100).round(2)
@@ -362,7 +362,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_long_range_value
+    def self.generate_long_range_value
       # Generate long range
       start_val = rand(-1_000_000..1_000_000)
       end_val = start_val + rand(1..1_000_000)
@@ -372,7 +372,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_double_range_value
+    def self.generate_double_range_value
       # Generate double range
       start_val = (rand * 1000 - 500).round(4)
       end_val = start_val + (rand * 1000).round(4)
@@ -382,7 +382,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def generate_ip_range_value
+    def self.generate_ip_range_value
       # Generate IP range with proper ordering
       # Generate a base IP and add a small range to it
       base_ip = "#{rand(1..254)}.#{rand(0..255)}.#{rand(0..255)}.#{rand(1..254)}"
@@ -402,7 +402,7 @@ module SchemaTools::Seeder
       }
     end
 
-    def dictionary_words
+    def self.dictionary_words
       @dictionary_words ||= begin
         File.readlines('/usr/share/dict/words')
             .map(&:chomp)

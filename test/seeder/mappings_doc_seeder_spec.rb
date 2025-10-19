@@ -80,11 +80,11 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     end
   end
 
-  describe '#generate_field_value' do
+  describe '.generate_field_value' do
     context 'text fields' do
       it 'generates text content' do
         field_config = { 'type' => 'text' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result.split.length).to be_between(10, 50)
@@ -94,7 +94,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'keyword fields' do
       it 'generates keyword content' do
         field_config = { 'type' => 'keyword' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result.length).to be > 0
@@ -104,7 +104,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'integer fields' do
       it 'generates integer values' do
         field_config = { 'type' => 'integer' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be_between(-100, 999_999_999)
@@ -114,7 +114,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'long fields' do
       it 'generates long values' do
         field_config = { 'type' => 'long' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be_between(-100, 999_999_999)
@@ -124,7 +124,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'short fields' do
       it 'generates short values within valid range' do
         field_config = { 'type' => 'short' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be_between(-100, 100) # Within Java short range
@@ -134,7 +134,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'float fields' do
       it 'generates float values' do
         field_config = { 'type' => 'float' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Float)
         expect(result).to be_between(-5.0, 1000.0)
@@ -144,7 +144,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'double fields' do
       it 'generates double values' do
         field_config = { 'type' => 'double' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Float)
         expect(result).to be_between(-5.0, 1000.0)
@@ -154,7 +154,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'boolean fields' do
       it 'generates boolean values' do
         field_config = { 'type' => 'boolean' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect([true, false]).to include(result)
       end
@@ -163,7 +163,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'date fields' do
       it 'generates ISO 8601 date strings by default' do
         field_config = { 'type' => 'date' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result).to match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
@@ -171,7 +171,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
 
       it 'generates epoch_millis format when specified' do
         field_config = { 'type' => 'date', 'format' => 'epoch_millis' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be > 1_000_000_000_000 # Should be milliseconds since epoch
@@ -179,7 +179,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
 
       it 'generates epoch_second format when specified' do
         field_config = { 'type' => 'date', 'format' => 'epoch_second' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be > 1_000_000_000 # Should be seconds since epoch
@@ -187,7 +187,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
 
       it 'generates yyyy-MM-dd format when specified' do
         field_config = { 'type' => 'date', 'format' => 'yyyy-MM-dd' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result).to match(/\d{4}-\d{2}-\d{2}/)
@@ -203,7 +203,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
             'age' => { 'type' => 'integer' }
           }
         }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('name')
@@ -214,7 +214,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
 
       it 'handles empty object properties' do
         field_config = { 'type' => 'object', 'properties' => nil }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to eq({})
       end
@@ -229,7 +229,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
             'content' => { 'type' => 'text' }
           }
         }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_an(Array)
         expect(result.length).to be_between(1, 3)
@@ -244,7 +244,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
 
       it 'handles empty nested properties' do
         field_config = { 'type' => 'nested', 'properties' => nil }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to eq([])
       end
@@ -253,7 +253,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'rank_features fields' do
       it 'generates rank features object' do
         field_config = { 'type' => 'rank_features' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result.keys.length).to be_between(3, 8)
@@ -270,7 +270,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'completion fields' do
       it 'generates completion suggestions' do
         field_config = { 'type' => 'completion' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('input')
@@ -285,7 +285,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'search_as_you_type fields' do
       it 'generates search-as-you-type text' do
         field_config = { 'type' => 'search_as_you_type' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result.split.length).to be_between(1, 3)
@@ -295,7 +295,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'token_count fields' do
       it 'generates token count values' do
         field_config = { 'type' => 'token_count' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be_between(1, 50)
@@ -305,7 +305,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'alias fields' do
       it 'returns nil for alias fields' do
         field_config = { 'type' => 'alias' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_nil
       end
@@ -314,7 +314,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'byte fields' do
       it 'generates byte values within valid range' do
         field_config = { 'type' => 'byte' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be_between(-128, 127)
@@ -324,7 +324,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'half_float fields' do
       it 'generates half-float values' do
         field_config = { 'type' => 'half_float' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Float)
         expect(result).to be_between(-50.0, 50.0)
@@ -334,7 +334,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'scaled_float fields' do
       it 'generates scaled float values' do
         field_config = { 'type' => 'scaled_float' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Float)
         expect(result).to be_between(0.0, 100.0)
@@ -344,7 +344,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'unsigned_long fields' do
       it 'generates unsigned long values' do
         field_config = { 'type' => 'unsigned_long' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Integer)
         expect(result).to be_between(0, 999_999_999)
@@ -354,7 +354,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'date_nanos fields' do
       it 'generates date with nanosecond precision' do
         field_config = { 'type' => 'date_nanos' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result).to match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}/)
@@ -364,7 +364,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'wildcard fields' do
       it 'generates wildcard text' do
         field_config = { 'type' => 'wildcard' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result).to match(/\w+_\d+/)
@@ -374,7 +374,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'constant_keyword fields' do
       it 'generates constant keyword value' do
         field_config = { 'type' => 'constant_keyword' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to eq('constant_value')
       end
@@ -383,7 +383,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'geo_shape fields' do
       it 'generates geo shape objects' do
         field_config = { 'type' => 'geo_shape' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('type')
@@ -399,7 +399,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'date_range fields' do
       it 'generates date range objects' do
         field_config = { 'type' => 'date_range' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('gte')
@@ -414,7 +414,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'integer_range fields' do
       it 'generates integer range objects' do
         field_config = { 'type' => 'integer_range' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('gte')
@@ -428,7 +428,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'float_range fields' do
       it 'generates float range objects' do
         field_config = { 'type' => 'float_range' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('gte')
@@ -442,7 +442,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'long_range fields' do
       it 'generates long range objects' do
         field_config = { 'type' => 'long_range' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('gte')
@@ -456,7 +456,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'double_range fields' do
       it 'generates double range objects' do
         field_config = { 'type' => 'double_range' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('gte')
@@ -470,7 +470,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'ip_range fields' do
       it 'generates IP range objects' do
         field_config = { 'type' => 'ip_range' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key('gte')
@@ -485,7 +485,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'geo_point fields' do
       it 'generates valid geo_point coordinates' do
         field_config = { 'type' => 'geo_point' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(Hash)
         expect(result).to have_key(:lat)
@@ -498,7 +498,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'ip fields' do
       it 'generates valid IP addresses' do
         field_config = { 'type' => 'ip' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result).to match(/\d+\.\d+\.\d+\.\d+|2001:db8::/)
@@ -508,7 +508,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'binary fields' do
       it 'generates base64 encoded data' do
         field_config = { 'type' => 'binary' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result.length).to be > 0
@@ -520,7 +520,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     context 'unknown field types' do
       it 'defaults to keyword for unknown types' do
         field_config = { 'type' => 'unknown_type' }
-        result = seeder.generate_field_value(field_config)
+        result = described_class.generate_field_value(field_config)
         
         expect(result).to be_a(String)
         expect(result.length).to be > 0
@@ -571,15 +571,15 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     end
   end
 
-  describe '#dictionary_words' do
+  describe '.dictionary_words' do
     it 'contains a substantial word list' do
-      words = seeder.dictionary_words
+      words = described_class.dictionary_words
       expect(words).to be_an(Array)
       expect(words.length).to be > 100
     end
 
     it 'contains technical terms or fallback words' do
-      words = seeder.dictionary_words
+      words = described_class.dictionary_words
       # Either the system dictionary or fallback words should be present
       # The fallback word list includes these terms, system dict might not
       fallback_terms = ['elasticsearch', 'opensearch', 'ruby', 'document']
@@ -592,7 +592,7 @@ RSpec.describe SchemaTools::Seeder::MappingsDocSeeder do
     end
 
     it 'contains common words or fallback words' do
-      words = seeder.dictionary_words
+      words = described_class.dictionary_words
       # Either the system dictionary or fallback words should be present
       fallback_terms = ['lorem', 'ipsum', 'dolor', 'sit']
       system_terms = ['the', 'and', 'for', 'are']

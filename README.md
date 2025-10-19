@@ -167,9 +167,9 @@ Add a `sample_docs.json` file in the schema folder with example docs to randomly
 Add a `doc_seeder.rb` file in the schema folder with a class DocSeeder
 
 ```ruby
+# schema:seed invokes this class when seeding test data for this index
 class DocSeeder
-  def initialize(index_or_alias_name)
-  end
+  def initialize(index_or_alias_name) end
   def generate_document
     return {
       'title' => 'Foo',

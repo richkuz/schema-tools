@@ -16,7 +16,9 @@ module SchemaTools::Seeder
       sample_docs = SchemaTools::SchemaFiles.get_sample_docs(@index_or_alias_name)
       return SampleDocSeeder.new(sample_docs) if sample_docs
 
-      mappings = @client.get_index_mappings(@index_or_alias_name)
+      # Resolve alias to actual index name if needed
+      actual_index_name = resolve_to_index_name(@index_or_alias_name)
+      mappings = @client.get_index_mappings(actual_index_name)
       return MappingsDocSeeder.new(mappings) if mappings
 
       raise "No custom document seeder, sample documents, or mappings found for #{@index_or_alias_name}"
@@ -94,6 +96,22 @@ module SchemaTools::Seeder
       return unless error_info['caused_by']
 
       puts "    Caused by: #{error_info['caused_by']['type']} - #{error_info['caused_by']['reason']}"
+    end
+
+    private
+
+    def resolve_to_index_name(name)
+      # If it's an alias, get the actual index name it points to
+      if @client.alias_exists?(name)
+        indices = @client.get_alias_indices(name)
+        if indices.length != 1
+          raise "Alias '#{name}' points to multiple indices: #{indices.join(', ')}. Cannot determine which index to use for seeding."
+        end
+        return indices.first
+      end
+      
+      # If it's already an index name, return it as-is
+      name
     end
   end
 end

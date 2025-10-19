@@ -1,0 +1,154 @@
+{
+  "hits": [
+    {
+      "_source": {
+        "category": "Kitchen",
+        "computed_value": 466,
+        "created_at": "2025-03-14T18:09:26-04:00",
+        "description": "Powerful 10-speed mixer for all your baking needs.",
+        "id": "f47b3c2e-8a91-4d5f-b234-7e9c6d1a5f82",
+        "inventory_count": 75,
+        "name": "Professional Stand Mixer",
+        "price": 259.99,
+        "sku": "SKU-7H9K-2M4P-8X6N",
+        "tags": "mixers cooking baking appliance",
+        "updated_at": "2025-09-07T13:36:32-05:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Electronics",
+        "computed_value": 912,
+        "created_at": "2025-01-20T10:00:00-05:00",
+        "description": "Noise-cancelling over-ear headphones with 40-hour battery life.",
+        "id": "e2a1b0c9-3d4f-5e6a-7b8c-9d0e1f2a3b4c",
+        "inventory_count": 120,
+        "name": "Acoustic Pro Headphones",
+        "price": 199.99,
+        "sku": "SKU-ELEC-HP-001",
+        "tags": "audio headphones noise-cancelling tech",
+        "updated_at": "2025-08-15T09:12:00-05:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Home Decor",
+        "computed_value": 155,
+        "created_at": "2025-05-01T14:30:00-04:00",
+        "description": "Hand-poured soy wax candle with a subtle lavender scent.",
+        "id": "d3b2a1c0-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
+        "inventory_count": 350,
+        "name": "Lavender Harmony Candle",
+        "price": 19.50,
+        "sku": "SKU-DECO-CA-045",
+        "tags": "candle scent lavender relaxation",
+        "updated_at": "2025-09-19T17:01:00-04:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Apparel",
+        "computed_value": 601,
+        "created_at": "2024-12-05T08:15:00-05:00",
+        "description": "Classic fit, 100% organic cotton t-shirt in forest green.",
+        "id": "c4d3b2a1-5f6e-7a8b-9c0d-1e2f3a4b5c6d",
+        "inventory_count": 800,
+        "name": "Organic Cotton Tee",
+        "price": 29.99,
+        "sku": "SKU-APRL-TSH-GRN",
+        "tags": "clothing shirt men's cotton organic",
+        "updated_at": "2025-07-22T11:45:00-05:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Fitness",
+        "computed_value": 732,
+        "created_at": "2025-02-10T16:00:00-05:00",
+        "description": "Non-slip yoga mat, extra thick for comfort and support.",
+        "id": "b5c4d3e2-6a7f-8b9c-0d1e-2f3a4b5c6d7e",
+        "inventory_count": 210,
+        "name": "Extra Thick Yoga Mat",
+        "price": 45.00,
+        "sku": "SKU-FIT-YMAT-XL",
+        "tags": "yoga fitness exercise mat accessory",
+        "updated_at": "2025-09-01T06:30:00-04:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Tools",
+        "computed_value": 510,
+        "created_at": "2025-04-20T09:45:00-04:00",
+        "description": "Compact 18V cordless drill with two lithium-ion batteries.",
+        "id": "a6b5c4d3-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+        "inventory_count": 95,
+        "name": "Cordless Drill Set",
+        "price": 89.95,
+        "sku": "SKU-TOOL-DRL-18V",
+        "tags": "power tool drill construction home improvement",
+        "updated_at": "2025-06-18T14:20:00-04:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Books",
+        "computed_value": 320,
+        "created_at": "2025-03-01T12:00:00-05:00",
+        "description": "A thrilling science fiction novel exploring future civilizations.",
+        "id": "97a6b5c4-8f9e-0a1b-2c3d-4e5f6a7b8c9d",
+        "inventory_count": 450,
+        "name": "The Celestial Cartographer",
+        "price": 14.99,
+        "sku": "SKU-BOOK-SF-012",
+        "tags": "book fiction sci-fi reading novel",
+        "updated_at": "2025-05-10T10:00:00-04:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Kitchen",
+        "computed_value": 288,
+        "created_at": "2025-06-15T11:30:00-04:00",
+        "description": "Set of three non-stick frying pans: 8, 10, and 12 inch.",
+        "id": "8897a6b5-9e0f-1a2b-3c4d-5e6f7a8b9c0e",
+        "inventory_count": 150,
+        "name": "Teflon Pan Set (3-Piece)",
+        "price": 79.99,
+        "sku": "SKU-7E7W-0K2P-3X4N",
+        "tags": "pans cooking non-stick cookware",
+        "updated_at": "2025-08-01T15:00:00-04:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Toys",
+        "computed_value": 112,
+        "created_at": "2025-07-25T14:00:00-04:00",
+        "description": "Wooden block set with 50 brightly colored, non-toxic pieces.",
+        "id": "798897a6-0f1e-2b3a-4c5d-6e7f8a9b0c1d",
+        "inventory_count": 600,
+        "name": "Classic Building Blocks",
+        "price": 25.00,
+        "sku": "SKU-TOY-BLCK-50P",
+        "tags": "toy blocks wooden kids educational",
+        "updated_at": "2025-09-05T18:00:00-04:00"
+      }
+    },
+    {
+      "_source": {
+        "category": "Gardening",
+        "computed_value": 199,
+        "created_at": "2025-04-05T07:00:00-04:00",
+        "description": "High-quality, stainless steel trowel with ergonomic grip.",
+        "id": "6a798897-1e2f-3b4a-5c6d-7e8f9a0b1c2e",
+        "inventory_count": 400,
+        "name": "Stainless Steel Trowel",
+        "price": 12.99,
+        "sku": "SKU-GRDN-TOOL-TRW",
+        "tags": "gardening tool metal planting outdoor",
+        "updated_at": "2025-08-20T09:30:00-04:00"
+      }
+    }
+  ]
+}

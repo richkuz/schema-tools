@@ -134,9 +134,54 @@ schemas/users
 
 Each schema folder name matches the name of an alias.
 
-## Other settings and tasks
+## Seed sample data
 
 Use `rake schema:seed` to seed an index with sample documents that conform to your schema.
+
+The seeder can generate sample docs for an index 3 ways:
+
+1. (Default) Mappings-based seeder
+
+The seeder generates random data that conforms to the index's mappings.
+
+2. Sample-based seeder
+
+Add a `sample_docs.json` file in the schema folder with example docs to randomly select from when seeding:
+
+```json
+{
+  "hits": [
+    {
+      "_source": {
+        "title": "Foo",
+        "desc": "Bar"
+      }
+    },
+    ...
+  ]
+}
+```
+
+3. Custom document seeder
+
+Add a `doc_seeder.rb` file in the schema folder with a class DocSeeder
+
+```ruby
+class DocSeeder
+  def initialize(index_or_alias_name)
+  end
+  def generate_document
+    return {
+      'title' => 'Foo',
+      'desc' => 'Bar'
+    }
+  end
+end
+```
+
+The seeder first looks for a Custom document seeder. If none found, it falls back to a Sample seeder. If no sample documents found, it falls back to a Mappings seeder.
+
+## Other settings and tasks
 
 Use `DRYRUN` to simulate but not apply any POST/PUT/DELETE operations to your index:
 

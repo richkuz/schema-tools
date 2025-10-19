@@ -51,7 +51,6 @@ module SchemaTools
     end
     
     selected_option = options[selection - 1]
-    selected_index = selected_option[:index]
     puts "Selected #{selected_option[:type]}: #{selected_option[:name]}"
     
     # Prompt user for number of documents to seed

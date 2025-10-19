@@ -7,6 +7,7 @@ RSpec.describe SchemaTools do
   describe '.seed' do
     let(:mock_client) { double('client') }
     let(:sample_indices) { ['products-1', 'users-2', 'orders-3'] }
+    let(:sample_aliases) { {} }
     let(:sample_mappings) do
       {
         'properties' => {
@@ -15,12 +16,17 @@ RSpec.describe SchemaTools do
         }
       }
     end
+    let(:mock_seeder) { double('seeder') }
 
     before do
       allow(SchemaTools::Config).to receive(:connection_url).and_return('http://localhost:9200')
       allow(mock_client).to receive(:list_indices).and_return(sample_indices)
+      allow(mock_client).to receive(:list_aliases).and_return(sample_aliases)
       allow(mock_client).to receive(:get_index_mappings).and_return(sample_mappings)
-      allow(Seed).to receive(:seed_data)
+      allow(mock_client).to receive(:alias_exists?).and_return(false)
+      allow(mock_client).to receive(:index_closed?).and_return(false)
+      allow(SchemaTools::Seeder::Seeder).to receive(:new).and_return(mock_seeder)
+      allow(mock_seeder).to receive(:seed)
     end
 
     context 'when indices are available' do
@@ -28,13 +34,16 @@ RSpec.describe SchemaTools do
         allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
 
         expect { SchemaTools.seed(client: mock_client) }
-          .to output(/Available indices:/).to_stdout
+          .to output(/Available indices and aliases:/).to_stdout
       end
 
-      it 'fetches mappings for selected index' do
+      it 'creates seeder with selected index' do
         allow(STDIN).to receive(:gets).and_return("2\n", "10\n")
 
-        expect(mock_client).to receive(:get_index_mappings).with('users-2')
+        expect(SchemaTools::Seeder::Seeder).to receive(:new).with(
+          index_or_alias_name: 'users-2',
+          client: mock_client
+        )
 
         SchemaTools.seed(client: mock_client)
       end
@@ -46,10 +55,10 @@ RSpec.describe SchemaTools do
           .to output(/How many documents would you like to seed\?/).to_stdout
       end
 
-      it 'calls Seed.seed_data with correct parameters' do
+      it 'calls seeder.seed with correct parameters' do
         allow(STDIN).to receive(:gets).and_return("3\n", "100\n")
 
-        expect(Seed).to receive(:seed_data).with(100, sample_mappings, mock_client, 'orders-3')
+        expect(mock_seeder).to receive(:seed).with(num_docs: 100, batch_size: 5)
 
         SchemaTools.seed(client: mock_client)
       end
@@ -118,25 +127,61 @@ RSpec.describe SchemaTools do
           .and raise_error(SystemExit)
       end
 
-      it 'handles failed mapping fetch' do
-        allow(STDIN).to receive(:gets).and_return("1\n")
-        allow(mock_client).to receive(:get_index_mappings).and_return(nil)
+      it 'handles seeder initialization failure' do
+        allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
+        allow(SchemaTools::Seeder::Seeder).to receive(:new).and_raise("No custom document seeder, sample documents, or mappings found for products-1")
 
         expect { SchemaTools.seed(client: mock_client) }
-          .to output(/Failed to fetch mappings/).to_stdout
-          .and raise_error(SystemExit)
+          .to raise_error("No custom document seeder, sample documents, or mappings found for products-1")
       end
     end
 
     context 'when no indices are available' do
       before do
         allow(mock_client).to receive(:list_indices).and_return([])
+        allow(mock_client).to receive(:list_aliases).and_return({})
       end
 
       it 'exits gracefully with message' do
         expect { SchemaTools.seed(client: mock_client) }
-          .to output(/No indices found in the cluster/).to_stdout
+          .to output(/No indices or aliases found in the cluster/).to_stdout
           .and raise_error(SystemExit)
+      end
+    end
+
+    context 'with aliases' do
+      let(:sample_aliases) { { 'products' => ['products-20251014142208'] } }
+      let(:sample_indices) { ['products-1', 'users-2'] }
+
+      before do
+        allow(mock_client).to receive(:list_aliases).and_return(sample_aliases)
+        allow(mock_client).to receive(:alias_exists?).with('products').and_return(true)
+        allow(mock_client).to receive(:get_alias_indices).with('products').and_return(['products-20251014142208'])
+      end
+
+      it 'shows aliases first in the list' do
+        allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
+
+        expect { SchemaTools.seed(client: mock_client) }
+          .to output(/1\. products -> products-20251014142208/).to_stdout
+      end
+
+      it 'creates seeder with alias name' do
+        allow(STDIN).to receive(:gets).and_return("1\n", "10\n")
+
+        expect(SchemaTools::Seeder::Seeder).to receive(:new).with(
+          index_or_alias_name: 'products',
+          client: mock_client
+        )
+
+        SchemaTools.seed(client: mock_client)
+      end
+
+      it 'shows selected alias message' do
+        allow(STDIN).to receive(:gets).and_return("1\n", "5\n")
+
+        expect { SchemaTools.seed(client: mock_client) }
+          .to output(/Selected alias: products/).to_stdout
       end
     end
 
@@ -145,7 +190,11 @@ RSpec.describe SchemaTools do
         # Mock user input: select index 2, seed 50 documents
         allow(STDIN).to receive(:gets).and_return("2\n", "50\n")
 
-        expect(Seed).to receive(:seed_data).with(50, sample_mappings, mock_client, 'users-2')
+        expect(SchemaTools::Seeder::Seeder).to receive(:new).with(
+          index_or_alias_name: 'users-2',
+          client: mock_client
+        )
+        expect(mock_seeder).to receive(:seed).with(num_docs: 50, batch_size: 5)
 
         SchemaTools.seed(client: mock_client)
       end

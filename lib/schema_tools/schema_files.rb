@@ -27,14 +27,15 @@ module SchemaTools
       sample_docs_path = File.join(Config.schemas_path, alias_name, 'sample_docs.json')
       return nil unless File.exist?(sample_docs_path)
 
-      data = JSON.parse(File.read(sample_docs_path))
-      data['hits'].pluck('_source')
+      JSON.parse(File.read(sample_docs_path))
     end
 
     def self.get_doc_seeder_class(alias_name)
       seeder_path = File.join(Config.schemas_path, alias_name, 'doc_seeder.rb')
       
-      File.exist?(seeder_path) ? require(seeder_path) : nil
+      return nil unless File.exist?(seeder_path)
+      require(File.expand_path(seeder_path))
+      return DocSeeder
     end
 
     def self.discover_all_schemas

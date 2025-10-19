@@ -31,17 +31,6 @@ module SchemaTools
     selected_index = indices[selection - 1]
     puts "Selected index: #{selected_index}"
     
-    # Fetch the mappings for the selected index
-    puts "Fetching mappings for #{selected_index}..."
-    mappings = client.get_index_mappings(selected_index)
-    
-    if mappings.nil?
-      puts "Failed to fetch mappings for #{selected_index}"
-      exit 1
-    end
-    
-    puts "Mappings fetched successfully."
-    
     # Prompt user for number of documents to seed
     puts "\nHow many documents would you like to seed?"
     num_docs_input = STDIN.gets&.chomp
@@ -56,9 +45,7 @@ module SchemaTools
       exit 1
     end
     
-    puts "Seeding #{num_docs} documents from #{selected_index}..."
-    
-    # Call the seeding function
-    Seed.seed_data(num_docs, mappings, client, selected_index)
+    seeder = Seeder::Seeder.new(index_or_alias_name: selected_index, client: client)
+    seeder.seed(num_docs: num_docs, batch_size: 5)
   end
 end

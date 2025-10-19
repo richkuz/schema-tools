@@ -23,6 +23,20 @@ module SchemaTools
       File.exist?(script_path) ? File.read(script_path) : nil
     end
 
+    def self.get_sample_docs(alias_name)
+      sample_docs_path = File.join(Config.schemas_path, alias_name, 'sample_docs.json')
+      return nil unless File.exist?(sample_docs_path)
+
+      data = JSON.parse(File.read(sample_docs_path))
+      data['hits'].pluck('_source')
+    end
+
+    def self.get_doc_seeder_class(alias_name)
+      seeder_path = File.join(Config.schemas_path, alias_name, 'doc_seeder.rb')
+      
+      File.exist?(seeder_path) ? require(seeder_path) : nil
+    end
+
     def self.discover_all_schemas
       return [] unless Dir.exist?(Config.schemas_path)
       
